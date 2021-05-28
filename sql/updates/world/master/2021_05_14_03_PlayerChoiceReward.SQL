@@ -1,1 +1,0 @@
-ALTER TABLE `playerchoice_response_reward` ADD COLUMN `SpellID` INT(10) UNSIGNED DEFAULT 0 NOT NULL AFTER `Xp`; 
