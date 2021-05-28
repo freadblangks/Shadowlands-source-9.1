@@ -1,0 +1,8 @@
+## Interface: 90002
+## Title: Best In Slot NG [|cffff975bShadowlands Raids|r]
+## Notes: Shadowlands Raids Module for BestInSlotNG
+## Author: Dangerpuss @ Kazzak - EU
+## Version: v9.0.2
+## Dependencies: BestInSlotNG
+
+BestInSlotNG_ShadowlandsRaids_CastleNathria.lua
