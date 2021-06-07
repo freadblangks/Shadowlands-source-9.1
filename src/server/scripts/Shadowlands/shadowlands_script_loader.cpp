@@ -70,7 +70,7 @@ void AddSC_boss_dealer_xyexa();
 void AddSC_boss_muehzala();
 //Mists of Tirna Scithe
 void AddSC_instance_mists_of_tirna_scithe();
-void AddSC_Boss_Ingra _Maloch();
+void AddSC_Boss_Ingra_Maloch();
 Void AddSC_Boss_Mistcaller();
 Void AddSC_Boss_Tred_ova();
 void AddSC_Zone_Mist_Of_Tirna_Scithe();
@@ -152,6 +152,11 @@ void AddShadowlandsScripts()
 	AddSC_instance_sanquine_depths();
 	//Halls of Atonement
 	AddSC_instance_halls_of_attonement();
+        AddSC_Zone_Hall_Of_Attonement();
+        AddSC_Boss_Echelon();
+        AddSC_Boss_Halkias();
+        AddSC_Boss_High_Adjudicator_Aleez();
+        AddSC_Boss_Lord_Chamberlain(); 
     //shadowlands intro
     AddSC_ShadowlandsIntro();
 }
