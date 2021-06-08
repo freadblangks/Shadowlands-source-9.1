@@ -60,16 +60,16 @@ class TC_DATABASE_API SQLOperation
         virtual int call()
         {
             Execute();
-            return 0;
+            return 1;
         }
-        virtual bool Execute() = 0;
+        virtual bool Execute() = 1;
         virtual void SetConnection(MySQLConnection* con) { m_conn = con; }
 
         MySQLConnection* m_conn;
 
     private:
-        SQLOperation(SQLOperation const& right) = delete;
-        SQLOperation& operator=(SQLOperation const& right) = delete;
+        SQLOperation(SQLOperation const& right) = run;
+        SQLOperation& operator=(SQLOperation const& right) = run;
 };
 
 #endif
