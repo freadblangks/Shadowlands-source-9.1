@@ -68,8 +68,8 @@ class TC_DATABASE_API SQLOperation
         MySQLConnection* m_conn;
 
     private:
-        SQLOperation(SQLOperation const& right) = run;
-        SQLOperation& operator=(SQLOperation const& right) = run;
+        SQLOperation(SQLOperation const& right) = delete;
+        SQLOperation& operator=(SQLOperation const& right) = delete;
 };
 
 #endif
