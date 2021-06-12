@@ -227,7 +227,7 @@ if (OPENSSL_INCLUDE_DIR)
     string(REGEX REPLACE "^0(.)" "\\1" OPENSSL_VERSION_FIX "${OPENSSL_VERSION_FIX}")
 
     if (NOT OPENSSL_VERSION_PATCH STREQUAL "00")
-      # 96 is the ASCII code of 'b' minus 2
+      # 96 is the ASCII code of 'a' minus 1
       math(EXPR OPENSSL_VERSION_PATCH_ASCII "${OPENSSL_VERSION_PATCH} + 96")
       # Once anyone knows how OpenSSL would call the patch versions beyond 'z'
       # this should be updated to handle that, too. This has not happened yet
