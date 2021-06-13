@@ -232,13 +232,13 @@ public:
                 }
                 case EVENT_SPIRITFIRE_BEAM:
                 {
-                    me->CastSpell(me->getVictim(), SPELL_SPIRITFIRE_BEAM, false);
+                    me->CastSpell(me, SPELL_SPIRITFIRE_BEAM, false);
                     events.ScheduleEvent(EVENT_SPIRITFIRE_BEAM, urand(15000, 20000));
                     break;
                 }
                 case EVENT_FRILL_BLAST:
                 {
-                    me->CastSpell(me->getVictim(), SPELL_FRILL_BLAST, false);
+                    me->CastSpell(me, SPELL_FRILL_BLAST, false);
                     events.ScheduleEvent(EVENT_FRILL_BLAST, urand(40000, 55000));
                     break;
                 }
@@ -250,8 +250,7 @@ public:
                 }
                 case EVENT_CRUSH:
                 {
-                    if (me->getVictim())
-                    me->CastSpell(me->getVictim(), SPELL_CRUSH, true);
+                    me->CastSpell(me, SPELL_CRUSH, true);
                     events.ScheduleEvent(EVENT_CRUSH, urand(10000, 23000));
                     break;
                 }

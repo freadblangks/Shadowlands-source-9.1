@@ -94,7 +94,7 @@ public:
         void EnterEvadeMode()
         {
             Reset();
-            me->DeleteThreatList();
+     //       me->DeleteThreatList();
             me->CombatStop(false);
             me->GetMotionMaster()->MoveTargetedHome();
         }
