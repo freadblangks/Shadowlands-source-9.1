@@ -1,5 +1,5 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2020 FuzionCore Project
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -19,16 +19,64 @@
 #include "CreatureTextMgrImpl.h"
 #include "CellImpl.h"
 #include "Chat.h"
-#include "ChatTextBuilder.h"
+#include "ChatPackets.h"
 #include "Common.h"
 #include "DatabaseEnv.h"
 #include "DB2Stores.h"
 #include "GridNotifiersImpl.h"
-#include "LanguageMgr.h"
 #include "Log.h"
 #include "MiscPackets.h"
 #include "ObjectMgr.h"
 #include "World.h"
+
+class CreatureTextBuilder
+{
+public:
+    CreatureTextBuilder(WorldObject const* obj, uint8 gender, ChatMsg msgtype, uint8 textGroup, uint32 id, uint32 language, WorldObject const* target)
+        : _source(obj), _gender(gender), _msgType(msgtype), _textGroup(textGroup), _textId(id), _language(language), _target(target) { }
+
+    WorldPackets::Packet* operator()(LocaleConstant locale) const
+    {
+        std::string const& text = sCreatureTextMgr->GetLocalizedChatString(_source->GetEntry(), _gender, _textGroup, _textId, locale);
+        WorldPackets::Chat::Chat* chat = new WorldPackets::Chat::Chat();
+        chat->Initialize(_msgType, Language(_language), _source, _target, text, 0, "", locale);
+        return chat;
+    }
+
+private:
+    WorldObject const* _source;
+    uint8 _gender;
+    ChatMsg _msgType;
+    uint8 _textGroup;
+    uint32 _textId;
+    uint32 _language;
+    WorldObject const* _target;
+};
+
+class PlayerTextBuilder
+{
+public:
+    PlayerTextBuilder(WorldObject const* obj, WorldObject const* speaker, uint8 gender, ChatMsg msgtype, uint8 textGroup, uint32 id, uint32 language, WorldObject const* target)
+        : _source(obj), _talker(speaker), _gender(gender), _msgType(msgtype), _textGroup(textGroup), _textId(id), _language(language), _target(target) { }
+
+    WorldPackets::Packet* operator()(LocaleConstant locale) const
+    {
+        std::string const& text = sCreatureTextMgr->GetLocalizedChatString(_source->GetEntry(), _gender, _textGroup, _textId, locale);
+        WorldPackets::Chat::Chat* chat = new WorldPackets::Chat::Chat();
+        chat->Initialize(_msgType, Language(_language), _talker, _target, text, 0, "", locale);
+        return chat;
+    }
+
+private:
+    WorldObject const* _source;
+    WorldObject const* _talker;
+    uint8 _gender;
+    ChatMsg _msgType;
+    uint8 _textGroup;
+    uint32 _textId;
+    uint32 _language;
+    WorldObject const* _target;
+};
 
 CreatureTextMgr* CreatureTextMgr::instance()
 {
@@ -60,18 +108,18 @@ void CreatureTextMgr::LoadCreatureTexts()
         Field* fields = result->Fetch();
         CreatureTextEntry temp;
 
-        temp.creatureId      = fields[0].GetUInt32();
-        temp.groupId         = fields[1].GetUInt8();
-        temp.id              = fields[2].GetUInt8();
-        temp.text            = fields[3].GetString();
-        temp.type            = ChatMsg(fields[4].GetUInt8());
-        temp.lang            = Language(fields[5].GetUInt8());
-        temp.probability     = fields[6].GetFloat();
-        temp.emote           = Emote(fields[7].GetUInt32());
-        temp.duration        = fields[8].GetUInt32();
-        temp.sound           = fields[9].GetUInt32();
+        temp.creatureId = fields[0].GetUInt32();
+        temp.groupId = fields[1].GetUInt8();
+        temp.id = fields[2].GetUInt8();
+        temp.text = fields[3].GetString();
+        temp.type = ChatMsg(fields[4].GetUInt8());
+        temp.lang = Language(fields[5].GetUInt8());
+        temp.probability = fields[6].GetFloat();
+        temp.emote = Emote(fields[7].GetUInt32());
+        temp.duration = fields[8].GetUInt32();
+        temp.sound = fields[9].GetUInt32();
         temp.BroadcastTextId = fields[10].GetUInt32();
-        temp.TextRange       = CreatureTextRange(fields[11].GetUInt8());
+        temp.TextRange = CreatureTextRange(fields[11].GetUInt8());
 
         if (temp.sound)
         {
@@ -82,11 +130,11 @@ void CreatureTextMgr::LoadCreatureTexts()
             }
         }
 
-        if (temp.lang != LANG_UNIVERSAL && !sLanguageMgr->IsLanguageExist(temp.lang))
-        {
-            TC_LOG_ERROR("sql.sql", "CreatureTextMgr: Entry %u, Group %u in table `creature_text` using Language %u but Language does not exist.", temp.creatureId, temp.groupId, uint32(temp.lang));
-            temp.lang = LANG_UNIVERSAL;
-        }
+        //if (!GetLang(temp.lang))
+        //{
+          //  TC_LOG_ERROR("sql.sql", "CreatureTextMgr: Entry %u, Group %u in table `creature_text` using Language %u but Language does not exist.", temp.creatureId, temp.groupId, uint32(temp.lang));
+           // temp.lang = LANG_UNIVERSAL;
+        //}
 
         if (temp.type >= MAX_CHAT_MSG_TYPE)
         {
@@ -122,8 +170,7 @@ void CreatureTextMgr::LoadCreatureTexts()
         mTextMap[temp.creatureId][temp.groupId].push_back(temp);
 
         ++textCount;
-    }
-    while (result->NextRow());
+    } while (result->NextRow());
 
     TC_LOG_INFO("server.loading", ">> Loaded %u creature texts for " SZFMTD " creatures in %u ms", textCount, mTextMap.size(), GetMSTimeDiffToNow(oldMSTime));
 }
@@ -143,12 +190,12 @@ void CreatureTextMgr::LoadCreatureTextLocales()
     {
         Field* fields = result->Fetch();
 
-        uint32 creatureId        = fields[0].GetUInt32();
-        uint32 groupId           = fields[1].GetUInt8();
-        uint32 id                = fields[2].GetUInt8();
-        std::string localeName   = fields[3].GetString();
+        uint32 creatureId = fields[0].GetUInt32();
+        uint32 groupId = fields[1].GetUInt8();
+        uint32 id = fields[2].GetUInt8();
+        std::string localeName = fields[3].GetString();
 
-        LocaleConstant locale    = GetLocaleByName(localeName);
+        LocaleConstant locale = GetLocaleByName(localeName);
         if (!IsValidLocale(locale) || locale == LOCALE_enUS)
             continue;
 
@@ -194,9 +241,9 @@ uint32 CreatureTextMgr::SendChat(Creature* source, uint8 textGroup, WorldObject 
     }
 
     auto iter = Trinity::Containers::SelectRandomWeightedContainerElement(tempGroup, [](CreatureTextEntry const& t) -> double
-    {
-        return t.probability;
-    });
+        {
+            return t.probability;
+        });
 
     ChatMsg finalType = (msgType == CHAT_MSG_ADDON) ? iter->type : msgType;
     Language finalLang = (language == LANG_ADDON) ? iter->lang : language;
@@ -211,7 +258,7 @@ uint32 CreatureTextMgr::SendChat(Creature* source, uint8 textGroup, WorldObject 
         range = iter->TextRange;
 
     if (finalSound)
-        SendSound(source, finalSound, finalType, whisperTarget, range, team, gmOnly, iter->BroadcastTextId);
+        (source, finalSound, finalType, whisperTarget, range, team, gmOnly);
 
     Unit* finalSource = source;
     if (srcPlr)
@@ -222,12 +269,12 @@ uint32 CreatureTextMgr::SendChat(Creature* source, uint8 textGroup, WorldObject 
 
     if (srcPlr)
     {
-        Trinity::CreatureTextTextBuilder builder(source, finalSource, finalSource->getGender(), finalType, iter->groupId, iter->id, finalLang, whisperTarget);
+        PlayerTextBuilder builder(source, finalSource, finalSource->getGender(), finalType, iter->groupId, iter->id, finalLang, whisperTarget);
         SendChatPacket(finalSource, builder, finalType, whisperTarget, range, team, gmOnly);
     }
     else
     {
-        Trinity::CreatureTextTextBuilder builder(finalSource, finalSource, finalSource->getGender(), finalType, iter->groupId, iter->id, finalLang, whisperTarget);
+        CreatureTextBuilder builder(finalSource, finalSource->getGender(), finalType, iter->groupId, iter->id, finalLang, whisperTarget);
         SendChatPacket(finalSource, builder, finalType, whisperTarget, range, team, gmOnly);
     }
 
@@ -240,102 +287,101 @@ float CreatureTextMgr::GetRangeForChatType(ChatMsg msgType)
     float dist = sWorld->getFloatConfig(CONFIG_LISTEN_RANGE_SAY);
     switch (msgType)
     {
-        case CHAT_MSG_MONSTER_YELL:
-            dist = sWorld->getFloatConfig(CONFIG_LISTEN_RANGE_YELL);
-            break;
-        case CHAT_MSG_MONSTER_EMOTE:
-        case CHAT_MSG_RAID_BOSS_EMOTE:
-            dist = sWorld->getFloatConfig(CONFIG_LISTEN_RANGE_TEXTEMOTE);
-            break;
-        default:
-            break;
+    case CHAT_MSG_MONSTER_YELL:
+        dist = sWorld->getFloatConfig(CONFIG_LISTEN_RANGE_YELL);
+        break;
+    case CHAT_MSG_MONSTER_EMOTE:
+    case CHAT_MSG_RAID_BOSS_EMOTE:
+        dist = sWorld->getFloatConfig(CONFIG_LISTEN_RANGE_TEXTEMOTE);
+        break;
+    default:
+        break;
     }
 
     return dist;
 }
 
-void CreatureTextMgr::SendSound(Creature* source, uint32 sound, ChatMsg msgType, WorldObject const* whisperTarget /*= nullptr*/, CreatureTextRange range /*= TEXT_RANGE_NORMAL*/,
-    Team team /*= TEAM_OTHER*/, bool gmOnly /*= false*/, uint32 keyBroadcastTextId /*= 0*/)
+void CreatureTextMgr::SendSound(Creature* source, uint32 sound, ChatMsg msgType, WorldObject const* whisperTarget /*= nullptr*/, CreatureTextRange range /*= TEXT_RANGE_NORMAL*/, Team team /*= TEAM_OTHER*/, bool gmOnly /*= false*/)
 {
     if (!sound || !source)
         return;
 
-    SendNonChatPacket(source, WorldPackets::Misc::PlaySound(source->GetGUID(), sound, keyBroadcastTextId).Write(), msgType, whisperTarget, range, team, gmOnly);
+   // SendNonChatPacket(source, WorldPackets::Misc::PlaySound(source->GetGUID(), sound).Write(), msgType, whisperTarget, range, team, gmOnly);
 }
 
 void CreatureTextMgr::SendNonChatPacket(WorldObject* source, WorldPacket const* data, ChatMsg msgType, WorldObject const* whisperTarget, CreatureTextRange range, Team team, bool gmOnly)
 {
     switch (msgType)
     {
-        case CHAT_MSG_MONSTER_PARTY:
+    case CHAT_MSG_MONSTER_PARTY:
+    {
+        if (!whisperTarget)
+            return;
+
+        if (Player const* whisperPlayer = whisperTarget->ToPlayer())
         {
-            if (!whisperTarget)
+            if (Group const* group = whisperPlayer->GetGroup())
+                group->BroadcastWorker([data](Player* player) { player->SendDirectMessage(data); });
+        }
+        return;
+    }
+    case CHAT_MSG_MONSTER_WHISPER:
+    case CHAT_MSG_RAID_BOSS_WHISPER:
+    {
+        if (range == TEXT_RANGE_NORMAL) // ignores team and gmOnly
+        {
+            if (!whisperTarget || whisperTarget->GetTypeId() != TYPEID_PLAYER)
                 return;
 
-            if (Player const* whisperPlayer = whisperTarget->ToPlayer())
-            {
-                if (Group const* group = whisperPlayer->GetGroup())
-                    group->BroadcastWorker([data](Player* player) { player->SendDirectMessage(data); });
-            }
+            whisperTarget->ToPlayer()->GetSession()->SendPacket(data);
             return;
         }
-        case CHAT_MSG_MONSTER_WHISPER:
-        case CHAT_MSG_RAID_BOSS_WHISPER:
-        {
-            if (range == TEXT_RANGE_NORMAL) // ignores team and gmOnly
-            {
-                if (!whisperTarget || whisperTarget->GetTypeId() != TYPEID_PLAYER)
-                    return;
-
-                whisperTarget->ToPlayer()->SendDirectMessage(data);
-                return;
-            }
-            break;
-        }
-        default:
-            break;
+        break;
+    }
+    default:
+        break;
     }
 
     switch (range)
     {
-        case TEXT_RANGE_AREA:
-        {
-            uint32 areaId = source->GetAreaId();
-            Map::PlayerList const& players = source->GetMap()->GetPlayers();
-            for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-                if (itr->GetSource()->GetAreaId() == areaId && (!team || Team(itr->GetSource()->GetTeam()) == team) && (!gmOnly || itr->GetSource()->IsGameMaster()))
-                    itr->GetSource()->SendDirectMessage(data);
-            return;
-        }
-        case TEXT_RANGE_ZONE:
-        {
-            uint32 zoneId = source->GetZoneId();
-            Map::PlayerList const& players = source->GetMap()->GetPlayers();
-            for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-                if (itr->GetSource()->GetZoneId() == zoneId && (!team || Team(itr->GetSource()->GetTeam()) == team) && (!gmOnly || itr->GetSource()->IsGameMaster()))
-                    itr->GetSource()->SendDirectMessage(data);
-            return;
-        }
-        case TEXT_RANGE_MAP:
-        {
-            Map::PlayerList const& players = source->GetMap()->GetPlayers();
-            for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-                if ((!team || Team(itr->GetSource()->GetTeam()) == team) && (!gmOnly || itr->GetSource()->IsGameMaster()))
-                    itr->GetSource()->SendDirectMessage(data);
-            return;
-        }
-        case TEXT_RANGE_WORLD:
-        {
-            SessionMap const& smap = sWorld->GetAllSessions();
-            for (SessionMap::const_iterator iter = smap.begin(); iter != smap.end(); ++iter)
-                if (Player* player = iter->second->GetPlayer())
-                    if ((!team || Team(player->GetTeam()) == team) && (!gmOnly || player->IsGameMaster()))
-                        player->SendDirectMessage(data);
-            return;
-        }
-        case TEXT_RANGE_NORMAL:
-        default:
-            break;
+    case TEXT_RANGE_AREA:
+    {
+        uint32 areaId = source->GetAreaId();
+        Map::PlayerList const& players = source->GetMap()->GetPlayers();
+        for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
+            if (itr->GetSource()->GetAreaId() == areaId && (!team || Team(itr->GetSource()->GetTeam()) == team) && (!gmOnly || itr->GetSource()->IsGameMaster()))
+                itr->GetSource()->SendDirectMessage(data);
+        return;
+    }
+    case TEXT_RANGE_ZONE:
+    {
+        uint32 zoneId = source->GetZoneId();
+        Map::PlayerList const& players = source->GetMap()->GetPlayers();
+        for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
+            if (itr->GetSource()->GetZoneId() == zoneId && (!team || Team(itr->GetSource()->GetTeam()) == team) && (!gmOnly || itr->GetSource()->IsGameMaster()))
+                itr->GetSource()->SendDirectMessage(data);
+        return;
+    }
+    case TEXT_RANGE_MAP:
+    {
+        Map::PlayerList const& players = source->GetMap()->GetPlayers();
+        for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
+            if ((!team || Team(itr->GetSource()->GetTeam()) == team) && (!gmOnly || itr->GetSource()->IsGameMaster()))
+                itr->GetSource()->SendDirectMessage(data);
+        return;
+    }
+    case TEXT_RANGE_WORLD:
+    {
+        SessionMap const& smap = sWorld->GetAllSessions();
+        for (SessionMap::const_iterator iter = smap.begin(); iter != smap.end(); ++iter)
+            if (Player* player = iter->second->GetPlayer())
+                if ((!team || Team(player->GetTeam()) == team) && (!gmOnly || player->IsGameMaster()))
+                    player->SendDirectMessage(data);
+        return;
+    }
+    case TEXT_RANGE_NORMAL:
+    default:
+        break;
     }
 
     float dist = GetRangeForChatType(msgType);
