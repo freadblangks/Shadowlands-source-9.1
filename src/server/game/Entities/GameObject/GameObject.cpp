@@ -547,7 +547,7 @@ void GameObject::Update(uint32 diff)
                     if (GetGoState() == GO_STATE_TRANSPORT_ACTIVE)
                     {
                         m_goValue.Transport.PathProgress += diff;
-                        /* TODO: Fix movement in unloaded grid - currently GO will just disappear
+                        /* TODO: Fix movement in unloaded grid - currently GO will just disappear*/
                         uint32 timer = m_goValue.Transport.PathProgress % GetTransportPeriod();
                         TransportAnimationEntry const* node = m_goValue.Transport.AnimationInfo->GetAnimNode(timer);
                         if (node && m_goValue.Transport.CurrentSeg != node->TimeSeg)
@@ -570,7 +570,7 @@ void GameObject::Update(uint32 diff)
 
                             GetMap()->GameObjectRelocation(this, pos.x, pos.y, pos.z, GetOrientation());
                         }
-                        */
+                        
 
                         if (!m_goValue.Transport.StopFrames->empty())
                         {
