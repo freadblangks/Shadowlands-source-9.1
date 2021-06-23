@@ -1,7 +1,6 @@
 /*
- * Copyright (C) 2012-2013 JadeCore <http://www.pandashan.com/>
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -37,7 +36,8 @@ enum eSpells
     // Platform
     SPELL_TOUCH_OF_THE_TITANS       = 130287,
     SPELL_TOUCH_OF_TITANS_VISUAL    = 117874,
-    SPELL_OVERCHARGED               = 117877,
+    SPELL_ELEGON_OVERCHARGED        = 117877,
+    SPELL_ELEGON_OVERCHARGED_2      = 117878,
 
     // Phase 1
     SPELL_CELESTIAL_BREATH          = 117960,
@@ -63,6 +63,7 @@ enum eSpells
     SPELL_OVERLOADED_MISSILE        = 116989,
     SPELL_OVERLOADED                = 117204,
     SPELL_ENERGY_CASCADE            = 122199,
+    SPELL_ENERGY_CONDUIT            = 116663,
 
     // Empyreal Focus
     SPELL_FOCUS_INACTIVE            = 127303,
@@ -98,6 +99,8 @@ enum eSpells
     // Heroic
     SPELL_DESTABILIZING_ENERGIES    = 132222,
     SPELL_CATASTROPHIC_ANOMALY      = 127341,
+
+    SPELL_ELEGON_BONUS              = 132192
 };
 
 enum eEvents
@@ -125,6 +128,7 @@ enum eEvents
     EVENT_END_OF_PHASE_3            = 12,
     EVENT_RADIATING_ENERGIES        = 13,
     EVENT_LAUNCH_COSMIC_SPARK       = 14,
+    EVENT_COSMICSPARK_ATTACK        = 15
 };
 
 enum elegonActions
@@ -133,23 +137,24 @@ enum elegonActions
     ACTION_SPAWN_ENERGY_CHARGES     = 2,
     ACTION_DESPAWN_ENERGY_CHARGES   = 3,
     ACTION_EMPYREAL_FOCUS_KILLED    = 4,
+    ACTION_WIPE                     = 5
 };
 
 enum eMovementPoints
 {
-    POINT_EMPYEREAN_FOCUS   = 1,
+    POINT_EMPYEREAN_FOCUS   = 1
 };
 
 enum empyrealFocusActions
 {
     ACTION_ACTIVATE_EMPYREAL_FOCUS  = 1,
-    ACTION_RESET_EMPYREAL_FOCUS     = 2,
+    ACTION_RESET_EMPYREAL_FOCUS     = 2
 };
 
 enum empyrealFocusEvents
 {
     EVENT_ACTIVATE_EMPYREAL_FOCUS   = 1,
-    EVENT_APPEAR_WALL_OF_LIGHTNING  = 2,
+    EVENT_APPEAR_WALL_OF_LIGHTNING  = 2
 };
 
 enum eTalk
@@ -166,18 +171,18 @@ enum eTalk
     TALK_C_TO_A_3       = 9,
     TALK_ENRAGE_HARD    = 10,
     TALK_ENRAGE_SOFT    = 11,
-    TALK_SLAY           = 12,
+    TALK_SLAY           = 12
 };
 
 // Set values in reset of mob_empyreal_focus
-uint64 empyrealFocus[6] =
+ObjectGuid empyrealFocus[6] =
 {
-    0, // South-West
-    0, // North-West
-    0, // South
-    0, // North
-    0, // South-East
-    0  // North-East
+    ObjectGuid::Empty, // South-West
+    ObjectGuid::Empty, // North-West
+    ObjectGuid::Empty, // South
+    ObjectGuid::Empty, // North
+    ObjectGuid::Empty, // South-East
+    ObjectGuid::Empty, // North-East
 };
 
 Position middlePos         = { 4023.15f, 1907.60f, 358.872f, 0.0f };
@@ -212,7 +217,7 @@ enum infiniteActions
     ACTION_INFINITE_FLASH_SPAWN     = 4,
     ACTION_INFINITE_SPAWN_PLATFORM  = 5,
     ACTION_INFINITE_SPAWN_BOSS      = 6,
-    ACTION_INFINITE_LOOT            = 7,
+    ACTION_INFINITE_LOOT            = 7
 };
 
 // Elegon - 60410
@@ -227,7 +232,7 @@ class boss_elegon : public CreatureScript
             {
                 pInstance = creature->GetInstanceScript();
                 creature->SetDisplayId(11686);
-                creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_IMMUNE_TO_PC|UNIT_FLAG_UNK_15);
+                creature->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_IMMUNE_TO_PC|UNIT_FLAG_UNK_15));
             }
 
             InstanceScript* pInstance;
@@ -239,9 +244,8 @@ class boss_elegon : public CreatureScript
             uint8 energyChargeCounter;
             uint8 empyrealFocusKilled;
 
-            void Reset()
+            void Reset() override
             {
-
                 if (Creature* cho = GetClosestCreatureWithEntry(me, NPC_LOREWALKER_CHO, 100.0f, true))
                     cho->AI()->Talk(26);
 
@@ -261,40 +265,34 @@ class boss_elegon : public CreatureScript
                 energyChargeCounter       = 0;
                 empyrealFocusKilled       = 0;
 
-                events.ScheduleEvent(EVENT_CHECK_MELEE,             2500);
-                events.ScheduleEvent(EVENT_CELESTIAL_BREATH,        10000);
-                events.ScheduleEvent(EVENT_MATERIALIZE_PROTECTOR,   urand(35000, 40000));
-                events.ScheduleEvent(EVENT_ENRAGE_HARD,             570000); // 9min30
-
                 summons.DespawnAll();
 
                 if (pInstance)
                 {
                     pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_TOUCH_OF_THE_TITANS);
                     pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_TOUCH_OF_TITANS_VISUAL);
-                    pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_OVERCHARGED);
+                    pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_ELEGON_OVERCHARGED);
+                    pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_ELEGON_OVERCHARGED_2);
                     pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_CLOSED_CIRCUIT);
                     pInstance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me);
 
                     for (int i = 0; i < 6; i++)
                     {
-                        if (Unit* focus = ObjectAccessor::FindUnit(empyrealFocus[i]))
+                        if (Unit* focus = ObjectAccessor::GetUnit(*me, empyrealFocus[i]))
                             if (focus->GetAI())
                                 focus->GetAI()->DoAction(ACTION_RESET_EMPYREAL_FOCUS);
                     }
                 }
             }
 
-            void JustReachedHome()
+            void EnterCombat(Unit* /*p_Attacker*/) override
             {
-                _JustReachedHome();
+                if (!pInstance->CheckRequiredBosses(DATA_ELEGON))
+                {
+                    EnterEvadeMode(EVADE_REASON_OTHER);
+                    return;
+                }
 
-                if (pInstance)
-                    pInstance->SetBossState(DATA_ELEGON, FAIL);
-            }
-
-            void EnterCombat(Unit* attacker)
-            {
                 if (Creature* cho = GetClosestCreatureWithEntry(me, NPC_LOREWALKER_CHO, 100.0f, true))
                 {
                     cho->AI()->Talk(27);
@@ -307,13 +305,19 @@ class boss_elegon : public CreatureScript
                     pInstance->SetBossState(DATA_ELEGON, IN_PROGRESS);
                 }
 
-                me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_IMMUNE_TO_PC|UNIT_FLAG_UNK_15);
+                me->RemoveUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_IMMUNE_TO_PC|UNIT_FLAG_UNK_15));
                 me->RemoveAurasDueToSpell(SPELL_APPARITION_VISUAL);
+                me->SetReactState(REACT_AGGRESSIVE);
 
                 Talk(TALK_AGGRO);
+
+                events.ScheduleEvent(EVENT_CHECK_MELEE,             2500);
+                events.ScheduleEvent(EVENT_CELESTIAL_BREATH,        10000);
+                events.ScheduleEvent(EVENT_MATERIALIZE_PROTECTOR,   urand(35000, 40000));
+                events.ScheduleEvent(EVENT_ENRAGE_HARD,             570000); // 9min30
             }
 
-            void AttackStart(Unit* target)
+            void AttackStart(Unit* target) override
             {
                 if (!target)
                     return;
@@ -322,7 +326,7 @@ class boss_elegon : public CreatureScript
                     DoStartNoMovement(target);
             }
 
-            void DoAction(const int32 action)
+            void DoAction(const int32 action) override
             {
                 switch (action)
                 {
@@ -454,12 +458,88 @@ class boss_elegon : public CreatureScript
 
                         break;
                     }
+                    case ACTION_WIPE:
+                    {
+                        // Events & summons
+                        events.Reset();
+                        summons.DespawnAll();
+
+                        // Areatriggers, auras, reset full life, and passive
+                        me->RemoveAllAreaTriggers();
+                        me->RemoveAllAuras();
+                        me->SetFullHealth();
+                        me->SetReactState(REACT_PASSIVE);
+
+                        if (pInstance)
+                        {
+                            // Encounter failed
+                            pInstance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me);
+                            pInstance->SetBossState(DATA_ELEGON, FAIL);
+
+                            // Remove auras on players
+                            pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_TOUCH_OF_THE_TITANS);
+                            pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_TOUCH_OF_TITANS_VISUAL);
+                            pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_ELEGON_OVERCHARGED);
+                            pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_ELEGON_OVERCHARGED_2);
+                            pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_CLOSED_CIRCUIT);
+                        }
+                        // Set invisible and unselectable
+                        me->SetDisplayId(11686);
+                        me->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_IMMUNE_TO_PC|UNIT_FLAG_UNK_15));
+
+                        me->RemoveAurasDueToSpell(SPELL_UNSTABLE_ENERGY);
+                        me->RemoveAurasDueToSpell(SPELL_PHASE_SHIFTED);
+                        me->RemoveAurasDueToSpell(SPELL_OVERLOADED);
+                        me->RemoveAurasDueToSpell(SPELL_RADIATING_ENERGIES_VISUAL);
+
+                        // Reset vars
+                        phase                     = PHASE_1;
+                        phase2WaveCount           = 0;
+                        successfulDrawingPower    = 0;
+                        energyChargeCounter       = 0;
+                        empyrealFocusKilled       = 0;
+
+                        // Reset Empyreal focuses
+                        for (int i = 0; i < 6; i++)
+                        {
+                            if (Unit* focus = ObjectAccessor::GetUnit(*me, empyrealFocus[i]))
+                                if (focus->GetAI())
+                                    focus->GetAI()->DoAction(ACTION_RESET_EMPYREAL_FOCUS);
+                        }
+
+                        // Reset Game objects
+                        if (GameObject* titanDisk = pInstance->GetGameObject(GOB_ENERGY_TITAN_DISK))
+                            titanDisk->SetGoState(GO_STATE_ACTIVE);
+
+                        if (GameObject* energyPlatform = pInstance->GetGameObject(GOB_ENERGY_PLATFORM))
+                            energyPlatform->SetGoState(GO_STATE_ACTIVE);
+
+                        if (GameObject* titanCircle = GetClosestGameObjectWithEntry(me, GOB_ENERGY_TITAN_CIRCLE_1, 100.0f))
+                            titanCircle->SetGoState(GO_STATE_ACTIVE);
+
+                        if (GameObject* titanCircle = GetClosestGameObjectWithEntry(me, GOB_ENERGY_TITAN_CIRCLE_2, 100.0f))
+                            titanCircle->SetGoState(GO_STATE_ACTIVE);
+
+                        if (GameObject* titanCircle = GetClosestGameObjectWithEntry(me, GOB_ENERGY_TITAN_CIRCLE_3, 100.0f))
+                            titanCircle->SetGoState(GO_STATE_ACTIVE);
+
+                        for (uint32 entry = GOB_MOGU_RUNE_FIRST; entry < GOB_MOGU_RUNE_END + 1; entry++)
+                            if (GameObject* moguRune = GetClosestGameObjectWithEntry(me, entry, 200.0f))
+                                moguRune->SetGoState(GO_STATE_ACTIVE);
+
+                        // Reset Cho
+                        if (pInstance)
+                            if (Creature* Cho = GetClosestCreatureWithEntry(me, NPC_LOREWALKER_CHO, 300.0f))
+                                Cho->Respawn(true);
+
+                        break;
+                    }
                     default:
                         break;
                 }
             }
 
-            void JustSummoned(Creature* summon)
+            void JustSummoned(Creature* summon) override
             {
                 summons.Summon(summon);
 
@@ -467,7 +547,7 @@ class boss_elegon : public CreatureScript
                     energyChargeCounter++;
             }
 
-            void SummonedCreatureDespawn(Creature* summon)
+            void SummonedCreatureDespawn(Creature* summon) override
             {
                 summons.Despawn(summon);
 
@@ -475,13 +555,19 @@ class boss_elegon : public CreatureScript
                     energyChargeCounter--;
             }
 
-            void KilledUnit(Unit* who)
+            void KilledUnit(Unit* who) override
             {
-                if (who->GetTypeId() == TYPEID_PLAYER)
+                if (who->IsPlayer())
                     Talk(TALK_SLAY);
             }
 
-            void DamageTaken(Unit* attacker, uint32& damage)
+            void SpellHit(Unit* caster, const SpellInfo* spell) override
+            {
+                if (me->GetDistance(caster) > 38.5f)
+                    caster->SendSpellMiss(me, spell->Id, SPELL_MISS_MISS);
+            }
+
+            void DamageTaken(Unit* /*p_Attacker*/, uint32& damage) override
             {
                 if (phase == PHASE_1 && me->HealthBelowPctDamaged(nextPhase1EndingHealthPct, damage))
                 {
@@ -505,14 +591,14 @@ class boss_elegon : public CreatureScript
                     me->RemoveUnitMovementFlag(MOVEMENTFLAG_DISABLE_GRAVITY|MOVEMENTFLAG_FLYING|MOVEMENTFLAG_CAN_FLY);
             }
 
-            void JustDied(Unit* killer)
+            void JustDied(Unit* /*p_Killer*/) override
             {
                 if (pInstance)
                     pInstance->SetBossState(DATA_ELEGON, DONE);
 
                 _JustDied();
 
-                if (Creature* cho = GetClosestCreatureWithEntry(me, NPC_LOREWALKER_CHO, 400.0f, true))
+                if (Creature* cho = GetClosestCreatureWithEntry(me, NPC_LOREWALKER_CHO, 200.0f, true))
                 {
                     cho->AI()->Talk(28);
                     cho->AI()->DoAction(ACTION_CONTINUE_ESCORT);
@@ -522,17 +608,23 @@ class boss_elegon : public CreatureScript
                 {
                     pInstance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me);
 
+                    pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_TOUCH_OF_THE_TITANS);
+                    pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_TOUCH_OF_TITANS_VISUAL);
+                    pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_ELEGON_OVERCHARGED);
+                    pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_ELEGON_OVERCHARGED_2);
+                    pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_CLOSED_CIRCUIT);
+
                     Map::PlayerList const& playerList = pInstance->instance->GetPlayers();
                     if (!playerList.isEmpty())
                     {
                         for (Map::PlayerList::const_iterator itr = playerList.begin(); itr != playerList.end(); ++itr)
                         {
-                            if (Player* player = itr->getSource())
+                            if (Player* player = itr->GetSource())
                             {
-                                if (player->isGameMaster())
+                                if (player->IsGameMaster())
                                     continue;
 
-                                if (player->isAlive())
+                                if (player->IsAlive())
                                 {
                                     player->CombatStop();
                                     player->CombatStopWithPets(true);
@@ -544,55 +636,54 @@ class boss_elegon : public CreatureScript
 
                 me->GetMotionMaster()->Clear();
                 me->GetMotionMaster()->MoveLand(2, middlePos);
-                
-                if (pInstance)
-                {
-                    pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_TOUCH_OF_THE_TITANS);
-                    pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_TOUCH_OF_TITANS_VISUAL);
-                    pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_OVERCHARGED);
-                    pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_CLOSED_CIRCUIT);
-                }
 
                 me->RemoveAurasDueToSpell(SPELL_RADIATING_ENERGIES_VISUAL);
-                me->RemoveAurasDueToSpell(SPELL_OVERCHARGED);
+                me->RemoveAurasDueToSpell(SPELL_ELEGON_OVERCHARGED);
                 me->RemoveAurasDueToSpell(SPELL_TOUCH_OF_THE_TITANS);
                 Talk(TALK_DEATH);
 
-                if (Creature* infiniteEnergy = pInstance->instance->GetCreature(pInstance->GetData64(NPC_INFINITE_ENERGY)))
+                if (Creature* infiniteEnergy = pInstance->GetCreature(NPC_INFINITE_ENERGY))
                     infiniteEnergy->AI()->DoAction(ACTION_INFINITE_LOOT);
 
-                if (GameObject* door = pInstance->instance->GetGameObject(pInstance->GetData64(GOB_ELEGON_DOOR_ENTRANCE)))
+                if (GameObject* door = pInstance->GetGameObject(GOB_ELEGON_DOOR_ENTRANCE))
                     if (door->GetGoState() == GO_STATE_READY)
                         door->SetGoState(GO_STATE_ACTIVE);
+
+                Map::PlayerList const& l_PlrList = me->GetMap()->GetPlayers();
+                for (Map::PlayerList::const_iterator l_Itr = l_PlrList.begin(); l_Itr != l_PlrList.end(); ++l_Itr)
+                {
+                    if (Player* l_Player = l_Itr->GetSource())
+                        me->CastSpell(l_Player, SPELL_ELEGON_BONUS, true);
+                }
+
+                /*if (IsLFR())
+                {
+                    Player* l_Player = l_PlrList.begin()->GetSource();
+                    if (l_Player && l_Player->GetGroup())
+                        sLFGMgr->AutomaticLootAssignation(me, l_Player->GetGroup());
+                }*/
             }
 
-            void MoveInLineOfSight(Unit* who)
+            void MoveInLineOfSight(Unit* who) override
             {
                 if (!who || who->GetTypeId() != TYPEID_PLAYER)
                     return;
 
-                if (who->HasAura(SPELL_TOUCH_OF_THE_TITANS) || who->HasAura(SPELL_TOUCH_OF_TITANS_VISUAL) || who->HasAura(SPELL_OVERCHARGED))
+                if (who->HasAura(SPELL_TOUCH_OF_THE_TITANS) || who->HasAura(SPELL_TOUCH_OF_TITANS_VISUAL) || who->HasAura(SPELL_ELEGON_OVERCHARGED))
                     return;
-
-                if (me->IsWithinDistInMap(who, 38.5f))
-                {
-                    if (Player* player = who->ToPlayer())
-                    {
-                        if (player->isGameMaster())
-                            return;
-
-                        if (player->isAlive())
-                        {
-                            player->CastSpell(player, SPELL_TOUCH_OF_THE_TITANS, true);
-                            player->AddAura(SPELL_TOUCH_OF_TITANS_VISUAL, player);
-                            player->CastSpell(player, SPELL_OVERCHARGED, true);
-                        }
-                    }
-                }
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(const uint32 diff) override
             {
+                if (pInstance)
+                {
+                    if (pInstance->IsWipe())
+                    {
+                        DoAction(ACTION_WIPE);
+                        return;
+                    }
+                }
+
                 if (!UpdateVictim())
                     return;
 
@@ -609,7 +700,7 @@ class boss_elegon : public CreatureScript
                         if (phase != PHASE_1)
                             break;
 
-                        if (!me->IsWithinMeleeRange(me->getVictim(), 10.0f))
+                        if (!me->IsWithinMeleeRange(me->GetVictim()))
                             me->CastSpell(me, SPELL_GRASPING_ENERGY_TENDRILS, false);
 
                         events.ScheduleEvent(EVENT_CHECK_MELEE, 2500);
@@ -618,7 +709,7 @@ class boss_elegon : public CreatureScript
                     case EVENT_CELESTIAL_BREATH:
                     {
                         if (phase == PHASE_1)
-                            if (Unit* target = SelectTarget(SELECT_TARGET_TOPAGGRO))
+                            if (Unit* target = SelectTarget(SELECT_TARGET_MAXTHREAT))
                                 me->CastSpell(target, SPELL_CELESTIAL_BREATH, false);
 
                         events.ScheduleEvent(EVENT_CELESTIAL_BREATH, 10000);
@@ -681,34 +772,21 @@ class boss_elegon : public CreatureScript
 
                             if (pInstance)
                             {
-                                if (GameObject* energyPlatform = pInstance->instance->GetGameObject(pInstance->GetData64(GOB_ENERGY_PLATFORM)))
+                                if (GameObject* energyPlatform = pInstance->GetGameObject(GOB_ENERGY_PLATFORM))
                                     energyPlatform->SetGoState(GO_STATE_ACTIVE);
 
-                                std::list<GameObject*> titanCircles1;
-                                std::list<GameObject*> titanCircles2;
-                                std::list<GameObject*> titanCircles3;
-                                GetGameObjectListWithEntryInGrid(titanCircles1, me, GOB_ENERGY_TITAN_CIRCLE_1, 100.0f);
-                                GetGameObjectListWithEntryInGrid(titanCircles1, me, GOB_ENERGY_TITAN_CIRCLE_2, 100.0f);
-                                GetGameObjectListWithEntryInGrid(titanCircles1, me, GOB_ENERGY_TITAN_CIRCLE_3, 100.0f);
-
-                                for (auto titanCircle : titanCircles1)
-                                    titanCircle->SetGoState(GO_STATE_ACTIVE);
-                                for (auto titanCircle : titanCircles2)
-                                    titanCircle->SetGoState(GO_STATE_ACTIVE);
-                                for (auto titanCircle : titanCircles3)
+                                if (GameObject* titanCircle = GetClosestGameObjectWithEntry(me, GOB_ENERGY_TITAN_CIRCLE_1, 100.0f))
                                     titanCircle->SetGoState(GO_STATE_ACTIVE);
 
-                                std::list<GameObject*> moguRune;
+                                if (GameObject* titanCircle = GetClosestGameObjectWithEntry(me, GOB_ENERGY_TITAN_CIRCLE_2, 100.0f))
+                                    titanCircle->SetGoState(GO_STATE_ACTIVE);
 
-                                for (uint32 entry = GOB_MOGU_RUNE_FIRST; entry < GOB_MOGU_RUNE_END; entry++)
-                                {
-                                    GetGameObjectListWithEntryInGrid(moguRune, me, entry, 500.0f);
+                                if (GameObject* titanCircle = GetClosestGameObjectWithEntry(me, GOB_ENERGY_TITAN_CIRCLE_3, 100.0f))
+                                    titanCircle->SetGoState(GO_STATE_ACTIVE);
 
-                                    for (auto itr : moguRune)
-                                        itr->SetGoState(GO_STATE_ACTIVE);
-
-                                    moguRune.clear();
-                                }
+                                for (uint32 entry = GOB_MOGU_RUNE_FIRST; entry < GOB_MOGU_RUNE_END + 1; entry++)
+                                    if (GameObject* moguRune = GetClosestGameObjectWithEntry(me, entry, 200.0f))
+                                        moguRune->SetGoState(GO_STATE_ACTIVE);
                             }
                         }
 
@@ -731,34 +809,21 @@ class boss_elegon : public CreatureScript
 
                             if (pInstance)
                             {
-                                if (GameObject* energyPlatform = pInstance->instance->GetGameObject(pInstance->GetData64(GOB_ENERGY_PLATFORM)))
+                                if (GameObject* energyPlatform = pInstance->GetGameObject(GOB_ENERGY_PLATFORM))
                                     energyPlatform->SetGoState(GO_STATE_READY);
 
-                                std::list<GameObject*> titanCircles1;
-                                std::list<GameObject*> titanCircles2;
-                                std::list<GameObject*> titanCircles3;
-                                GetGameObjectListWithEntryInGrid(titanCircles1, me, GOB_ENERGY_TITAN_CIRCLE_1, 100.0f);
-                                GetGameObjectListWithEntryInGrid(titanCircles1, me, GOB_ENERGY_TITAN_CIRCLE_2, 100.0f);
-                                GetGameObjectListWithEntryInGrid(titanCircles1, me, GOB_ENERGY_TITAN_CIRCLE_3, 100.0f);
-
-                                for (auto titanCircle : titanCircles1)
-                                    titanCircle->SetGoState(GO_STATE_READY);
-                                for (auto titanCircle : titanCircles2)
-                                    titanCircle->SetGoState(GO_STATE_READY);
-                                for (auto titanCircle : titanCircles3)
+                                if (GameObject* titanCircle = GetClosestGameObjectWithEntry(me, GOB_ENERGY_TITAN_CIRCLE_1, 100.0f))
                                     titanCircle->SetGoState(GO_STATE_READY);
 
-                                std::list<GameObject*> moguRune;
+                                if (GameObject* titanCircle = GetClosestGameObjectWithEntry(me, GOB_ENERGY_TITAN_CIRCLE_2, 100.0f))
+                                    titanCircle->SetGoState(GO_STATE_READY);
 
-                                for (uint32 entry = GOB_MOGU_RUNE_FIRST; entry < GOB_MOGU_RUNE_END; entry++)
-                                {
-                                    GetGameObjectListWithEntryInGrid(moguRune, me, entry, 500.0f);
+                                if (GameObject* titanCircle = GetClosestGameObjectWithEntry(me, GOB_ENERGY_TITAN_CIRCLE_3, 100.0f))
+                                    titanCircle->SetGoState(GO_STATE_READY);
 
-                                    for (auto itr : moguRune)
-                                        itr->SetGoState(GO_STATE_READY);
-
-                                    moguRune.clear();
-                                }
+                                for (uint32 entry = GOB_MOGU_RUNE_FIRST; entry < GOB_MOGU_RUNE_END + 1; ++entry)
+                                    if (GameObject* moguRune = GetClosestGameObjectWithEntry(me, entry, 200.0f))
+                                        moguRune->SetGoState(GO_STATE_READY);
                             }
 
                             phase = PHASE_1;
@@ -797,7 +862,7 @@ class boss_elegon : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new boss_elegonAI(creature);
         }
@@ -809,7 +874,7 @@ class mob_empyreal_focus : public CreatureScript
     public:
         mob_empyreal_focus() : CreatureScript("mob_empyreal_focus") { }
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new mob_empyreal_focusAI(creature);
         }
@@ -825,7 +890,7 @@ class mob_empyreal_focus : public CreatureScript
             bool activationDone;
             InstanceScript* pInstance;
 
-            void Reset()
+            void Reset() override
             {
                 events.Reset();
 
@@ -833,10 +898,9 @@ class mob_empyreal_focus : public CreatureScript
 
                 me->SetReactState(REACT_PASSIVE);
                 me->AddAura(SPELL_FOCUS_INACTIVE, me);
-                me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
+                me->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE));
 
-                Position pos;
-                me->GetPosition(&pos);
+                Position pos = me->GetPosition();
 
                 for (int i = 0; i < 6; i++)
                 {
@@ -872,7 +936,7 @@ class mob_empyreal_focus : public CreatureScript
                 }
             }
 
-            void DoAction(const int32 action)
+            void DoAction(const int32 action) override
             {
                 switch (action)
                 {
@@ -886,14 +950,14 @@ class mob_empyreal_focus : public CreatureScript
                         me->CastSpell(me, SPELL_FOCUS_ACTIVATION_VISUAL, true);
 
                         if (pInstance && !activationDone)
-                            if (Creature* elegon = pInstance->instance->GetCreature(pInstance->GetData64(NPC_ELEGON)))
+                            if (Creature* elegon = pInstance->GetCreature(NPC_ELEGON))
                                 elegon->AI()->DoAction(ACTION_DESPAWN_ENERGY_CHARGES);
 
                         activationDone = true;
 
                         for (int i = 0; i < 6; i++)
                         {
-                            if (Unit* focus = ObjectAccessor::FindUnit(empyrealFocus[i]))
+                            if (Unit* focus = ObjectAccessor::GetUnit(*me, empyrealFocus[i]))
                                 if (focus->GetAI())
                                     focus->GetAI()->DoAction(ACTION_ACTIVATE_EMPYREAL_FOCUS);
                         }
@@ -911,7 +975,7 @@ class mob_empyreal_focus : public CreatureScript
                         if (AreaTrigger* lightningWall = me->GetAreaTrigger(SPELL_FOCUS_LIGHT_AREATRIGGER))
                             lightningWall->SetDuration(0);
 
-                        me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
+                        me->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE));
                         activationDone = false;
                         break;
                     }
@@ -920,14 +984,14 @@ class mob_empyreal_focus : public CreatureScript
                 }
             }
 
-            void DamageTaken(Unit* /*attacker*/, uint32& damage)
+            void DamageTaken(Unit* /*attacker*/, uint32& damage) override
             {
                 if (me->GetHealth() < damage)
                 {
                     damage = 0;
 
                     activationDone = false;
-                    me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
+                    me->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE));
                     me->RemoveAurasDueToSpell(SPELL_FOCUS_ACTIVATE_STATE);
                     me->RemoveAurasDueToSpell(SPELL_FOCUS_LIGHT_WALL_VISUAL);
                     me->RemoveAurasDueToSpell(SPELL_FOCUS_LIGHT_CASTBAR);
@@ -939,7 +1003,7 @@ class mob_empyreal_focus : public CreatureScript
 
                     if (pInstance)
                     {
-                        if (Creature* elegon = pInstance->instance->GetCreature(pInstance->GetData64(NPC_ELEGON)))
+                        if (Creature* elegon = pInstance->GetCreature(NPC_ELEGON))
                         {
                             me->CastSpell(elegon, SPELL_OVERLOADED_MISSILE, false);
                             elegon->AI()->DoAction(ACTION_EMPYREAL_FOCUS_KILLED);
@@ -948,7 +1012,7 @@ class mob_empyreal_focus : public CreatureScript
                 }
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(const uint32 diff) override
             {
                 events.Update(diff);
 
@@ -961,7 +1025,7 @@ class mob_empyreal_focus : public CreatureScript
                     case EVENT_APPEAR_WALL_OF_LIGHTNING:
                         me->CastSpell(me, SPELL_FOCUS_LIGHT_AREATRIGGER, true);
                         me->CastSpell(me, SPELL_FOCUS_LIGHT_CASTBAR, true);
-                        me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
+                        me->RemoveUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE));
                         break;
                     default:
                         break;
@@ -976,7 +1040,7 @@ class mob_celestial_protector : public CreatureScript
     public:
         mob_celestial_protector() : CreatureScript("mob_celestial_protector") { }
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new mob_celestial_protectorAI(creature);
         }
@@ -993,7 +1057,7 @@ class mob_celestial_protector : public CreatureScript
             bool totalAnnihilationCasted;
             InstanceScript* pInstance;
 
-            void Reset()
+            void Reset() override
             {
                 events.Reset();
 
@@ -1003,11 +1067,11 @@ class mob_celestial_protector : public CreatureScript
                 stabilityFluxCasted     = false;
                 totalAnnihilationCasted = false;
 
-                if (Player* player = me->SelectNearestPlayerNotGM())
+                if (Player* player = me->SelectNearestPlayer())
                     AttackStart(player);
             }
 
-            void DamageTaken(Unit* /*attacker*/, uint32& damage)
+            void DamageTaken(Unit* /*attacker*/, uint32& damage) override
             {
                 if (!stabilityFluxCasted)
                 {
@@ -1021,7 +1085,7 @@ class mob_celestial_protector : public CreatureScript
                 if (me->GetHealth() < damage)
                 {
                     damage = 0;
-                    
+
                     if (!totalAnnihilationCasted)
                     {
                         me->CastSpell(me, SPELL_TOTAL_ANNIHILATION, false);
@@ -1033,13 +1097,13 @@ class mob_celestial_protector : public CreatureScript
                 }
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(const uint32 diff) override
             {
                 if (!UpdateVictim())
                     return;
-                
+
                 events.Update(diff);
-                
+
                 while (uint32 eventId = events.ExecuteEvent())
                 {
                     switch (eventId)
@@ -1105,7 +1169,7 @@ class mob_cosmic_spark : public CreatureScript
     public:
         mob_cosmic_spark() : CreatureScript("mob_cosmic_spark") { }
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new mob_cosmic_sparkAI(creature);
         }
@@ -1119,40 +1183,79 @@ class mob_cosmic_spark : public CreatureScript
 
             EventMap events;
 
-            void Reset()
+            void Reset() override
             {
                 events.Reset();
-                
+
+                if (Unit* player = SelectTarget(SELECT_TARGET_MINDISTANCE))
+                    AttackStart(player);
+
                 events.ScheduleEvent(EVENT_CHECK_UNIT_ON_PLATFORM, 1000);
                 events.ScheduleEvent(EVENT_ICE_TRAP, 10000);
-
-                if (Player* player = me->SelectNearestPlayerNotGM())
-                    AttackStart(player);
+                events.ScheduleEvent(EVENT_COSMICSPARK_ATTACK, 1000);
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(const uint32 diff) override
             {
-                if (!UpdateVictim())
-                    return;
-                
                 events.Update(diff);
-                
+
                 while (uint32 eventId = events.ExecuteEvent())
                 {
                     switch (eventId)
                     {
                         case EVENT_CHECK_UNIT_ON_PLATFORM:
-                            if (me->GetDistance(middlePos) <= 36.0f)
+                        {
+                            if (me->GetDistance(middlePos) <= 38.5f)
                                 me->CastSpell(me, SPELL_TOUCH_OF_THE_TITANS, true);
                             else
                                 me->RemoveAurasDueToSpell(SPELL_TOUCH_OF_THE_TITANS);
                             events.ScheduleEvent(EVENT_CHECK_UNIT_ON_PLATFORM, 1000);
                             break;
+                        }
                         case EVENT_ICE_TRAP:
+                        {
                             if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM))
                                 me->CastSpell(target, SPELL_ICE_TRAP, false);
                             events.ScheduleEvent(EVENT_ICE_TRAP,      60000);
                             break;
+                        }
+                        case EVENT_COSMICSPARK_ATTACK:
+                        {
+                            if (!me->GetVictim() || !me->GetVictim()->IsAlive())
+                            {
+                                std::list<Player*> playerList;
+                                GetPlayerListInGrid(playerList, me, 200.0f);
+
+                                Player* target;
+                                bool selected = false;
+
+                                if (!playerList.empty())
+                                {
+                                    std::list<Player*>::iterator itr;
+                                    itr = playerList.begin();
+
+                                    do
+                                    {
+                                        if (urand(0, 1))
+                                        {
+                                            target = *itr;
+                                            selected = true;
+                                        }
+
+                                        ++itr;
+                                        if (itr == playerList.end())
+                                            itr = playerList.begin();
+
+                                    } while (!selected);
+                                }
+                                else
+                                    break;
+
+                                AttackStart(target);
+                            }
+                            events.ScheduleEvent(EVENT_COSMICSPARK_ATTACK, 1000);
+                            break;
+                        }
                         default:
                             break;
                     }
@@ -1165,7 +1268,7 @@ class mob_cosmic_spark : public CreatureScript
 
 enum energyChargeActions
 {
-    ACTION_ENERGIZE_EMPYREAL_FOCUS  = 1,
+    ACTION_ENERGIZE_EMPYREAL_FOCUS  = 1
 };
 
 // Energy Charge - 60913
@@ -1174,7 +1277,7 @@ class mob_energy_charge : public CreatureScript
     public:
         mob_energy_charge() : CreatureScript("mob_energy_charge") { }
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new mob_energy_chargeAI(creature);
         }
@@ -1185,27 +1288,26 @@ class mob_energy_charge : public CreatureScript
             {
             }
 
-            void Reset()
+            void Reset() override
             {
                 me->SetReactState(REACT_PASSIVE);
                 me->AddAura(SPELL_CORE_CHECKER, me);
             }
 
-            void JustDied(Unit* killer)
+            void JustDied(Unit* /*p_Killer*/) override
             {
                 me->CastSpell(me, SPELL_DISCHARGE, true);
             }
 
-            void MovementInform(uint32 type, uint32 id)
+            void MovementInform(uint32 /*type*/, uint32 id) override
             {
                 switch (id)
                 {
                     case POINT_EMPYEREAN_FOCUS:
                     {
-                        if (Unit* focus = ObjectAccessor::FindUnit(me->GetUInt64Value(UNIT_FIELD_TARGET)))
+                        if (Unit* focus = ObjectAccessor::GetUnit(*me, me->GetTarget()))
                         {
-                            Position pos;
-                            focus->GetPosition(&pos);
+                            Position pos = focus->GetPosition();
 
                             me->GetMotionMaster()->MovePoint(POINT_EMPYEREAN_FOCUS, pos);
                         }
@@ -1217,15 +1319,17 @@ class mob_energy_charge : public CreatureScript
                 }
             }
 
-            void DoAction(const int32 action)
+            void DoAction(const int32 action) override
             {
                 switch (action)
                 {
                     case ACTION_ENERGIZE_EMPYREAL_FOCUS:
                     {
-                        if (Unit* focus = ObjectAccessor::FindUnit(me->GetUInt64Value(UNIT_FIELD_TARGET)))
+                        if (Unit* focus = ObjectAccessor::GetUnit(*me, me->GetTarget()))
+                        {
                             if (focus->GetAI())
                                 focus->GetAI()->DoAction(ACTION_ACTIVATE_EMPYREAL_FOCUS);
+                        }
 
                         me->RemoveAurasDueToSpell(SPELL_CORE_CHECKER);
                         me->DespawnOrUnsummon();
@@ -1235,10 +1339,6 @@ class mob_energy_charge : public CreatureScript
                     default:
                         break;
                 }
-            }
-
-            void UpdateAI(const uint32 diff)
-            {
             }
         };
 };
@@ -1251,6 +1351,7 @@ enum infiniteEvents
     EVENT_FLASH_SPAWN       = 4,
     EVENT_BOSS_ACTIVATION   = 5,
     EVENT_BOSS_INTRO_2      = 6,
+    EVENT_CHECK_AURAS       = 7
 };
 
 // Infinite Energy - 65293
@@ -1259,7 +1360,7 @@ class mob_infinite_energy : public CreatureScript
     public:
         mob_infinite_energy() : CreatureScript("mob_infinite_energy"){ }
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new mob_infinite_energyAI(creature);
         }
@@ -1274,13 +1375,13 @@ class mob_infinite_energy : public CreatureScript
             InstanceScript* pInstance;
             EventMap events;
 
-            void Reset()
+            void Reset() override
             {
                 events.Reset();
-                me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE);
+                me->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE));
             }
 
-            void DoAction(const int32 action)
+            void DoAction(const int32 action) override
             {
                 switch (action)
                 {
@@ -1350,34 +1451,23 @@ class mob_infinite_energy : public CreatureScript
                     {
                         if (pInstance)
                         {
-                            if (GameObject* energyPlatform = pInstance->instance->GetGameObject(pInstance->GetData64(GOB_ENERGY_PLATFORM)))
+                            if (GameObject* energyPlatform = pInstance->GetGameObject(GOB_ENERGY_PLATFORM))
                                 energyPlatform->SetGoState(GO_STATE_READY);
 
-                            std::list<GameObject*> titanCircles1;
-                            std::list<GameObject*> titanCircles2;
-                            std::list<GameObject*> titanCircles3;
-                            GetGameObjectListWithEntryInGrid(titanCircles1, me, GOB_ENERGY_TITAN_CIRCLE_1, 100.0f);
-                            GetGameObjectListWithEntryInGrid(titanCircles1, me, GOB_ENERGY_TITAN_CIRCLE_2, 100.0f);
-                            GetGameObjectListWithEntryInGrid(titanCircles1, me, GOB_ENERGY_TITAN_CIRCLE_3, 100.0f);
-
-                            for (auto titanCircle : titanCircles1)
-                                titanCircle->SetGoState(GO_STATE_READY);
-                            for (auto titanCircle : titanCircles2)
-                                titanCircle->SetGoState(GO_STATE_READY);
-                            for (auto titanCircle : titanCircles3)
+                            if (GameObject* titanCircle = GetClosestGameObjectWithEntry(me, GOB_ENERGY_TITAN_CIRCLE_1, 100.0f))
                                 titanCircle->SetGoState(GO_STATE_READY);
 
-                            std::list<GameObject*> moguRune;
+                            if (GameObject* titanCircle = GetClosestGameObjectWithEntry(me, GOB_ENERGY_TITAN_CIRCLE_2, 100.0f))
+                                titanCircle->SetGoState(GO_STATE_READY);
 
-                            for (uint32 entry = GOB_MOGU_RUNE_FIRST; entry < GOB_MOGU_RUNE_END; entry++)
-                            {
-                                GetGameObjectListWithEntryInGrid(moguRune, me, entry, 500.0f);
+                            if (GameObject* titanCircle = GetClosestGameObjectWithEntry(me, GOB_ENERGY_TITAN_CIRCLE_3, 100.0f))
+                                titanCircle->SetGoState(GO_STATE_READY);
 
-                                for (auto itr : moguRune)
-                                    itr->SetGoState(GO_STATE_READY);
+                            for (uint32 entry = GOB_MOGU_RUNE_FIRST; entry < GOB_MOGU_RUNE_END + 1; ++entry)
+                                if (GameObject* moguRune = GetClosestGameObjectWithEntry(me, entry, 200.0f))
+                                    moguRune->SetGoState(GO_STATE_READY);
 
-                                moguRune.clear();
-                            }
+                            events.ScheduleEvent(EVENT_CHECK_AURAS, 500);
                         }
                         break;
                     }
@@ -1385,7 +1475,7 @@ class mob_infinite_energy : public CreatureScript
                     {
                         if (pInstance)
                         {
-                            if (Creature* elegon = pInstance->instance->GetCreature(pInstance->GetData64(NPC_ELEGON)))
+                            if (Creature* elegon = pInstance->GetCreature(NPC_ELEGON))
                             {
                                 elegon->RestoreDisplayId();
                                 elegon->AI()->Talk(TALK_INTRO);
@@ -1397,11 +1487,14 @@ class mob_infinite_energy : public CreatureScript
                     }
                     case ACTION_INFINITE_LOOT:
                     {
+                        if (IsLFR())
+                            break;
+
                         // Loots chest
                         if (IsHeroic())
-                            me->SummonGameObject(GOB_ELEGON_CHEST_HEROIC, middlePos.GetPositionX(), middlePos.GetPositionY(), middlePos.GetPositionZ(), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0);
+                            me->SummonGameObject(GOB_ELEGON_CHEST_HEROIC, middlePos.GetPositionX(), middlePos.GetPositionY(), middlePos.GetPositionZ(), 0.0f, QuaternionData(), 0);
                         else
-                            me->SummonGameObject(GOB_ELEGON_CHEST, middlePos.GetPositionX(), middlePos.GetPositionY(), middlePos.GetPositionZ(), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0);
+                            me->SummonGameObject(GOB_ELEGON_CHEST, middlePos.GetPositionX(), middlePos.GetPositionY(), middlePos.GetPositionZ(), 0.0f, QuaternionData(), 0);
                         break;
                     }
                     default:
@@ -1409,7 +1502,7 @@ class mob_infinite_energy : public CreatureScript
                 }
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(const uint32 diff) override
             {
                 events.Update(diff);
 
@@ -1438,16 +1531,45 @@ class mob_infinite_energy : public CreatureScript
                     case EVENT_BOSS_ACTIVATION:
                     {
                         if (pInstance)
-                            if (Creature* elegon = pInstance->instance->GetCreature(pInstance->GetData64(NPC_ELEGON)))
-                                elegon->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_IMMUNE_TO_PC|UNIT_FLAG_UNK_15);
-
+                            if (Creature* elegon = pInstance->GetCreature(NPC_ELEGON))
+                                elegon->RemoveUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_IMMUNE_TO_PC|UNIT_FLAG_UNK_15));
                         break;
                     }
                     case EVENT_BOSS_INTRO_2:
                     {
                         if (pInstance)
-                            if (Creature* elegon = pInstance->instance->GetCreature(pInstance->GetData64(NPC_ELEGON)))
+                            if (Creature* elegon = pInstance->GetCreature(NPC_ELEGON))
                                 elegon->AI()->Talk(TALK_INTRO_2);
+                        break;
+                    }
+                    case EVENT_CHECK_AURAS:
+                    {
+                        std::list<Player*> playerList;
+                        GetPlayerListInGrid(playerList, me, 60.0f);
+
+                        for (auto player : playerList)
+                        {
+                            // Removing auras if player outside of vortex
+                            if ((player->HasAura(SPELL_ELEGON_OVERCHARGED_2) || player->HasAura(SPELL_TOUCH_OF_THE_TITANS)) && me->GetDistance(player) > 38.5f)
+                            {
+                                player->RemoveAura(SPELL_ELEGON_OVERCHARGED_2);
+                                player->RemoveAura(SPELL_TOUCH_OF_THE_TITANS);
+                            }
+                            // Applying auras if player on vortex
+                            else if (me->GetDistance(player) <= 38.5f)
+                            {
+                                if (!player->HasAura(SPELL_ELEGON_OVERCHARGED))
+                                    me->AddAura(SPELL_ELEGON_OVERCHARGED, player);
+
+                                if (!player->HasAura(SPELL_TOUCH_OF_THE_TITANS))
+                                {
+                                    me->AddAura(SPELL_TOUCH_OF_TITANS_VISUAL, player);
+                                    me->AddAura(SPELL_TOUCH_OF_THE_TITANS, player);
+                                }
+                            }
+                        }
+
+                        events.ScheduleEvent(EVENT_CHECK_AURAS, 500);
                         break;
                     }
                     default:
@@ -1463,26 +1585,27 @@ class go_celestial_control_console : public GameObjectScript
     public:
         go_celestial_control_console() : GameObjectScript("go_celestial_control_console") { }
 
-        void OnGameObjectStateChanged(GameObject* go, uint32 state)
+        void OnGameObjectStateChanged(GameObject* go, uint32 /*state*/) override
         {
             std::list<Player*> playerList;
-            playerList.clear();
-            GetPlayerListInGrid(playerList, go, 10.0f);
+            go->GetPlayerListInGrid(playerList, 10.0f);
 
             if (!playerList.empty())
+            {
                 for (auto player: playerList)
-                        if (InstanceScript* pInstance = player->GetInstanceScript())
-                        {
-                            if (Creature* infiniteEnergy = pInstance->instance->GetCreature(pInstance->GetData64(NPC_INFINITE_ENERGY)))
-                                infiniteEnergy->AI()->DoAction(ACTION_INFINITE_GO_DOWN);
+                {
+                    if (InstanceScript* pInstance = player->GetInstanceScript())
+                    {
+                        if (Creature* infiniteEnergy = pInstance->GetCreature(NPC_INFINITE_ENERGY))
+                            infiniteEnergy->AI()->DoAction(ACTION_INFINITE_GO_DOWN);
 
-                            if (GameObject* titanDisk = pInstance->instance->GetGameObject(pInstance->GetData64(GOB_ENERGY_TITAN_DISK)))
-                                titanDisk->SetGoState(GO_STATE_READY);
+                        if (GameObject* titanDisk = pInstance->GetGameObject(GOB_ENERGY_TITAN_DISK))
+                            titanDisk->SetGoState(GO_STATE_READY);
 
-                            go->SetFlag(GAMEOBJECT_FLAGS, GO_FLAG_NOT_SELECTABLE);
-
-                            return;
-                        }
+                        return;
+                    }
+                }
+            }
         }
 };
 
@@ -1496,7 +1619,7 @@ class spell_spawn_flash_1_periodic : public SpellScriptLoader
         {
             PrepareAuraScript(spell_spawn_flash_1_periodic_AuraScript);
 
-            void OnRemove(constAuraEffectPtr /*aurEff*/, AuraEffectHandleModes /*mode*/)
+            void OnRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
             {
                 if (Unit* target = GetTarget())
                 {
@@ -1505,13 +1628,13 @@ class spell_spawn_flash_1_periodic : public SpellScriptLoader
                 }
             }
 
-            void Register()
+            void Register() override
             {
                 OnEffectRemove += AuraEffectRemoveFn(spell_spawn_flash_1_periodic_AuraScript::OnRemove, EFFECT_0, SPELL_AURA_PERIODIC_TRIGGER_SPELL, AURA_EFFECT_HANDLE_REAL);
             }
         };
 
-        AuraScript* GetAuraScript() const
+        AuraScript* GetAuraScript() const override
         {
             return new spell_spawn_flash_1_periodic_AuraScript();
         }
@@ -1527,7 +1650,7 @@ class spell_spawn_flash_2_periodic : public SpellScriptLoader
         {
             PrepareAuraScript(spell_spawn_flash_2_periodic_AuraScript);
 
-            void OnRemove(constAuraEffectPtr /*aurEff*/, AuraEffectHandleModes /*mode*/)
+            void OnRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
             {
                 if (Unit* target = GetTarget())
                 {
@@ -1538,13 +1661,13 @@ class spell_spawn_flash_2_periodic : public SpellScriptLoader
                 }
             }
 
-            void Register()
+            void Register() override
             {
                 OnEffectRemove += AuraEffectRemoveFn(spell_spawn_flash_2_periodic_AuraScript::OnRemove, EFFECT_0, SPELL_AURA_PERIODIC_TRIGGER_SPELL, AURA_EFFECT_HANDLE_REAL);
             }
         };
 
-        AuraScript* GetAuraScript() const
+        AuraScript* GetAuraScript() const override
         {
             return new spell_spawn_flash_2_periodic_AuraScript();
         }
@@ -1560,20 +1683,20 @@ class spell_spawn_flash_3_periodic : public SpellScriptLoader
         {
             PrepareAuraScript(spell_spawn_flash_3_periodic_AuraScript);
 
-            void OnRemove(constAuraEffectPtr /*aurEff*/, AuraEffectHandleModes /*mode*/)
+            void OnRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
             {
                 if (Unit* target = GetTarget())
                     if (target->GetAI())
                         target->GetAI()->DoAction(ACTION_INFINITE_SPAWN_BOSS);
             }
 
-            void Register()
+            void Register() override
             {
                 OnEffectRemove += AuraEffectRemoveFn(spell_spawn_flash_3_periodic_AuraScript::OnRemove, EFFECT_0, SPELL_AURA_PERIODIC_TRIGGER_SPELL, AURA_EFFECT_HANDLE_REAL);
             }
         };
 
-        AuraScript* GetAuraScript() const
+        AuraScript* GetAuraScript() const override
         {
             return new spell_spawn_flash_3_periodic_AuraScript();
         }
@@ -1589,40 +1712,42 @@ class spell_touch_of_titans : public SpellScriptLoader
         {
             PrepareAuraScript(spell_touch_of_titans_AuraScript);
 
-            void OnTick(constAuraEffectPtr aurEff)
+            void OnTick(AuraEffect const* /*p_AurEff*/)
             {
                 if (!GetTarget())
                     return;
 
                 if (Player* player = GetTarget()->ToPlayer())
                 {
-                    if (player->GetDistance(middlePos) > 36.0f)
+                    if (player->GetDistance(middlePos) > 38.5f)
                     {
                         player->RemoveAurasDueToSpell(SPELL_TOUCH_OF_THE_TITANS);
                         player->RemoveAurasDueToSpell(SPELL_TOUCH_OF_TITANS_VISUAL);
-                        player->RemoveAurasDueToSpell(SPELL_OVERCHARGED);
+                        player->RemoveAurasDueToSpell(SPELL_ELEGON_OVERCHARGED);
+                        player->RemoveAurasDueToSpell(SPELL_ELEGON_OVERCHARGED_2);
                     }
                 }
             }
 
-            void OnRemove(constAuraEffectPtr /*aurEff*/, AuraEffectHandleModes /*mode*/)
+            void OnRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
             {
                 if (Unit* target = GetTarget())
                 {
                     target->RemoveAurasDueToSpell(SPELL_TOUCH_OF_THE_TITANS);
                     target->RemoveAurasDueToSpell(SPELL_TOUCH_OF_TITANS_VISUAL);
-                    target->RemoveAurasDueToSpell(SPELL_OVERCHARGED);
+                    target->RemoveAurasDueToSpell(SPELL_ELEGON_OVERCHARGED);
+                    target->RemoveAurasDueToSpell(SPELL_ELEGON_OVERCHARGED_2);
                 }
             }
 
-            void Register()
+            void Register() override
             {
                 OnEffectPeriodic += AuraEffectPeriodicFn(spell_touch_of_titans_AuraScript::OnTick, EFFECT_1, SPELL_AURA_PERIODIC_DUMMY);
                 OnEffectRemove += AuraEffectRemoveFn(spell_touch_of_titans_AuraScript::OnRemove, EFFECT_1, SPELL_AURA_PERIODIC_DUMMY, AURA_EFFECT_HANDLE_REAL);
             }
         };
 
-        AuraScript* GetAuraScript() const
+        AuraScript* GetAuraScript() const override
         {
             return new spell_touch_of_titans_AuraScript();
         }
@@ -1648,19 +1773,19 @@ class spell_radiating_energies : public SpellScriptLoader
                 Map::PlayerList const& players = GetCaster()->GetMap()->GetPlayers();
                 if (!players.isEmpty())
                     for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-                        if (Player* player = itr->getSource())
+                        if (Player* player = itr->GetSource())
                             if (player->GetExactDist2d(GetCaster()->GetPositionX(), GetCaster()->GetPositionY()) <= MaxDist &&
                                 player->GetExactDist2d(GetCaster()->GetPositionX(), GetCaster()->GetPositionY()) >= MinDist)
                                 targets.push_back(player);
             }
 
-            void Register()
+            void Register() override
             {
                 OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_radiating_energies_SpellScript::CorrectRange, EFFECT_0, TARGET_UNIT_SRC_AREA_ENTRY);
             }
         };
 
-        SpellScript* GetSpellScript() const
+        SpellScript* GetSpellScript() const override
         {
             return new spell_radiating_energies_SpellScript();
         }
@@ -1676,7 +1801,7 @@ class spell_draw_power : public SpellScriptLoader
         {
             PrepareAuraScript(spell_draw_power_AuraScript);
 
-            void OnRemove(constAuraEffectPtr /*aurEff*/, AuraEffectHandleModes /*mode*/)
+            void OnRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
             {
                 if (Unit* elegon = GetCaster())
                 {
@@ -1685,13 +1810,13 @@ class spell_draw_power : public SpellScriptLoader
                 }
             }
 
-            void Register()
+            void Register() override
             {
                 OnEffectRemove += AuraEffectRemoveFn(spell_draw_power_AuraScript::OnRemove, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
             }
         };
 
-        AuraScript* GetAuraScript() const
+        AuraScript* GetAuraScript() const override
         {
             return new spell_draw_power_AuraScript();
         }
@@ -1707,7 +1832,7 @@ class spell_core_checker : public SpellScriptLoader
         {
             PrepareAuraScript(spell_core_checker_AuraScript);
 
-            void OnTick(constAuraEffectPtr aurEff)
+            void OnTick(AuraEffect const* /*p_AurEff*/)
             {
                 if (Unit* energyCharge = GetTarget())
                 {
@@ -1720,13 +1845,13 @@ class spell_core_checker : public SpellScriptLoader
                 }
             }
 
-            void Register()
+            void Register() override
             {
                 OnEffectPeriodic += AuraEffectPeriodicFn(spell_core_checker_AuraScript::OnTick, EFFECT_0, SPELL_AURA_PERIODIC_DUMMY);
             }
         };
 
-        AuraScript* GetAuraScript() const
+        AuraScript* GetAuraScript() const override
         {
             return new spell_core_checker_AuraScript();
         }
@@ -1748,7 +1873,7 @@ class spell_grasping_energy_tendrils : public SpellScriptLoader
                 {
                     if (Unit* target = GetHitUnit())
                     {
-                        SpellInfo const* m_spellInfo = sSpellMgr->GetSpellInfo(SPELL_GRASPING_ENERGY_GRIP);
+                        SpellInfo const* m_spellInfo = sSpellMgr->GetSpellInfo(SPELL_GRASPING_ENERGY_GRIP, GetCastDifficulty());
                         if (!m_spellInfo)
                             return;
 
@@ -1759,27 +1884,27 @@ class spell_grasping_energy_tendrils : public SpellScriptLoader
                         float dist = target->GetExactDist2d(x, y);
 
                         float speedZ, speedXY;
-                        if (m_spellInfo->Effects[0].MiscValue)
-                            speedZ = float(m_spellInfo->Effects[0].MiscValue)/10;
-                        else if (m_spellInfo->Effects[0].MiscValueB)
-                            speedZ = float(m_spellInfo->Effects[0].MiscValueB)/10;
+                        if (m_spellInfo->GetEffect(0)->MiscValue)
+                            speedZ = float(m_spellInfo->GetEffect(0)->MiscValue)/10;
+                        else if (m_spellInfo->GetEffect(0)->MiscValueB)
+                            speedZ = float(m_spellInfo->GetEffect(0)->MiscValueB)/10;
                         else
                             speedZ = 10.0f;
 
                         speedXY = dist * 10.0f / speedZ;
 
-                        target->GetMotionMaster()->CustomJump(x, y, z, speedXY, speedZ);
+                        target->GetMotionMaster()->MoveJump(Position(x, y, z), speedXY, speedZ);
                     }
                 }
             }
 
-            void Register()
+            void Register() override
             {
                 OnHit += SpellHitFn(spell_grasping_energy_tendrils_SpellScript::HandleOnHit);
             }
         };
 
-        SpellScript* GetSpellScript() const
+        SpellScript* GetSpellScript() const override
         {
             return new spell_grasping_energy_tendrils_SpellScript();
         }
@@ -1795,7 +1920,7 @@ class spell_destabilizing_energies : public SpellScriptLoader
         {
             PrepareAuraScript(spell_destabilizing_energies_AuraScript);
 
-            void Apply(constAuraEffectPtr /*aurEff*/, AuraEffectHandleModes /*mode*/)
+            void Apply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
             {
                 if (Unit* caster = GetCaster())
                 {
@@ -1806,13 +1931,13 @@ class spell_destabilizing_energies : public SpellScriptLoader
                 }
             }
 
-            void Register()
+            void Register() override
             {
-                OnEffectApply += AuraEffectApplyFn(spell_destabilizing_energies_AuraScript::Apply, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+                OnEffectApply += AuraEffectApplyFn(spell_destabilizing_energies_AuraScript::Apply, EFFECT_2, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
             }
         };
 
-        AuraScript* GetAuraScript() const
+        AuraScript* GetAuraScript() const override
         {
             return new spell_destabilizing_energies_AuraScript();
         }
@@ -1830,15 +1955,10 @@ class spell_total_annihilation : public SpellScriptLoader
 
             uint32 targetCount;
 
-            bool Load()
+            bool Load() override
             {
-                targetCount = 0;
+                targetCount = 1;
                 return true;
-            }
-
-            void CountTargets(std::list<WorldObject*>& targets)
-            {
-                targetCount = targets.size();
             }
 
             void CheckTargets()
@@ -1848,21 +1968,20 @@ class spell_total_annihilation : public SpellScriptLoader
                     if (!caster->GetInstanceScript()->instance->IsHeroic())
                         return;
 
-                    uint8 diffic = caster->GetMap()->GetDifficulty();
+                    uint8 diffic = caster->GetMap()->GetDifficultyID();
 
-                    if ((!targetCount &&  diffic == MAN10_DIFFICULTY) || (targetCount < 3 && diffic == MAN25_DIFFICULTY))
+                    if ((!targetCount &&  diffic == DIFFICULTY_10_N) || (targetCount < 3 && diffic == DIFFICULTY_25_N))
                         caster->CastSpell(caster, SPELL_CATASTROPHIC_ANOMALY, false);
                 }
             }
 
-            void Register()
+            void Register() override
             {
-                OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_total_annihilation_SpellScript::CountTargets, EFFECT_0, TARGET_UNIT_SRC_AREA_ENEMY);
                 AfterCast += SpellCastFn(spell_total_annihilation_SpellScript::CheckTargets);
             }
         };
 
-        SpellScript* GetSpellScript() const
+        SpellScript* GetSpellScript() const override
         {
             return new spell_total_annihilation_SpellScript();
         }
@@ -1878,40 +1997,73 @@ class spell_unstable_energy : public SpellScriptLoader
         {
             PrepareAuraScript(spell_unstable_energy_AuraScript);
 
-            void OnTick(constAuraEffectPtr aurEff)
+            void OnTick(AuraEffect const* /*p_AurEff*/)
             {
                 if (Unit* elegon = GetTarget())
                     elegon->CastSpell(elegon, SPELL_UNSTABLE_ENERGY_DAMAGE, true);
             }
 
-            void Register()
+            void Register() override
             {
                 OnEffectPeriodic += AuraEffectPeriodicFn(spell_unstable_energy_AuraScript::OnTick, EFFECT_0, SPELL_AURA_PERIODIC_DUMMY);
             }
         };
 
-        AuraScript* GetAuraScript() const
+        AuraScript* GetAuraScript() const override
         {
             return new spell_unstable_energy_AuraScript();
         }
 };
 
+/// Created by spell 116546
+class at_draw_power : public AreaTriggerAI
+{
+public:
+    at_draw_power(AreaTrigger* areaTrigger) : AreaTriggerAI(areaTrigger) { }
+
+    void OnUpdate(uint32 /*p_Time*/) override
+    {
+        std::list<Unit*> l_TargetList;
+        float l_Radius = 30.0f;
+        Unit* l_Caster = at->GetCaster();
+
+        if (!l_Caster)
+            return;
+
+        l_Caster->GetAttackableUnitListInRange(l_TargetList, l_Radius);
+
+        for (Unit* l_Unit : l_TargetList)
+        {
+            if (l_Unit->IsInAxe(l_Caster, at, 2.0f))
+            {
+                if (l_Unit->HasAura(SPELL_ENERGY_CONDUIT))
+                    l_Caster->AddAura(SPELL_ENERGY_CONDUIT, l_Unit);
+            }
+            else
+                l_Unit->RemoveAurasDueToSpell(SPELL_ENERGY_CONDUIT);
+        }
+    }
+};
+
 void AddSC_boss_elegon()
 {
-    new boss_elegon();
-    new mob_empyreal_focus();
-    new mob_celestial_protector();
-    new mob_cosmic_spark();
-    new mob_energy_charge();
-    new mob_infinite_energy();
-    new go_celestial_control_console();
-    new spell_spawn_flash_1_periodic();
-    new spell_spawn_flash_2_periodic();
-    new spell_spawn_flash_3_periodic();
-    new spell_touch_of_titans();
-    new spell_radiating_energies();
-    new spell_draw_power();
-    new spell_core_checker();
-    new spell_grasping_energy_tendrils();
-    new spell_unstable_energy();
+    new boss_elegon();                      ///< 60410
+    new mob_empyreal_focus();               ///< 60776
+    new mob_celestial_protector();          ///< 60793
+    new mob_cosmic_spark();                 ///< 62618
+    new mob_energy_charge();                ///< 60913
+    new mob_infinite_energy();              ///< 65293
+    new go_celestial_control_console();     ///< 211650
+    new spell_spawn_flash_1_periodic();     ///< 127785
+    new spell_spawn_flash_2_periodic();     ///< 127783
+    new spell_spawn_flash_3_periodic();     ///< 127781
+    new spell_touch_of_titans();            ///< 117874
+    new spell_radiating_energies();         ///< 118313 - 122741
+    new spell_draw_power();                 ///< 119360 - 124967
+    new spell_core_checker();               ///< 118024
+    new spell_grasping_energy_tendrils();   ///< 127362
+    new spell_destabilizing_energies();     ///< 132222
+    new spell_total_annihilation();         ///< 127911
+    new spell_unstable_energy();            ///< 116994
+    RegisterAreaTriggerAI(at_draw_power);                    ///< 116546
 }

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -27,10 +27,10 @@ struct StrafPointStruct
 
     uint8 pointIdBegin;
     Position begin;
-    
+
     uint8 pointIdEnd;
     Position end;
-    
+
     uint8 pointIdOutside;
     Position outside;
 };
@@ -68,7 +68,7 @@ StrafPointStruct StrafPoints[4] =
     { POINT_EAST_OUTSIDE,  {1195.4f, 2243.441f, 438.0f, 0.0f}, POINT_EAST_START,  {1195.392f, 2263.441f, 435.0f, 0.0f}, POINT_EAST_END,  {1195.299f, 2348.941f, 435.0f, 0.0f}, POINT_WEST_OUTSIDE,  {1195.3f, 2366.941f, 438.0f, 0.0f} }  // East  -> West
 };
 
-Position CenterPos = {1195.0f, 2304.0f, 438.0f};
+Position CenterPos = {1195.0f, 2304.0f, 438.0f, 0.0f};
 
 enum eSpells
 {
@@ -89,7 +89,7 @@ enum eEvents
     EVENT_PREY_TIME         = 1,
     EVENT_IMPALING_STRIKE   = 2,
 
-    EVENT_DISRUPTOR_BOMBARD = 3,
+    EVENT_DISRUPTOR_BOMBARD = 3
 };
 
 enum ePhases
@@ -132,7 +132,7 @@ class boss_striker_gadok : public CreatureScript
             uint8 strafingEventProgress;
             uint8 move;
 
-            void Reset()
+            void Reset() override
             {
                 _Reset();
                 isStrafing = false;
@@ -165,19 +165,19 @@ class boss_striker_gadok : public CreatureScript
 
             TempSummon* SummonKrikThik(uint32 creatureId)
             {
-                float angle = frand(0, 2*M_PI);
+                float angle = frand(0, 2 * (float)M_PI);
                 float x = CenterPos.GetPositionX() + (RADIUS_CIRCLE * std::cos(angle));
                 float y = CenterPos.GetPositionY() + (RADIUS_CIRCLE * std::sin(angle));
 
                 return me->SummonCreature(creatureId, x, y, CenterPos.GetPositionZ());
             }
 
-            void EnterCombat(Unit* /*who*/)
+            void EnterCombat(Unit* /*who*/) override
             {
                 _EnterCombat();
             }
 
-            void JustReachedHome()
+            void JustReachedHome() override
             {
                 if (instance)
                     instance->SetBossState(DATA_GADOK, FAIL);
@@ -185,7 +185,7 @@ class boss_striker_gadok : public CreatureScript
                 summons.DespawnAll();
             }
 
-            void MovementInform(uint32 type, uint32 id)
+            void MovementInform(uint32 type, uint32 id) override
             {
                 if (type != POINT_MOTION_TYPE)
                     return;
@@ -202,7 +202,7 @@ class boss_striker_gadok : public CreatureScript
                 }
             }
 
-            void DamageTaken(Unit* attacker, uint32& damage)
+            void DamageTaken(Unit* /*attacker*/, uint32& damage) override
             {
                 float nextHealthPct = ((float(me->GetHealth()) - damage)  / float(me->GetMaxHealth())) * 100;
 
@@ -265,7 +265,7 @@ class boss_striker_gadok : public CreatureScript
                         strafingTimer = 2000;
                         break;
                     case 2: // 2 sec passed, move to POINT_END with the spell
-                        me->SetSpeed(MOVE_FLIGHT, 2.0f, true);
+                        me->SetSpeed(MOVE_FLIGHT, 2.0f);
                         me->GetMotionMaster()->MovePoint(StrafPoints[move].pointIdEnd, StrafPoints[move].end.GetPositionX(), StrafPoints[move].end.GetPositionY(), StrafPoints[move].end.GetPositionZ());
                         me->CastSpell(me, SPELL_STRAFING_RUN, true);
 
@@ -300,7 +300,7 @@ class boss_striker_gadok : public CreatureScript
 
                         if (instance)
                             instance->SetData(DATA_GADOK, move <= MOV_SOUTH_NORTH ? PHASE_NORTH_SOUTH: PHASE_WEST_EAST);
-                        
+
                         me->GetMotionMaster()->MovePoint(StrafPoints[move].pointIdBegin, StrafPoints[move].begin.GetPositionX(), StrafPoints[move].begin.GetPositionY(), StrafPoints[move].begin.GetPositionZ());
 
                         ++strafingEventProgress;
@@ -310,7 +310,7 @@ class boss_striker_gadok : public CreatureScript
                         strafingTimer = 50;
                         break;
                     case 10: // 2 sec passed, move to POINT_END with the spell
-                        me->SetSpeed(MOVE_FLIGHT, 2.0f, true);
+                        me->SetSpeed(MOVE_FLIGHT, 2.0f);
                         me->GetMotionMaster()->MovePoint(StrafPoints[move].pointIdEnd, StrafPoints[move].end.GetPositionX(), StrafPoints[move].end.GetPositionY(), StrafPoints[move].end.GetPositionZ());
                         me->CastSpell(me, SPELL_STRAFING_RUN, true);
 
@@ -321,8 +321,8 @@ class boss_striker_gadok : public CreatureScript
                         strafingTimer = 50;
                         break;
                     case 12: // POINT_END, End Strafing Event, go back to fight
-                        if (me->getVictim())
-                            me->GetMotionMaster()->MoveChase(me->getVictim());
+                        if (me->GetVictim())
+                            me->GetMotionMaster()->MoveChase(me->GetVictim());
                         else if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 0.0f, true))
                             me->AI()->AttackStart(target);
 
@@ -334,7 +334,7 @@ class boss_striker_gadok : public CreatureScript
                         strafingTimer = 0;
                         strafingEventProgress = 0;
                         isStrafing = false;
-                        me->SetSpeed(MOVE_FLIGHT, 1.134f, true);
+                        me->SetSpeed(MOVE_FLIGHT, 1.134f);
                         me->SetWalk(true);
 
                         events.ScheduleEvent(EVENT_PREY_TIME, 5000, PHASE_MAIN);
@@ -345,7 +345,7 @@ class boss_striker_gadok : public CreatureScript
                 }
             }
 
-            void JustSummoned(Creature* summoned)
+            void JustSummoned(Creature* summoned) override
             {
                 summons.Summon(summoned);
 
@@ -360,7 +360,7 @@ class boss_striker_gadok : public CreatureScript
                 }
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (!UpdateVictim())
                     return;
@@ -396,7 +396,7 @@ class boss_striker_gadok : public CreatureScript
                 DoMeleeAttackIfReady();
             }
 
-            void JustDied(Unit* /*killer*/)
+            void JustDied(Unit* /*killer*/) override
             {
                 events.Reset();
                 if (instance)
@@ -407,7 +407,7 @@ class boss_striker_gadok : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new boss_striker_gadokAI(creature);
         }
@@ -423,7 +423,7 @@ struct npc_krikthik : public ScriptedAI
     float myPositionZ;
     bool direction;
 
-    void Reset()
+    void Reset() override
     {
         nextMovementTimer = 0;
         actualAngle = me->GetAngle(CenterPos.GetPositionX(), CenterPos.GetPositionY());
@@ -440,7 +440,7 @@ struct npc_krikthik : public ScriptedAI
         me->setActive(true);
     }
 
-    void MovementInform(uint32 type, uint32 id)
+    void MovementInform(uint32 type, uint32 id) override
     {
         if (type != POINT_MOTION_TYPE)
             return;
@@ -452,15 +452,15 @@ struct npc_krikthik : public ScriptedAI
     void SelectNextWaypoint(float& x, float& y)
     {
         if (direction)
-            actualAngle -= M_PI / 8;
+            actualAngle -= (float)M_PI / 8.0f;
         else
-            actualAngle += M_PI / 8;
+            actualAngle += (float)M_PI / 8.0f;
 
-        x = CenterPos.GetPositionX() + (me->GetObjectSize() + RADIUS_CIRCLE) * std::cos(actualAngle);
-        y = CenterPos.GetPositionY() + (me->GetObjectSize() + RADIUS_CIRCLE) * std::sin(actualAngle);
+        x = CenterPos.GetPositionX() + (me->GetCombatReach() + RADIUS_CIRCLE) * std::cos(actualAngle);
+        y = CenterPos.GetPositionY() + (me->GetCombatReach() + RADIUS_CIRCLE) * std::sin(actualAngle);
     }
 
-    void UpdateAI(const uint32 diff)
+    void UpdateAI(uint32 diff) override
     {
         if (nextMovementTimer)
         {
@@ -494,28 +494,28 @@ public:
         InstanceScript* pInstance;
         bool isAttackerStriker;
 
-        void Reset()
+        void Reset() override
         {
             npc_krikthik::Reset();
             isAttackerStriker = false;
         }
 
-        void DoAction(int32 const action)
+        void DoAction(int32 const /*action*/) override
         {
             isAttackerStriker = true;
 
-            me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
+            me->RemoveUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE));
 
             Map::PlayerList const &PlayerList = pInstance->instance->GetPlayers();
             Map::PlayerList::const_iterator it = PlayerList.begin();
             // Randomize it, everything is done in the "for"
             for (uint8 i = 0; i < urand(0, PlayerList.getSize() - 1); ++i, ++it);
 
-            if (Player* player = it->getSource())
+            if (Player* player = it->GetSource())
                 AttackStart(player);
         }
 
-        void UpdateAI(const uint32 diff)
+        void UpdateAI(uint32 diff) override
         {
             if (!isAttackerStriker)
                 npc_krikthik::UpdateAI(diff);
@@ -524,7 +524,7 @@ public:
         }
     };
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const override
     {
         return new npc_krikthik_strikerAI (creature);
     }
@@ -545,14 +545,14 @@ public:
         InstanceScript* pInstance;
         EventMap events;
 
-        void Reset()
+        void Reset() override
         {
             npc_krikthik::Reset();
 
             events.ScheduleEvent(EVENT_DISRUPTOR_BOMBARD, urand(5000, 20000));
         }
 
-        void UpdateAI(const uint32 diff)
+        void UpdateAI(uint32 diff) override
         {
             if (!pInstance)
                 return;
@@ -582,7 +582,7 @@ public:
                     if (it == PlayerList.end())
                         return;
 
-                    if (Player* player = it->getSource())
+                    if (Player* player = it->GetSource())
                         me->CastSpell(player, SPELL_BOMB, true); //Triggered to avoid pillars line of sight
 
                     events.ScheduleEvent(EVENT_DISRUPTOR_BOMBARD, urand(5000, 20000));
@@ -593,7 +593,7 @@ public:
         }
     };
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const override
     {
         return new npc_krikthik_disruptorAI (creature);
     }
@@ -613,10 +613,9 @@ public:
 
         InstanceScript* pInstance;
 
-        void Reset()
-        {}
+        void Reset() override {}
 
-        void SpellHit(Unit* /*caster*/, SpellInfo const* spell)
+        void SpellHit(Unit* /*caster*/, SpellInfo const* spell) override
         {
             if (!pInstance)
                 return;
@@ -628,7 +627,7 @@ public:
             {
                 for (uint8 i = 0; i < 5; ++i)
                 {
-                    if (Creature* bombarder = pInstance->instance->GetCreature(pInstance->GetData64(DATA_RANDOM_BOMBARDER)))
+                    if (Creature* bombarder = pInstance->instance->GetCreature(pInstance->GetGuidData(DATA_RANDOM_BOMBARDER)))
                     {
                         me->CastSpell(bombarder, 116553, true);
                         bombarder->GetMotionMaster()->MoveFall();
@@ -639,13 +638,13 @@ public:
         }
     };
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const override
     {
         return new npc_flak_cannonAI (creature);
     }
 };
 
-class spell_gadok_strafing : public SpellScriptLoader
+class spell_gadok_strafing: public SpellScriptLoader
 {
     public:
         spell_gadok_strafing() :  SpellScriptLoader("spell_gadok_strafing") { }
@@ -653,7 +652,7 @@ class spell_gadok_strafing : public SpellScriptLoader
         class spell_gadok_strafing_SpellScript : public SpellScript
         {
             PrepareSpellScript(spell_gadok_strafing_SpellScript);
-            
+
             void HandleBeforeCast()
             {
                 if (Unit* caster = GetCaster())
@@ -677,19 +676,19 @@ class spell_gadok_strafing : public SpellScriptLoader
                 }
             }
 
-            void Register()
+            void Register() override
             {
                 BeforeCast += SpellCastFn(spell_gadok_strafing_SpellScript::HandleBeforeCast);
             }
         };
 
-        SpellScript* GetSpellScript() const
+        SpellScript* GetSpellScript() const override
         {
             return new spell_gadok_strafing_SpellScript();
         }
 };
 
-class spell_prey_time : public SpellScriptLoader
+class spell_prey_time: public SpellScriptLoader
 {
     public:
         spell_prey_time() :  SpellScriptLoader("spell_prey_time") { }
@@ -698,26 +697,26 @@ class spell_prey_time : public SpellScriptLoader
         {
             PrepareAuraScript(spell_prey_time_AuraScript);
 
-            void OnApply(constAuraEffectPtr /*aurEff*/, AuraEffectHandleModes /*mode*/)
+            void OnApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
             {
                 if (GetCaster() && GetTarget())
                     GetTarget()->CastSpell(GetCaster(), SPELL_RIDE_VEHICLE, true);
             }
 
-            void OnRemove(constAuraEffectPtr aurEff, AuraEffectHandleModes /*mode*/)
+            void OnRemove(AuraEffect const* /*p_AurEff*/, AuraEffectHandleModes /*mode*/)
             {
                 if (GetCaster())
                     GetCaster()->RemoveAurasDueToSpell(SPELL_RIDE_VEHICLE);
             }
 
-            void Register()
+            void Register() override
             {
                 OnEffectApply += AuraEffectApplyFn(spell_prey_time_AuraScript::OnApply, EFFECT_0, SPELL_AURA_PERIODIC_DAMAGE, AURA_EFFECT_HANDLE_REAL);
                 AfterEffectRemove += AuraEffectRemoveFn(spell_prey_time_AuraScript::OnRemove, EFFECT_0, SPELL_AURA_PERIODIC_DAMAGE, AURA_EFFECT_HANDLE_REAL);
             }
         };
 
-        AuraScript* GetAuraScript() const
+        AuraScript* GetAuraScript() const override
         {
             return new spell_prey_time_AuraScript();
         }

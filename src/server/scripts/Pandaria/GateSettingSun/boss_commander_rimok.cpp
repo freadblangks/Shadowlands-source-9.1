@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -56,7 +56,7 @@ class boss_commander_rimok : public CreatureScript
 
             InstanceScript* instance;
 
-            void Reset()
+            void Reset() override
             {
                 _Reset();
 
@@ -64,26 +64,25 @@ class boss_commander_rimok : public CreatureScript
                 events.ScheduleEvent(EVENT_VISCOUS_FLUID,    urand(10000, 15000));
             }
 
-            void EnterCombat(Unit* /*who*/)
+            void EnterCombat(Unit* /*who*/) override
             {
                 _EnterCombat();
             }
 
-            void JustReachedHome()
+            void JustReachedHome() override
             {
                 instance->SetBossState(DATA_RIMOK, FAIL);
                 summons.DespawnAll();
             }
 
-            void DamageTaken(Unit* attacker, uint32& damage)
-            {}
+            void DamageTaken(Unit* /*attacker*/, uint32& /*damage*/) override {}
 
-            void JustSummoned(Creature* summoned)
+            void JustSummoned(Creature* summoned) override
             {
                 summons.Summon(summoned);
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (!UpdateVictim())
                     return;
@@ -96,8 +95,8 @@ class boss_commander_rimok : public CreatureScript
                 switch(events.ExecuteEvent())
                 {
                     case EVENT_FRENZIED_ASSAULT:
-                        if (me->getVictim())
-                            me->CastSpell(me->getVictim(), SPELL_FRENZIED_ASSAULT, false);
+                        if (me->GetVictim())
+                            me->CastSpell(me->GetVictim(), SPELL_FRENZIED_ASSAULT, false);
 
                         events.ScheduleEvent(EVENT_FRENZIED_ASSAULT, urand(10000, 15000));
                         break;
@@ -110,13 +109,13 @@ class boss_commander_rimok : public CreatureScript
                 DoMeleeAttackIfReady();
             }
 
-            void JustDied(Unit* /*killer*/)
+            void JustDied(Unit* /*killer*/) override
             {
                 _JustDied();
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new boss_commander_rimokAI(creature);
         }
@@ -133,12 +132,12 @@ class npc_krikthik_swarmer : public CreatureScript
 
             uint32 attackTimer;
 
-            void Reset()
+            void Reset() override
             {
                 attackTimer = 2000;
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (attackTimer)
                 {
@@ -157,7 +156,7 @@ class npc_krikthik_swarmer : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new npc_krikthik_swarmerAI(creature);
         }
@@ -175,13 +174,13 @@ class npc_krikthik_saboteur : public CreatureScript
             uint32 attackTimer;
             uint32 checkTimer;
 
-            void Reset()
+            void Reset() override
             {
                 attackTimer = 2000;
                 checkTimer = urand(17500, 22500);
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (attackTimer)
                 {
@@ -207,7 +206,7 @@ class npc_krikthik_saboteur : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new npc_krikthik_saboteurAI(creature);
         }
@@ -228,14 +227,14 @@ class npc_add_generator : public CreatureScript
             InstanceScript* instance;
             SummonList summons;
 
-            void Reset()
+            void Reset() override
             {
                 me->RemoveAurasDueToSpell(SPELL_PERIODIC_SPAWN_SWARMER);
                 me->RemoveAurasDueToSpell(SPELL_PERIODIC_SPAWN_SABOTEUR);
                 summons.DespawnAll();
             }
 
-            void DoAction(int32 const action)
+            void DoAction(int32 action) override
             {
                 switch (action)
                 {
@@ -258,18 +257,18 @@ class npc_add_generator : public CreatureScript
                 }
             }
 
-            void JustSummoned(Creature* summoned)
+            void JustSummoned(Creature* summoned) override
             {
                 summons.Summon(summoned);
 
                 float x = me->GetPositionX();
                 float y = me->GetPositionY() - 10;
-                float z = me->GetMap()->GetHeight(x, y, 400.0f);
-                summoned->GetMotionMaster()->MoveJump(x, y, z, 10, 20);
+                float z = me->GetMap()->GetHeight(me->GetPhaseShift(), x, y, 400.0f);
+                summoned->GetMotionMaster()->MoveJump(x, y, z, 0.0f, 10, 20);
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new npc_add_generatorAI(creature);
         }
@@ -290,13 +289,13 @@ class npc_viscous_fluid : public CreatureScript
             InstanceScript* pInstance;
             uint32 checkTimer;
 
-            void Reset()
+            void Reset() override
             {
                 me->SetReactState(REACT_PASSIVE);
                 checkTimer = 1000;
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (checkTimer <= diff)
                 {
@@ -304,7 +303,7 @@ class npc_viscous_fluid : public CreatureScript
                     {
                         if (me->GetDistance(player) < 5.0f)
                         {
-                            if (Creature* rimok = pInstance->instance->GetCreature(pInstance->GetData64(NPC_RIMOK)))
+                            if (Creature* rimok = pInstance->instance->GetCreature(pInstance->GetGuidData(NPC_RIMOK)))
                             {
                                 me->AddAura(SPELL_VISCOUS_FLUID_DMG_UP, rimok);
                                 me->AddAura(SPELL_VISCOUS_FLUID_DMG_DOWN, player);
@@ -318,13 +317,13 @@ class npc_viscous_fluid : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new npc_viscous_fluidAI(creature);
         }
 };
 
-class spell_rimok_saboteur_bombard : public SpellScriptLoader
+class spell_rimok_saboteur_bombard: public SpellScriptLoader
 {
     public:
         spell_rimok_saboteur_bombard() :  SpellScriptLoader("spell_rimok_saboteur_bombard") { }
@@ -333,7 +332,7 @@ class spell_rimok_saboteur_bombard : public SpellScriptLoader
         {
             PrepareAuraScript(spell_rimok_saboteur_bombard_AuraScript);
 
-            void OnPeriodic(constAuraEffectPtr /*aurEff*/)
+            void OnPeriodic(AuraEffect const* /*aurEff*/)
             {
                 PreventDefaultAction();
 
@@ -352,19 +351,19 @@ class spell_rimok_saboteur_bombard : public SpellScriptLoader
                         if (it == PlayerList.end())
                             return;
 
-                        if (Player* player = it->getSource())
-                            caster->CastSpell(player, GetSpellInfo()->Effects[0].TriggerSpell, true);
+                        if (Player* player = it->GetSource())
+                            caster->CastSpell(player, GetSpellInfo()->GetEffect(0)->TriggerSpell, true);
                     }
                 }
             }
 
-            void Register()
+            void Register() override
             {
                 OnEffectPeriodic += AuraEffectPeriodicFn(spell_rimok_saboteur_bombard_AuraScript::OnPeriodic, EFFECT_0, SPELL_AURA_PERIODIC_TRIGGER_SPELL);
             }
         };
 
-        AuraScript* GetAuraScript() const
+        AuraScript* GetAuraScript() const override
         {
             return new spell_rimok_saboteur_bombard_AuraScript();
         }

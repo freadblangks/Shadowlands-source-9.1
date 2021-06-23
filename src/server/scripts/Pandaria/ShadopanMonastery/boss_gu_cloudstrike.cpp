@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -27,7 +27,7 @@ enum eSpells
 
     SPELL_INVOKE_LIGHTNING          = 106984,
     SPELL_CHARGING_SOUL             = 110945,
-    
+
     SPELL_OVERCHARGED_SOUL          = 110852,
     SPELL_OVERCHARGED_SOUL_DAMAGE   = 111129,
 
@@ -48,7 +48,7 @@ enum eEvents
     // Azure Serpent
     EVENT_STATIC_FIELD      = 3,
     EVENT_LIGHTNING_BREATH  = 4,
-    EVENT_MAGNETIC_SHROUD   = 5,
+    EVENT_MAGNETIC_SHROUD   = 5
 };
 
 enum eActions
@@ -56,11 +56,11 @@ enum eActions
     // Gu
     ACTION_INTRO                = 1,
     ACTION_GU_P_3               = 2,
-    
+
     // Azure Serpent
     ACTION_AZURE_SERPENT_P_1    = 3,
     ACTION_AZURE_SERPENT_P_2    = 4,
-    ACTION_AZURE_SERPENT_RESET  = 5,
+    ACTION_AZURE_SERPENT_RESET  = 5
 };
 
 enum ePhases
@@ -88,7 +88,7 @@ class boss_gu_cloudstrike : public CreatureScript
 
             uint8 phase;
 
-            void Reset()
+            void Reset() override
             {
                 _Reset();
                 me->RemoveAurasDueToSpell(SPELL_CHARGING_SOUL);
@@ -103,16 +103,16 @@ class boss_gu_cloudstrike : public CreatureScript
 
             Creature* GetAzureSerpent()
             {
-                return pInstance->instance->GetCreature(pInstance->GetData64(NPC_AZURE_SERPENT));
+                return pInstance->instance->GetCreature(pInstance->GetGuidData(NPC_AZURE_SERPENT));
             }
 
-            void JustReachedHome()
+            void JustReachedHome() override
             {
                 pInstance->SetBossState(DATA_GU_CLOUDSTRIKE, FAIL);
                 summons.DespawnAll();
             }
 
-            void DamageTaken(Unit* attacker, uint32& damage)
+            void DamageTaken(Unit* /*attacker*/, uint32& damage) override
             {
                 if (phase == 1 && me->HealthBelowPctDamaged(50, damage))
                 {
@@ -120,7 +120,7 @@ class boss_gu_cloudstrike : public CreatureScript
                     events.CancelEventGroup(PHASE_ONE);
 
                     events.ScheduleEvent(EVENT_OVERCHARGED_SOUL, 2500, PHASE_TWO);
-                    
+
                     me->SetReactState(REACT_PASSIVE);
                     me->CastSpell(me, SPELL_CHARGING_SOUL, false);
 
@@ -130,7 +130,7 @@ class boss_gu_cloudstrike : public CreatureScript
                 }
             }
 
-            void DoAction(const int32 action)
+            void DoAction(int32 action) override
             {
                 if (action == ACTION_INTRO)
                 {
@@ -149,19 +149,19 @@ class boss_gu_cloudstrike : public CreatureScript
                 }
             }
 
-            void JustSummoned(Creature* summoned)
+            void JustSummoned(Creature* summoned) override
             {
                 summons.Summon(summoned);
             }
 
-            void EnterCombat(Unit* who)
+            void EnterCombat(Unit* /*who*/) override
             {
                 if (Creature* azureSerpent = GetAzureSerpent())
                     if (azureSerpent->AI())
                         azureSerpent->AI()->DoAction(ACTION_AZURE_SERPENT_P_1);
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (!UpdateVictim())
                     return;
@@ -188,7 +188,7 @@ class boss_gu_cloudstrike : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new boss_gu_cloudstrikeAI(creature);
         }
@@ -196,16 +196,16 @@ class boss_gu_cloudstrike : public CreatureScript
 
 Position azureSerpentPositions[4] =
 {
-    {3835.01f, 2906.63f, 753.33f},
-    {3850.37f, 2738.14f, 814.84f},
-    {3758.79f, 2692.08f, 778.60f},
-    {3736.37f, 2680.89f, 778.60f}
+    {3835.01f, 2906.63f, 753.33f, 0.0f },
+    {3850.37f, 2738.14f, 814.84f, 0.0f },
+    {3758.79f, 2692.08f, 778.60f, 0.0f },
+    {3736.37f, 2680.89f, 778.60f, 0.0f }
 };
 
 class npc_azure_serpent : public CreatureScript
 {
     public:
-        npc_azure_serpent() :  CreatureScript("npc_azure_serpent") { }
+        npc_azure_serpent() :  CreatureScript("npc_azure_serpent") {}
 
         struct npc_azure_serpentAI : public ScriptedAI
         {
@@ -221,7 +221,7 @@ class npc_azure_serpent : public CreatureScript
             uint32 movementTimer;
             uint8 lastMovementId;
 
-            void Reset()
+            void Reset() override
             {
                 phase = 0;
 
@@ -240,17 +240,17 @@ class npc_azure_serpent : public CreatureScript
 
             Creature* GetGu()
             {
-                return pInstance->instance->GetCreature(pInstance->GetData64(NPC_GU_CLOUDSTRIKE));
+                return pInstance->instance->GetCreature(pInstance->GetGuidData(NPC_GU_CLOUDSTRIKE));
             }
 
-            void JustDied(Unit* /*killer*/)
+            void JustDied(Unit* /*killer*/) override
             {
                 if (Creature* gu = GetGu())
                     if (gu->AI())
                         gu->AI()->DoAction(ACTION_GU_P_3);
             }
 
-            void DoAction(const int32 action)
+            void DoAction(int32 action) override
             {
                 switch (action)
                 {
@@ -261,7 +261,7 @@ class npc_azure_serpent : public CreatureScript
                         events.CancelEventGroup(PHASE_ONE);
                         events.ScheduleEvent(EVENT_MAGNETIC_SHROUD, urand(10000, 15000), PHASE_TWO);
                         events.ScheduleEvent(EVENT_LIGHTNING_BREATH, urand (2500, 7500), PHASE_TWO);
-                        
+
                         me->SetReactState(REACT_AGGRESSIVE);
                         me->GetMotionMaster()->MovePoint(4, azureSerpentPositions[3].GetPositionX(), azureSerpentPositions[3].GetPositionY(), azureSerpentPositions[3].GetPositionZ());
                         me->RemoveAurasDueToSpell(SPELL_LIGHTNING_SHIELD);
@@ -269,7 +269,7 @@ class npc_azure_serpent : public CreatureScript
                         DoZoneInCombat();
                         break;
                     case ACTION_AZURE_SERPENT_RESET:
-                        if (!me->isAlive())
+                        if (!me->IsAlive())
                             me->Respawn();
 
                         me->CombatStop();
@@ -279,7 +279,7 @@ class npc_azure_serpent : public CreatureScript
                 }
             }
 
-            void MovementInform(uint32 uiType, uint32 id)
+            void MovementInform(uint32 uiType, uint32 id) override
             {
                 if (!id || uiType != POINT_MOTION_TYPE)
                     return;
@@ -298,7 +298,7 @@ class npc_azure_serpent : public CreatureScript
                 }
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (movementTimer != 0)
                 {
@@ -327,7 +327,7 @@ class npc_azure_serpent : public CreatureScript
                         events.ScheduleEvent(EVENT_MAGNETIC_SHROUD, urand(10000, 15000), PHASE_TWO);
                         break;
                     case EVENT_LIGHTNING_BREATH:
-                        if (Unit* target = SelectTarget(SELECT_TARGET_TOPAGGRO, 0, 0, true))
+                        if (Unit* target = SelectTarget(SELECT_TARGET_MAXTHREAT, 0, 0, true))
                             me->CastSpell(target, SPELL_LIGHTNING_BREATH, false);
                         events.ScheduleEvent(EVENT_LIGHTNING_BREATH, urand(7500, 12500), PHASE_TWO);
                         break;
@@ -335,7 +335,7 @@ class npc_azure_serpent : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new npc_azure_serpentAI(creature);
         }
@@ -346,10 +346,10 @@ class AreaTrigger_at_gu_intro : public AreaTriggerScript
     public:
         AreaTrigger_at_gu_intro() : AreaTriggerScript("at_gu_intro") {}
 
-        bool OnTrigger(Player* player, AreaTriggerEntry const* /*trigger*/)
+        bool OnTrigger(Player* player, AreaTriggerEntry const* /*trigger*/, bool /*enter*/) override
         {
             if (InstanceScript* pInstance = player->GetInstanceScript())
-                if (Creature* gu = pInstance->instance->GetCreature(pInstance->GetData64(NPC_GU_CLOUDSTRIKE)))
+                if (Creature* gu = pInstance->instance->GetCreature(pInstance->GetGuidData(NPC_GU_CLOUDSTRIKE)))
                     if (gu->AI())
                         gu->AI()->DoAction(ACTION_INTRO);
 
@@ -368,7 +368,7 @@ class OnlyGuardianPredicate
         }
 };
 
-class spell_kill_guardians : public SpellScriptLoader
+class spell_kill_guardians: public SpellScriptLoader
 {
     public:
         spell_kill_guardians() : SpellScriptLoader("spell_kill_guardians") { }
@@ -377,14 +377,14 @@ class spell_kill_guardians : public SpellScriptLoader
         {
             PrepareSpellScript(spell_kill_guardians_SpellScript);
 
-            bool Validate(SpellInfo const* spell)
+            bool Validate(SpellInfo const* /*spell*/) override
             {
                 return true;
             }
 
             // set up initial variables and check if caster is creature
             // this will let use safely use ToCreature() casts in entire script
-            bool Load()
+            bool Load() override
             {
                 return true;
             }
@@ -404,24 +404,22 @@ class spell_kill_guardians : public SpellScriptLoader
                         target->DespawnOrUnsummon(2000);
             }
 
-            void Register()
+            void Register() override
             {
-                OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_kill_guardians_SpellScript::SelectTarget, EFFECT_0, TARGET_SRC_CASTER);
                 OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_kill_guardians_SpellScript::SelectTarget, EFFECT_0, TARGET_UNIT_SRC_AREA_ENTRY);
-                OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_kill_guardians_SpellScript::KillTarget, EFFECT_1, TARGET_SRC_CASTER);
                 OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_kill_guardians_SpellScript::KillTarget, EFFECT_1, TARGET_UNIT_SRC_AREA_ENTRY);
             }
 
             std::list<WorldObject*> _targetList;
         };
 
-        SpellScript* GetSpellScript() const
+        SpellScript* GetSpellScript() const override
         {
             return new spell_kill_guardians_SpellScript();
         }
 };
 
-class spell_overcharged_soul_damage : public SpellScriptLoader
+class spell_overcharged_soul_damage: public SpellScriptLoader
 {
     public:
         spell_overcharged_soul_damage() : SpellScriptLoader("spell_overcharged_soul_damage") { }
@@ -430,19 +428,19 @@ class spell_overcharged_soul_damage : public SpellScriptLoader
         {
             PrepareSpellScript(spell_overcharged_soul_damage_SpellScript);
 
-            void ChangeDamage(SpellEffIndex effIndex)
+            void ChangeDamage(SpellEffIndex /*effIndex*/)
             {
                 if (Unit* caster = GetCaster())
                     SetHitDamage(25000 / caster->GetHealthPct());
             }
 
-            void Register()
+            void Register() override
             {
                 OnEffectHitTarget += SpellEffectFn(spell_overcharged_soul_damage_SpellScript::ChangeDamage, EFFECT_0, SPELL_EFFECT_SCHOOL_DAMAGE);
             }
         };
 
-        SpellScript* GetSpellScript() const
+        SpellScript* GetSpellScript() const override
         {
             return new spell_overcharged_soul_damage_SpellScript();
         }

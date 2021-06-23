@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -48,7 +48,7 @@ enum eSpells
     SPELL_WHIRLING_STEEL_DAMAGE = 106646,
 
     // Both
-    SPELL_FLARE                 = 132951,
+    SPELL_FLARE                 = 132951
 };
 
 enum eEvents
@@ -73,7 +73,7 @@ enum eEvents
     EVENT_FLYING_KICK           = 13,
     EVENT_CALL_STAFF            = 14,
     EVENT_RELEASE_STAFF         = 15,
-    
+
     EVENT_WHIRLING_STEEL_FOCUS  = 16,
     EVENT_WHIRLING_STEEL_CHANGE = 17,
     EVENT_WHIRLING_STEEL_STOP   = 18
@@ -148,7 +148,7 @@ class boss_master_snowdrift : public CreatureScript
             uint8 phase;
             uint8 eventPhase;
 
-            void Reset()
+            void Reset() override
             {
                 _Reset();
 
@@ -156,17 +156,16 @@ class boss_master_snowdrift : public CreatureScript
                 phase = PHASE_FIRST_EVENT;
                 eventPhase = 0;
 
-                Position pos;
-                SnowdriftPos[POINT_BEGIN_EVENT - 1].GetPosition(&pos);
+                Position pos = SnowdriftPos[POINT_BEGIN_EVENT - 1].GetPosition();
                 me->GetMotionMaster()->Clear();
                 me->GetMotionMaster()->MovePoint(POINT_BEGIN_EVENT, pos);
 
-                me->setFaction(35);
+                me->SetFaction(35);
                 me->SetReactState(REACT_PASSIVE);
                 SetCanSeeEvenInPassiveMode(true);
             }
 
-            void EnterCombat(Unit* /*who*/)
+            void EnterCombat(Unit* /*who*/) override
             {
                 pInstance->SetBossState(DATA_MASTER_SNOWDRIFT, IN_PROGRESS);
                 initDefaultEventsForPhase();
@@ -196,11 +195,11 @@ class boss_master_snowdrift : public CreatureScript
                 }
             }
 
-            void MoveInLineOfSight(Unit* who)
+            void MoveInLineOfSight(Unit* who) override
             {
                 if (who->ToPlayer())
                 {
-                    if (who->ToPlayer()->isGameMaster())
+                    if (who->ToPlayer()->IsGameMaster())
                         return;
 
                     if (me->GetDistance(who) < 45.0f && !introStarted)
@@ -213,10 +212,9 @@ class boss_master_snowdrift : public CreatureScript
                 }
             }
 
-            void JustReachedHome()
+            void JustReachedHome() override
             {
-                Position pos;
-                SnowdriftPos[POINT_BEGIN_EVENT - 1].GetPosition(&pos);
+                Position pos = SnowdriftPos[POINT_BEGIN_EVENT - 1].GetPosition();
                 me->GetMotionMaster()->Clear();
                 me->GetMotionMaster()->MovePoint(POINT_BEGIN_EVENT, pos);
 
@@ -224,15 +222,15 @@ class boss_master_snowdrift : public CreatureScript
                 summons.DespawnAll();
             }
 
-            void DoAction(const int32 action)
+            void DoAction(int32 action) override
             {
                 if (action == ACTION_NOVICE_DONE)
                 {
                     std::list<Creature*> noviceList;
-                    GetCreatureListWithEntryInGrid(noviceList, me, NPC_NOVICE, 100.0f);
+                    me->GetCreatureListWithEntryInGrid(noviceList, NPC_NOVICE, 100.0f);
 
                     for (auto novice : noviceList)
-                        if (Creature* position = pInstance->instance->GetCreature(pInstance->GetData64(DATA_RANDOM_SECOND_POS)))
+                        if (Creature* position = pInstance->instance->GetCreature(pInstance->GetGuidData(DATA_RANDOM_SECOND_POS)))
                             novice->GetMotionMaster()->MoveJump(position->GetPositionX(), position->GetPositionY(), position->GetPositionZ(), 20.0f, 30.0f, POINT_NOVICE_DEFEATED_SECOND);
 
                     ++eventPhase;
@@ -245,7 +243,7 @@ class boss_master_snowdrift : public CreatureScript
                 }
             }
 
-            void MovementInform(uint32 uiType, uint32 id)
+            void MovementInform(uint32 uiType, uint32 id) override
             {
                 if (uiType != POINT_MOTION_TYPE)
                     return;
@@ -253,7 +251,7 @@ class boss_master_snowdrift : public CreatureScript
                 switch (id)
                 {
                     case POINT_PHASE_FIGHT:
-                        me->setFaction(14);
+                        me->SetFaction(14);
                         me->SetReactState(REACT_AGGRESSIVE);
                         // No Break
                     case POINT_BEGIN_EVENT:
@@ -313,7 +311,7 @@ class boss_master_snowdrift : public CreatureScript
                 }
             }
 
-            void DamageTaken(Unit* /*attacker*/, uint32& damage)
+            void DamageTaken(Unit* /*attacker*/, uint32& damage) override
             {
                 if (phase == PHASE_FIGHT_1)
                 {
@@ -332,7 +330,7 @@ class boss_master_snowdrift : public CreatureScript
                 }
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 events.Update(diff);
 
@@ -354,7 +352,7 @@ class boss_master_snowdrift : public CreatureScript
                         events.ScheduleEvent(EVENT_TORNADO_KICK, urand(7500, 12500));
                         break;
                     case EVENT_FIST_OF_FURY:
-                        if (Unit* target = SelectTarget(SELECT_TARGET_TOPAGGRO))
+                        if (Unit* target = SelectTarget(SELECT_TARGET_MAXTHREAT))
                             me->CastSpell(target, SPELL_FIST_OF_FURY, false);
 
                         events.ScheduleEvent(EVENT_FIST_OF_FURY, urand(5000, 10000));
@@ -421,7 +419,7 @@ class boss_master_snowdrift : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new boss_master_snowdriftAI(creature);
         }
@@ -446,19 +444,19 @@ class npc_snowdrift_novice : public CreatureScript
             bool jumpDone;
             bool stillInFight;
 
-            void Reset()
+            void Reset() override
             {
                 events.Reset();
                 if (!jumpDone)
                 {
                     float x, y;
-                    GetPositionWithDistInOrientation(me, 40.0f, 4.0f, x, y);
-                    me->GetMotionMaster()->MoveJump(x, y, me->GetMap()->GetHeight(x, y, me->GetPositionZ()), 20, 10, POINT_NOVICE_JUMP);
+                    me->GetPositionWithDistInOrientation(40.0f, 4.0f, x, y);
+                    me->GetMotionMaster()->MoveJump(x, y, me->GetMap()->GetHeight(me->GetPhaseShift(), x, y, me->GetPositionZ()), 20, 10, POINT_NOVICE_JUMP);
                     jumpDone = true;
                 }
             }
 
-            void MovementInform(uint32 uiType, uint32 id)
+            void MovementInform(uint32 uiType, uint32 id) override
             {
                 if (uiType != EFFECT_MOTION_TYPE)
                     return;
@@ -469,7 +467,7 @@ class npc_snowdrift_novice : public CreatureScript
                         if (!stillInFight)
                             break;
 
-                        if (Player* target = me->SelectNearestPlayerNotGM(100.0f))
+                        if (Player* target = me->SelectNearestPlayer(100.0f))
                             AttackStart(target);
                         break;
                     case POINT_NOVICE_DEFEATED:
@@ -484,7 +482,7 @@ class npc_snowdrift_novice : public CreatureScript
                 }
             }
 
-            void DamageTaken(Unit* attacker, uint32& damage)
+            void DamageTaken(Unit* /*attacker*/, uint32& damage) override
             {
                 if (!stillInFight)
                     return;
@@ -493,14 +491,14 @@ class npc_snowdrift_novice : public CreatureScript
                 {
                     damage = 0;
                     me->SetReactState(REACT_PASSIVE);
-                    me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE);
-                    me->setFaction(35);
+                    me->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE));
+                    me->SetFaction(35);
                     me->AttackStop();
                     me->CombatStop();
                     stillInFight = false;
                     events.Reset();
 
-                    if (Creature* position = pInstance->instance->GetCreature(pInstance->GetData64(DATA_RANDOM_FIRST_POS)))
+                    if (Creature* position = pInstance->instance->GetCreature(pInstance->GetGuidData(DATA_RANDOM_FIRST_POS)))
                     {
                         me->GetMotionMaster()->MoveJump(position->GetPositionX(), position->GetPositionY(), position->GetPositionZ(), 20.0f, 10.0f, POINT_NOVICE_DEFEATED);
                         me->SetHomePosition(position->GetPositionX(), position->GetPositionY(), position->GetPositionZ(), position->GetOrientation());
@@ -508,7 +506,7 @@ class npc_snowdrift_novice : public CreatureScript
                 }
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 /*diff*/) override
             {
                 if (!UpdateVictim())
                     return;
@@ -517,7 +515,7 @@ class npc_snowdrift_novice : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new npc_snowdrift_noviceAI(creature);
         }
@@ -543,7 +541,7 @@ class npc_snowdrift_miniboss : public CreatureScript
             bool stillInFight;
             uint8 whirlwindProgress;
 
-            void Reset()
+            void Reset() override
             {
                 events.Reset();
                 whirlwindProgress = 0;
@@ -551,8 +549,8 @@ class npc_snowdrift_miniboss : public CreatureScript
                 if (!jumpDone)
                 {
                     float x, y;
-                    GetPositionWithDistInOrientation(me, 30.0f, 4.23f, x, y);
-                    me->GetMotionMaster()->MoveJump(x, y, me->GetMap()->GetHeight(x, y, me->GetPositionZ()), 20, 10, POINT_MINIBOSS_JUMP);
+                    me->GetPositionWithDistInOrientation(30.0f, 4.23f, x, y);
+                    me->GetMotionMaster()->MoveJump(x, y, me->GetMap()->GetHeight(me->GetPhaseShift(), x, y, me->GetPositionZ()), 20, 10, POINT_MINIBOSS_JUMP);
                     jumpDone = true;
 
                     if (me->GetEntry() == NPC_FLAGRANT_LOTUS)
@@ -569,7 +567,7 @@ class npc_snowdrift_miniboss : public CreatureScript
                 }
             }
 
-            void MovementInform(uint32 uiType, uint32 id)
+            void MovementInform(uint32 uiType, uint32 id) override
             {
                 if (uiType != POINT_MOTION_TYPE)
                     return;
@@ -584,7 +582,7 @@ class npc_snowdrift_miniboss : public CreatureScript
                 }
             }
 
-            void DamageTaken(Unit* attacker, uint32& damage)
+            void DamageTaken(Unit* /*attacker*/, uint32& damage) override
             {
                 if (!stillInFight)
                     return;
@@ -592,14 +590,14 @@ class npc_snowdrift_miniboss : public CreatureScript
                 if (damage >= me->GetHealth())
                 {
                     damage = 0;
-                    me->setFaction(35);
+                    me->SetFaction(35);
                     me->SetReactState(REACT_PASSIVE);
-                    me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE);
+                    me->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE));
                     me->CombatStop();
                     events.Reset();
                     stillInFight = false;
 
-                    if (Creature* position = pInstance->instance->GetCreature(pInstance->GetData64(DATA_RANDOM_MINIBOSS_POS)))
+                    if (Creature* position = pInstance->instance->GetCreature(pInstance->GetGuidData(DATA_RANDOM_MINIBOSS_POS)))
                     {
                         me->GetMotionMaster()->MovePoint(POINT_MINIBOSS_DEFEATED, position->GetPositionX(), position->GetPositionY(), position->GetPositionZ());
                         me->SetHomePosition(position->GetPositionX(), position->GetPositionY(), position->GetPositionZ(), position->GetOrientation());
@@ -610,7 +608,7 @@ class npc_snowdrift_miniboss : public CreatureScript
                 }
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (!stillInFight)
                     return;
@@ -672,7 +670,7 @@ class npc_snowdrift_miniboss : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new npc_snowdrift_minibossAI(creature);
         }
@@ -689,16 +687,16 @@ class npc_snowdrift_clone : public CreatureScript
 
             uint32 fireBallTimer;
 
-            void Reset()
+            void Reset() override
             {
                 me->SetReactState(REACT_PASSIVE);
-                me->setFaction(14);
+                me->SetFaction(14);
                 DoZoneInCombat();
 
                 fireBallTimer = 500;
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (fireBallTimer <= diff)
                 {
@@ -711,7 +709,7 @@ class npc_snowdrift_clone : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new npc_snowdrift_cloneAI(creature);
         }
@@ -728,19 +726,19 @@ class npc_snowdrift_fireball : public CreatureScript
 
             uint32 damageTimer;
 
-            void Reset()
+            void Reset() override
             {
                 float x, y;
-                GetPositionWithDistInOrientation(me, 100.0f, me->GetOrientation(), x, y);
+                me->GetPositionWithDistInOrientation(100.0f, me->GetOrientation(), x, y);
                 me->GetMotionMaster()->MovePoint(0, x, y, me->GetPositionZ());
 
                 me->SetReactState(REACT_PASSIVE);
-                me->setFaction(14);
+                me->SetFaction(14);
 
                 damageTimer = 500;
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (damageTimer <= diff)
                 {
@@ -754,7 +752,7 @@ class npc_snowdrift_fireball : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new npc_snowdrift_fireballAI(creature);
         }

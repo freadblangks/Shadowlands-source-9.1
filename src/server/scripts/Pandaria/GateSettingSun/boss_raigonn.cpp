@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -26,7 +26,7 @@ enum eSpells
 {
     // Raigonn
     SPELL_IMPERVIOUS_CARAPACE       = 107118,
-    
+
     SPELL_BATTERING_HEADBUTT_EMOTE  = 118685,
     SPELL_BATTERING_HEADBUTT        = 111668,
     SPELL_BATTERING_STUN            = 130772,
@@ -49,7 +49,7 @@ enum eSpells
 enum ePhases
 {
     PHASE_WEAK_SPOT     = 1,
-    PHASE_VULNERABILITY = 2,
+    PHASE_VULNERABILITY = 2
 };
 
 enum eActions
@@ -107,10 +107,10 @@ class boss_raigonn : public CreatureScript
 
             bool inFight;
 
-            void Reset()
+            void Reset() override
             {
                 _Reset();
-                
+
                 me->SetReactState(REACT_PASSIVE);
                 me->AddAura(SPELL_IMPERVIOUS_CARAPACE, me);
                 me->CombatStop();
@@ -132,7 +132,7 @@ class boss_raigonn : public CreatureScript
 
                     if (Unit* passenger = meVehicle->GetPassenger(1)) // Check if weak_spot already spawned
                     {
-                        passenger->setFaction(35);
+                        passenger->SetFaction(35);
                         passenger->SetFullHealth();
                         passenger->AddUnitState(UNIT_STATE_UNATTACKABLE);
                         pInstance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, passenger);
@@ -141,10 +141,10 @@ class boss_raigonn : public CreatureScript
 
                     if (Creature* weakSpot = me->SummonCreature(NPC_WEAK_SPOT, 0, 0, 0))
                     {
-                        weakSpot->_EnterVehicle(meVehicle, 1);
+                        weakSpot->EnterVehicle(me, 1);
 
                         if (pInstance)
-                            pInstance->SetData64(NPC_WEAK_SPOT, weakSpot->GetGUID());
+                            pInstance->SetGuidData(NPC_WEAK_SPOT, weakSpot->GetGUID());
 
                         if (Vehicle* vehicleWeakSpot = weakSpot->GetVehicleKit())
                             vehicleWeakSpot->SetCanBeCastedByPassengers(true);
@@ -152,7 +152,7 @@ class boss_raigonn : public CreatureScript
                 }
             }
 
-            void MoveInLineOfSight(Unit* who)
+            void MoveInLineOfSight(Unit* who) override
             {
                 if (inFight)
                     return;
@@ -169,7 +169,7 @@ class boss_raigonn : public CreatureScript
                 if (!whoPlayer)
                     return;
 
-                if (whoPlayer->isGameMaster())
+                if (whoPlayer->IsGameMaster())
                     return;
 
                 inFight = true;
@@ -182,16 +182,16 @@ class boss_raigonn : public CreatureScript
 
                 pInstance->SetBossState(DATA_RAIGONN, IN_PROGRESS);
 
-                if (Creature* weakPoint = pInstance->instance->GetCreature(pInstance->GetData64(NPC_WEAK_SPOT)))
+                if (Creature* weakPoint = pInstance->instance->GetCreature(pInstance->GetGuidData(NPC_WEAK_SPOT)))
                 {
                     instance->SendEncounterUnit(ENCOUNTER_FRAME_ENGAGE, weakPoint);
-                    weakPoint->setFaction(16);
+                    weakPoint->SetFaction(16);
                     weakPoint->ClearUnitState(UNIT_STATE_UNATTACKABLE);
-                    weakPoint->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+                    weakPoint->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
                 }
             }
 
-            void EnterCombat(Unit* who)
+            void EnterCombat(Unit* /*who*/) override
             {
                 if (Phase != PHASE_VULNERABILITY)
                     return;
@@ -199,7 +199,7 @@ class boss_raigonn : public CreatureScript
                 _EnterCombat();
             }
 
-            void MovementInform(uint32 type, uint32 pointId)
+            void MovementInform(uint32 type, uint32 pointId) override
             {
                 if (type != POINT_MOTION_TYPE && type != EFFECT_MOTION_TYPE)
                     return;
@@ -213,13 +213,13 @@ class boss_raigonn : public CreatureScript
                 }
             }
 
-            void DoAction(int32 const action)
+            void DoAction(int32 action) override
             {
                 if (action == ACTION_WEAK_SPOT_DEAD)
                 {
                     Phase = PHASE_VULNERABILITY;
                     me->SetReactState(REACT_AGGRESSIVE);
-                    me->SetSpeed(MOVE_RUN, 1.1f, true);
+                    me->SetSpeed(MOVE_RUN, 1.1f);
 
                     me->CastStop();
                     me->RemoveAurasDueToSpell(SPELL_IMPERVIOUS_CARAPACE);
@@ -236,20 +236,20 @@ class boss_raigonn : public CreatureScript
                 }
             }
 
-            void JustReachedHome()
+            void JustReachedHome() override
             {
                 instance->SetBossState(DATA_RAIGONN, FAIL);
                 summons.DespawnAll();
             }
 
-            void JustSummoned(Creature* summoned)
+            void JustSummoned(Creature* summoned) override
             {
                 summons.Summon(summoned);
             }
 
             void RemoveWeakSpotPassengers()
             {
-                if (Creature* weakPoint = pInstance->instance->GetCreature(pInstance->GetData64(NPC_WEAK_SPOT)))
+                if (Creature* weakPoint = pInstance->instance->GetCreature(pInstance->GetGuidData(NPC_WEAK_SPOT)))
                 {
                     if (Vehicle* weakVehicle = weakPoint->GetVehicleKit())
                     {
@@ -263,7 +263,7 @@ class boss_raigonn : public CreatureScript
 
                         for (uint8 i = 0; i < maxPassenger; ++i)
                             if (passengerList[i])
-                                passengerList[i]->GetMotionMaster()->MoveJumpTo(rand() % 2 ? (M_PI / 4): (3 * M_PI / 4), 20.0f, 10.0f);
+                                passengerList[i]->GetMotionMaster()->MoveJumpTo((rand() % 2) ? (M_PI / 4): (3 * M_PI / 4), 20.0f, 10.0f);
                     }
                 }
             }
@@ -305,7 +305,7 @@ class boss_raigonn : public CreatureScript
                     default:
                         // We are going back to main door, restart
                         eventChargeProgress = 0;
-                        me->SetSpeed(MOVE_RUN, 0.5f, true);
+                        me->SetSpeed(MOVE_RUN, 0.5f);
                         me->GetMotionMaster()->MoveBackward(POINT_MAIN_DOOR, chargePos[baseMovement + 1].GetPositionX(), chargePos[baseMovement + 1].GetPositionY(), chargePos[baseMovement + 1].GetPositionZ(), 1.0f);
                         break;
                 }
@@ -316,7 +316,7 @@ class boss_raigonn : public CreatureScript
                 if (inFight)
                     return false;
 
-                if (!me->SelectNearestPlayerNotGM(25.0f))
+                if (!me->SelectNearestPlayer(25.0f))
                     return false;
 
                 if (pInstance)
@@ -327,7 +327,7 @@ class boss_raigonn : public CreatureScript
                 return true;
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (!pInstance)
                     return;
@@ -392,7 +392,7 @@ class boss_raigonn : public CreatureScript
                         me->SetReactState(REACT_AGGRESSIVE);
                         me->GetMotionMaster()->Clear();
 
-                        if (Unit* target = SelectTarget(SELECT_TARGET_TOPAGGRO))
+                        if (Unit* target = SelectTarget(SELECT_TARGET_MAXTHREAT))
                             AttackStart(target);
 
                         events.ScheduleEvent(EVENT_FIXATE, 30000, PHASE_VULNERABILITY);
@@ -407,12 +407,12 @@ class boss_raigonn : public CreatureScript
                     default:
                         break;
                 }
-                
+
                 if (Phase == PHASE_VULNERABILITY)
                     DoMeleeAttackIfReady();
             }
 
-            void JustDied(Unit* /*killer*/)
+            void JustDied(Unit* /*killer*/) override
             {
                 events.Reset();
                 if (instance)
@@ -423,7 +423,7 @@ class boss_raigonn : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new boss_raigonnAI(creature);
         }
@@ -443,22 +443,27 @@ class npc_raigonn_weak_spot : public CreatureScript
 
             InstanceScript* pInstance;
 
-            void Reset()
+            void Reset() override
             {
                 me->SetReactState(REACT_PASSIVE);
             }
 
-            void DamageTaken(Unit* /*attacker*/, uint32& damage)
+            void DamageTaken(Unit* /*attacker*/, uint32& damage) override
             {
                 if (damage >= me->GetHealth())
                     if (pInstance)
-                        if (Creature* Raigonn = pInstance->instance->GetCreature(pInstance->GetData64(NPC_RAIGONN)))
+                        if (Creature* Raigonn = pInstance->instance->GetCreature(pInstance->GetGuidData(NPC_RAIGONN)))
                             if (Raigonn->AI())
                                 Raigonn->AI()->DoAction(ACTION_WEAK_SPOT_DEAD);
             }
+
+            bool CanBeTargetedOutOfLOS() override
+            {
+                return true;
+            }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new npc_raigonn_weak_spotAI(creature);
         }
@@ -479,19 +484,19 @@ class npc_krikthik_protectorat : public CreatureScript
             InstanceScript* pInstance;
             bool hasCastHiveMind;
 
-            void Reset()
+            void Reset() override
             {
                 hasCastHiveMind = false;
             }
 
-            void DamageTaken(Unit* /*attacker*/, uint32& damage)
+            void DamageTaken(Unit* /*attacker*/, uint32& damage) override
             {
                 if (!hasCastHiveMind && me->HealthBelowPctDamaged(20, damage))
                     me->CastSpell(me, SPELL_HIVE_MIND, true);
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new npc_krikthik_protectoratAI(creature);
         }
@@ -512,7 +517,7 @@ class npc_krikthik_engulfer : public CreatureScript
             InstanceScript* pInstance;
             uint32 engulfingTimer;
 
-            void Reset()
+            void Reset() override
             {
                 me->SetReactState(REACT_PASSIVE);
                 me->GetMotionMaster()->MoveRandom(25.0f);
@@ -521,7 +526,7 @@ class npc_krikthik_engulfer : public CreatureScript
                 engulfingTimer = 10000;
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (engulfingTimer <= diff)
                 {
@@ -534,7 +539,7 @@ class npc_krikthik_engulfer : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new npc_krikthik_engulferAI(creature);
         }
@@ -555,13 +560,13 @@ class npc_krikthik_swarm_bringer : public CreatureScript
             InstanceScript* pInstance;
             uint32 swarmTimer;
 
-            void Reset()
+            void Reset() override
             {
                 DoZoneInCombat();
                 swarmTimer = 10000;
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (swarmTimer <= diff)
                 {
@@ -576,7 +581,7 @@ class npc_krikthik_swarm_bringer : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new npc_krikthik_swarm_bringerAI(creature);
         }
@@ -587,7 +592,7 @@ class vehicle_artillery : public VehicleScript
     public:
         vehicle_artillery() : VehicleScript("vehicle_artillery") {}
 
-        void OnAddPassenger(Vehicle* veh, Unit* /*passenger*/, int8 /*seatId*/)
+        void OnAddPassenger(Vehicle* veh, Unit* /*passenger*/, int8 /*seatId*/) override
         {
             if (veh->GetBase())
                 if (veh->GetBase()->ToCreature())
@@ -605,24 +610,24 @@ class vehicle_artillery : public VehicleScript
             InstanceScript* pInstance;
             uint32 launchEventTimer;
 
-            void Reset()
+            void Reset() override
             {
                 launchEventTimer = 0;
             }
 
-            void DoAction(int32 const action)
+            void DoAction(int32 /*action*/) override
             {
                 launchEventTimer = 2500;
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (!launchEventTimer)
                     return;
 
                 if (launchEventTimer <= diff)
                 {
-                    if (Creature* weakSpot = pInstance->instance->GetCreature(pInstance->GetData64(NPC_WEAK_SPOT)))
+                    if (Creature* weakSpot = pInstance->instance->GetCreature(pInstance->GetGuidData(NPC_WEAK_SPOT)))
                     {
                         if (weakSpot->GetVehicleKit())
                         {
@@ -646,13 +651,11 @@ class vehicle_artillery : public VehicleScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new vehicle_artilleryAI(creature);
         }
 };
-
-
 
 void AddSC_boss_raigonn()
 {

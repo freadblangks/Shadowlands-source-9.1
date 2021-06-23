@@ -1,7 +1,20 @@
 /*
-    Dungeon : Mogushan Palace 88-90
-    Instance General Script
-*/
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef MOGUSHAN_PALACE_H_
 #define MOGUSHAN_PALACE_H_
@@ -20,7 +33,7 @@ enum eData
     DATA_GEKKAN_ADDS            = 3
 };
 
-enum eSpells
+enum eTrashSpells
 {
     //Kuai the brute
     SPELL_COMBAT_SOUND_LOOP         = 126252,
@@ -92,7 +105,7 @@ enum eCreatures
 
 enum eTypes
 {
-    TYPE_MING_ATTACK,
+    TYPE_MING_ATTACK = 4,   ///< Types are used as DATA_* with SetData function (WTF?!), so i make the enum start at 4 to avoid misconception error.
     TYPE_KUAI_ATTACK,
     TYPE_HAIYAN_ATTACK,
     TYPE_ALL_ATTACK,
@@ -114,7 +127,7 @@ enum eTypes
     TYPE_GET_ENTOURAGE_1, //15
     TYPE_GET_ENTOURAGE_2, //16
     TYPE_GET_ENTOURAGE_3, //17
-    
+
     TYPE_ACTIVATE_ANIMATED_STAFF, //18
     TYPE_ACTIVATE_ANIMATED_AXE, //19
     TYPE_ACTIVATE_SWORD, //20

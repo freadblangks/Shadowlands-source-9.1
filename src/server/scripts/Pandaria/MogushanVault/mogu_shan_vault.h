@@ -1,7 +1,6 @@
 /*
- * Copyright (C) 2008-20XX JadeCore <http://www.pandashan.com>
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -20,10 +19,17 @@
 #ifndef MOGUSHAN_VAULT_H_
 #define MOGUSHAN_VAULT_H_
 
+#include "AreaTrigger.h"
+#include "AreaTriggerAI.h"
 #include "SpellScript.h"
 #include "Map.h"
 #include "Creature.h"
 #include "CreatureAIImpl.h"
+#include "Group.h"
+#include "GameObject.h"
+#include "SpellAuras.h"
+#include "SpellAuraEffects.h"
+#include "SpellMgr.h"
 
 enum eData
 {
@@ -90,6 +96,14 @@ enum eActions
     // Heroic Stone Guard
     ACTION_POWER_DOWN                       = 36,
     ACTION_TILING                           = 37,
+    ACTION_UNTILING                         = 38,
+
+    ACTION_OPEN_STONEGUARD_DOOR             = 39,
+    ACTION_REACH_HOME                       = 40,
+
+    ACTION_CHECK_SPIRITKINGS                = 41,
+    ACTION_STOP_PETRIFY                     = 42,
+    ACTION_EVENT_WIPE                       = 43
 };
 
 enum eCreatures
@@ -158,19 +172,26 @@ enum eCreatures
     NPC_TITAN_SPARK                 = 60480,
     NPC_LOREWALKER_CHO              = 61348,
     NPC_MOGUSHAN_WARDEN             = 64947,
+    NPC_MOGUSHAN_WARDEN_2           = 64061,
 
     NPC_SORCERER_MOGU               = 61250,
     NPC_MOGU_ARCHER                 = 61345,
     NPC_KINGSGUARD                  = 61347,
     NPC_MOUNTED_MOGU                = 61341,
+    NPC_ZANDALARI_SKULLCHARGER      = 60375,
+    NPC_ZANDALARI_INFILTRATOR       = 60381,
+    NPC_ZANDALARI_FIREDANCER        = 60402,
+    NPC_MOGU_SECRET_KEEPER          = 61131,
+    NPC_MOGUSHAN_ENGINE_KEEPER      = 64068,
+    NPC_MOGUSHAN_ARCANIST           = 64063,
 
     MOB_SUBETAI                     = 61427,
     MOB_MENG                        = 61429,
     MOB_ZIAN                        = 61421,
     MOB_QIANG                       = 61423,
 
-    NPC_GENERAL_PURPOSE_BUNNY_JMF	= 55091,
-    NPC_ANCIENT_MOGU_MACHINE		= 60648
+    NPC_GENERAL_PURPOSE_BUNNY_JMF   = 55091,
+    NPC_ANCIENT_MOGU_MACHINE        = 60648
 };
 
 enum eGameObjects
@@ -211,6 +232,9 @@ enum eGameObjects
 
     GOB_MOGU_RUNE_FIRST             = 213937,
     GOB_MOGU_RUNE_END               = 213955,
+
+    // Will of Emperor
+    GOB_ANCIENT_CONTROL_CONSOLE     = 211584
 };
 
 enum ePhases
@@ -224,12 +248,12 @@ enum ePhases
 enum eAchievementData
 {
     // Dummy spells
-    ACHIEVEMENT_STONE_GUARD_KILL    = 128288,
+    ACHIEVEMENT_STONE_GUARD_KILL    = 128288
 };
 
 enum sharedSpells
 {
-    SPELL_BERSERK   = 26662,
+    SPELL_BERSERK   = 26662
 };
 
 #endif // MOGUSHAN_VAULT_H_

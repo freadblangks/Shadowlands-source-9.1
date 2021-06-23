@@ -1,7 +1,6 @@
 /*
- * Copyright (C) 2012-2013 JadeCore <http://www.pandashan.com/>
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -16,12 +15,6 @@
  * You should have received a copy of the GNU General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
-/*
-    @TODO :
-        - Event before boss, with Lorewalker Cho !
-        - http://www.youtube.com/watch?v=4xbUFstYo5g
-*/
 
 #include "ScriptMgr.h"
 #include "ScriptedCreature.h"
@@ -73,17 +66,15 @@ enum eSpells
     SPELL_INACTIVE_STUN         = 118319,
     SPELL_KING_BERSERK          = 120207,
     SPELL_ACTIVATION_VISUAL     = 118212,
+    SPELL_SPIRIT_KINGS_BONUS    = 132191,
 
     // Flanking Mogu
     SPELL_GHOST_VISUAL          = 117904,
-    SPELL_TRIGGER_ATTACK        = 117917,
+    SPELL_TRIGGER_ATTACK        = 117917
 };
 
 enum eEvents
 {
-    // Controler
-    EVENT_CHECK_WIPE            = 1,
-
     // Quiang
     EVENT_FLANKING_MOGU         = 2,
     EVENT_MASSIVE_ATTACK        = 3,
@@ -111,6 +102,8 @@ enum eEvents
     EVENT_DELIRIOUS             = 17,
     EVENT_SLEIGHT_OF_HAND       = 18,
     EVENT_SHIELD_OF_DARKNESS    = 19,
+
+    EVENT_CHECK_SPIRITKINGS     = 20
 };
 
 enum equipId
@@ -120,7 +113,7 @@ enum equipId
     EQUIP_SUBETAI_BOW           = 60790,
     EQUIP_ZIAN_STAFF            = 76369,
     EQUIP_FLANKING_MOGU_SWORD   = 68838,
-    EQUIP_FLANKING_MOGU_SHIELD  = 32375,
+    EQUIP_FLANKING_MOGU_SHIELD  = 32375
 };
 
 enum qiangTalk
@@ -129,7 +122,7 @@ enum qiangTalk
     QIANG_DEATH     = 1,
     QIANG_INTRO     = 2,
     QIANG_SLAY      = 3,
-    QIANG_SPELL     = 4,
+    QIANG_SPELL     = 4
 };
 
 enum subetaiTalk
@@ -138,7 +131,7 @@ enum subetaiTalk
     SUBETAI_DEATH   = 1,
     SUBETAI_INTRO   = 2,
     SUBETAI_SLAY    = 3,
-    SUBETAI_SPELL   = 4,
+    SUBETAI_SPELL   = 4
 };
 
 enum zianTalk
@@ -147,7 +140,7 @@ enum zianTalk
     ZIAN_DEATH  = 1,
     ZIAN_INTRO  = 2,
     ZIAN_SLAY   = 3,
-    ZIAN_SPELL  = 4,
+    ZIAN_SPELL  = 4
 };
 
 enum mengTalk
@@ -157,7 +150,7 @@ enum mengTalk
     MENG_DEATH_COWARDICE    = 2,
     MENG_INTRO              = 3,
     MENG_SLAY               = 4,
-    MENG_SPELL              = 5,
+    MENG_SPELL              = 5
 };
 
 #define MAX_FLANKING_MOGU   48
@@ -214,10 +207,12 @@ Position flankingPos[MAX_FLANKING_MOGU] =
     {4195.38f, 1595.63f, 438.841f, 6.25653f}
 };
 
+/*
 Position QiangTheMerciless      = {4226.33f, 1626.28f, 438.856f, 4.72348f};
 Position SubetaiTheSwift        = {4257.35f, 1591.36f, 438.841f, 3.13526f};
 Position ZianOfTheEndlessShadow = {4226.97f, 1558.32f, 438.804f, 1.58495f};
 Position MengTheDemented        = {4198.78f, 1590.29f, 438.841f, 6.26345f};
+*/
 
 uint32 volleySpells[3] =
 {
@@ -230,8 +225,8 @@ uint32 spiritsOrder[4] =
 {
     NPC_QIANG,
     NPC_SUBETAI,
-    NPC_MENG,
-    NPC_ZIAN
+    NPC_ZIAN,
+    NPC_MENG
 };
 
 // 60984 - Controller
@@ -246,27 +241,59 @@ class boss_spirit_kings_controler : public CreatureScript
             {
                 pInstance = creature->GetInstanceScript();
 
+                spiritKingsEntry.clear();
                 spiritKingsEntry.resize(4, 0);
 
-                for (uint8 i = 0; i < 4; i++)
-                    spiritKingsEntry[i] = spiritsOrder[i];
+                spiritKingsEntry[0] = spiritsOrder[0];
+                // We start from 1 as the first spirit kings to fight will always be the same (Qiang), so we just randomize the 3 other spirit kings
+                for (uint8 i = 1; i < 4; ++i)
+                {
+                    // Fixed order in Heroic
+                    if (IsHeroic())
+                        spiritKingsEntry[i] = spiritsOrder[i];
+                    // Random order in normal : pick a random entry, and check if not already assigned
+                    else
+                    {
+                        bool duplicateEntry;
+                        uint32 tmpEntry;
+                        do
+                        {
+                            duplicateEntry = false;
+                            uint8 pick = urand(1, 3);
+                            tmpEntry = spiritsOrder[pick];
+                            // check if tmpEntry hasn't been already chosen
+                            for (uint8 j = 1; j < i; ++j)
+                                if (!duplicateEntry && spiritKingsEntry[j] == tmpEntry)
+                                    duplicateEntry = true;
+                        } while (duplicateEntry);
+                        spiritKingsEntry[i] = tmpEntry;
+                    }
+                }
+                if (pInstance)
+                {
+                    EncounterState bossState = pInstance->GetBossState(DATA_SPIRIT_KINGS);
+                    if (bossState != DONE && bossState != NOT_STARTED)
+                        pInstance->SetBossState(DATA_SPIRIT_KINGS, NOT_STARTED);
+                }
             }
 
             InstanceScript* pInstance;
-            uint64 flankingGuid[MAX_FLANKING_MOGU];
+            ObjectGuid flankingGuid[MAX_FLANKING_MOGU];
             std::vector<uint32> spiritKingsEntry;
 
             bool fightInProgress;
             bool _introZianDone;
             bool _introSubetaiDone;
             bool _introMengDone;
+            EventMap events;
 
             uint8 vanquishedCount;
             uint8 nextSpirit;
 
-            void Reset()
+            void Reset() override
             {
                 _Reset();
+                events.Reset();
 
                 fightInProgress   = false;
                 _introZianDone    = false;
@@ -276,25 +303,25 @@ class boss_spirit_kings_controler : public CreatureScript
                 nextSpirit        = 0;
 
                 for (uint8 i = 0; i < MAX_FLANKING_MOGU; ++i)
-                    flankingGuid[i] = 0;
+                    flankingGuid[i] = ObjectGuid::Empty;
 
-                spawnSpiritKings();
+                if (pInstance)
+                    if (Creature* Qiang = pInstance->GetCreature(NPC_QIANG))
+                        Qiang->AI()->DoAction(ACTION_FIRST_FIGHT);
+
                 me->SetReactState(REACT_PASSIVE);
 
-                events.ScheduleEvent(EVENT_CHECK_WIPE, 2500);
                 pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_MADDENING_SHOUT);
+
+                // Restoring player faction
+                std::list<Player*> playerList;
+                GetPlayerListInGrid(playerList, me, 200.0f);
+
+                for (Player* player : playerList)
+                    player->RestoreFaction();
+
                 pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_PINNED_DOWN);
                 pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_PINNED_DOWN_DOT);
-            }
-
-            void spawnSpiritKings()
-            {
-                if (Creature* Qiang = me->SummonCreature(NPC_QIANG, QiangTheMerciless.GetPositionX(), QiangTheMerciless.GetPositionY(), QiangTheMerciless.GetPositionZ(), QiangTheMerciless.GetOrientation()))
-                    Qiang->AI()->DoAction(ACTION_FIRST_FIGHT);
-
-                me->SummonCreature(NPC_SUBETAI, SubetaiTheSwift.GetPositionX(), SubetaiTheSwift.GetPositionY(), SubetaiTheSwift.GetPositionZ(), SubetaiTheSwift.GetOrientation());
-                me->SummonCreature(NPC_ZIAN, ZianOfTheEndlessShadow.GetPositionX(), ZianOfTheEndlessShadow.GetPositionY(), ZianOfTheEndlessShadow.GetPositionZ(), ZianOfTheEndlessShadow.GetOrientation());
-                me->SummonCreature(NPC_MENG, MengTheDemented.GetPositionX(), MengTheDemented.GetPositionY(), MengTheDemented.GetPositionZ(), MengTheDemented.GetOrientation());
             }
 
             void spawnFlankingMogu(uint8 moguNumber)
@@ -307,12 +334,12 @@ class boss_spirit_kings_controler : public CreatureScript
                     flankingGuid[moguNumber] = flankingMogu->GetGUID();
                     flankingMogu->SetReactState(REACT_PASSIVE);
                     flankingMogu->AddAura(SPELL_GHOST_VISUAL, flankingMogu);
-                    flankingMogu->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 0, uint32(EQUIP_FLANKING_MOGU_SWORD));
-                    flankingMogu->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 1, uint32(EQUIP_FLANKING_MOGU_SHIELD));
+                    flankingMogu->SetVirtualItem(0, uint32(EQUIP_FLANKING_MOGU_SWORD));
+                    flankingMogu->SetVirtualItem(2,uint32(EQUIP_FLANKING_MOGU_SHIELD));
                 }
             }
 
-            void DoAction(const int32 action)
+            void DoAction(const int32 action) override
             {
                 if (!pInstance)
                     return;
@@ -327,7 +354,7 @@ class boss_spirit_kings_controler : public CreatureScript
                         for (uint8 i = 0; i < MAX_FLANKING_MOGU; ++i)
                             spawnFlankingMogu(i);
 
-                        if (Creature* incomingSpirit = pInstance->instance->GetCreature(pInstance->GetData64(spiritKingsEntry[1])))
+                        if (Creature* incomingSpirit = pInstance->GetCreature(spiritKingsEntry[1]))
                             me->AddAura(SPELL_ACTIVATION_VISUAL, incomingSpirit);
 
                         fightInProgress = true;
@@ -379,7 +406,7 @@ class boss_spirit_kings_controler : public CreatureScript
                             if (!IsHeroic())
                                 nextSpirit = vanquishedCount;
 
-                            if (Creature* spirit = pInstance->instance->GetCreature(pInstance->GetData64(spiritKingsEntry[nextSpirit])))
+                            if (Creature* spirit = pInstance->GetCreature(spiritKingsEntry[nextSpirit]))
                             {
                                 spirit->AI()->DoAction(ACTION_ENTER_COMBAT);
 
@@ -387,7 +414,7 @@ class boss_spirit_kings_controler : public CreatureScript
                                 {
                                     nextSpirit++;
 
-                                    if (Creature* incomingSpirit = pInstance->instance->GetCreature(pInstance->GetData64(spiritKingsEntry[nextSpirit])))
+                                    if (Creature* incomingSpirit = pInstance->GetCreature(spiritKingsEntry[nextSpirit]))
                                         me->AddAura(SPELL_ACTIVATION_VISUAL, incomingSpirit);
                                 }
                             }
@@ -396,35 +423,63 @@ class boss_spirit_kings_controler : public CreatureScript
                     }
                     case ACTION_SPIRIT_KILLED:
                     {
+                        if (!fightInProgress)
+                            break;
+
                         nextSpirit = ++vanquishedCount;
 
                         if (nextSpirit >= 4)
                         {
-                            pInstance->SetBossState(DATA_SPIRIT_KINGS, DONE);
+                            _JustDied();
                             summons.DespawnEntry(NPC_FLANKING_MOGU);
+                            fightInProgress = false;
 
-                            for (auto entry: spiritKingsEntry)
+                            if (pInstance)
                             {
-                                if (Creature* spirit = pInstance->instance->GetCreature(pInstance->GetData64(entry)))
+                                pInstance->SetBossState(DATA_SPIRIT_KINGS, DONE);
+                                pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_MADDENING_SHOUT);
+
+                                // Restoring player faction
+                                std::list<Player*> playerList;
+                                GetPlayerListInGrid(playerList, me, 200.0f);
+
+                                for (Player* player : playerList)
+                                    player->RestoreFaction();
+
+                                pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_PINNED_DOWN);
+                                pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_PINNED_DOWN_DOT);
+
+                                for (auto entry: spiritKingsEntry)
                                 {
-                                    spirit->LowerPlayerDamageReq(spirit->GetMaxHealth());
-                                    spirit->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
-                                    spirit->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
-                                    spirit->RemoveAura(SPELL_INACTIVE);
+                                    if (Creature* spirit = pInstance->GetCreature(entry))
+                                    {
+                                        spirit->LowerPlayerDamageReq(spirit->GetMaxHealth());
+                                        spirit->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
+                                        spirit->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+                                        spirit->RemoveAura(SPELL_INACTIVE);
 
-                                    pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_MADDENING_SHOUT);
 
-                                    if (Unit* killer = spirit->AI()->SelectTarget(SELECT_TARGET_TOPAGGRO))
-                                        killer->Kill(spirit);
+                                        if (Unit* killer = spirit->AI()->SelectTarget(SELECT_TARGET_MAXTHREAT))
+                                            killer->Kill(spirit);
+                                        else
+                                            me->Kill(spirit);
+                                    }
                                 }
 
-                                // Removing Undying Shadows
-                                std::list<Creature*> shadList;
-                                GetCreatureListWithEntryInGrid(shadList, me, NPC_UNDYING_SHADOW, 300.0f);
-
-                                for (auto shadow : shadList)
-                                    shadow->DespawnOrUnsummon();
+                                Map::PlayerList const& l_PlrList = me->GetMap()->GetPlayers();
+                                for (Map::PlayerList::const_iterator l_Itr = l_PlrList.begin(); l_Itr != l_PlrList.end(); ++l_Itr)
+                                {
+                                    if (Player* l_Player = l_Itr->GetSource())
+                                        me->CastSpell(l_Player, SPELL_SPIRIT_KINGS_BONUS, true);
+                                }
                             }
+
+                            // Removing Undying Shadows
+                            std::list<Creature*> shadList;
+                            GetCreatureListWithEntryInGrid(shadList, me, NPC_UNDYING_SHADOW, 300.0f);
+
+                            for (auto shadow : shadList)
+                                shadow->DespawnOrUnsummon();
 
                             if (Creature* lorewalkerCho = GetClosestCreatureWithEntry(me, NPC_LOREWALKER_CHO, 200.0f, true))
                             {
@@ -434,6 +489,10 @@ class boss_spirit_kings_controler : public CreatureScript
                                     lorewalkerCho->AI()->DoAction(ACTION_RUN);
                                 }
                             }
+
+                            if (GameObject* wall = GetClosestGameObjectWithEntry(me, GOB_SPIRIT_KINGS_EXIT, 100.0f))
+                                if (wall->GetGoState() == GO_STATE_READY)
+                                    wall->SetGoState(GO_STATE_ACTIVE);
                         }
                         else
                         {
@@ -448,7 +507,7 @@ class boss_spirit_kings_controler : public CreatureScript
                         if (vanquishedCount > 2)
                             break;
 
-                        if (Creature* incomingSpirit = pInstance->instance->GetCreature(pInstance->GetData64(spiritKingsEntry[vanquishedCount + 1])))
+                        if (Creature* incomingSpirit = pInstance->GetCreature(spiritKingsEntry[vanquishedCount + 1]))
                         {
                             switch (incomingSpirit->GetEntry())
                             {
@@ -477,6 +536,49 @@ class boss_spirit_kings_controler : public CreatureScript
                                     break;
                             }
                         }
+                        break;
+                    }
+                    case ACTION_REACH_HOME:
+                    {
+                        if (pInstance)
+                        {
+                            pInstance->SetBossState(DATA_SPIRIT_KINGS, FAIL);
+                            pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_MADDENING_SHOUT);
+
+                            // Restoring player faction
+                            std::list<Player*> playerList;
+                            GetPlayerListInGrid(playerList, me, 200.0f);
+
+                            for (Player* player : playerList)
+                                player->RestoreFaction();
+
+                            pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_PINNED_DOWN);
+                            pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_PINNED_DOWN_DOT);
+                        }
+
+                        // Reset each spirit
+                        for (uint8 i = 0; i < 4; ++i)
+                            if (Creature* spirit = pInstance->GetCreature(spiritsOrder[i]))
+                                spirit->AI()->DoAction(ACTION_REACH_HOME);
+
+                        fightInProgress   = false;
+                        _introZianDone    = false;
+                        _introSubetaiDone = false;
+                        _introMengDone    = false;
+                        vanquishedCount   = 0;
+                        nextSpirit        = 0;
+
+                        for (uint8 i = 0; i < MAX_FLANKING_MOGU; ++i)
+                            flankingGuid[i] = ObjectGuid::Empty;
+
+                        if (pInstance)
+                            if (Creature* Qiang = pInstance->GetCreature(NPC_QIANG))
+                                Qiang->AI()->DoAction(ACTION_FIRST_FIGHT);
+
+                        me->SetReactState(REACT_PASSIVE);
+
+                        summons.DespawnAll();
+                        events.Reset();
 
                         break;
                     }
@@ -485,17 +587,17 @@ class boss_spirit_kings_controler : public CreatureScript
                 }
             }
 
-            void JustSummoned(Creature* summon)
+            void JustSummoned(Creature* summon) override
             {
                 summons.Summon(summon);
             }
 
-            void SummonedCreatureDespawn(Creature* summon)
+            void SummonedCreatureDespawn(Creature* summon) override
             {
                 summons.Despawn(summon);
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(const uint32 /*diff*/) override
             {
                 if (me->HasUnitState(UNIT_STATE_CASTING))
                     return;
@@ -503,33 +605,19 @@ class boss_spirit_kings_controler : public CreatureScript
                 if (!fightInProgress)
                     return;
 
-                events.Update(diff);
-
-                while (uint32 eventId = events.ExecuteEvent())
+                if (pInstance)
                 {
-                    switch(eventId)
+                    if (pInstance->IsWipe())
                     {
-                        case EVENT_CHECK_WIPE:
-                        {
-                            if (pInstance->IsWipe())
-                            {
-                                pInstance->SetBossState(DATA_SPIRIT_KINGS, FAIL);
-                                Reset();
-                            }
-                            else
-                                events.ScheduleEvent(EVENT_CHECK_WIPE, 2500);
-                            break;
-                        }
-                        default:
-                            break;
+                        DoAction(ACTION_REACH_HOME);
+                        return;
                     }
                 }
-
-                DoMeleeAttackIfReady();
+                // DoMeleeAttackIfReady();
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new boss_spirit_kings_controlerAI(creature);
         }
@@ -559,11 +647,12 @@ class boss_spirit_kings : public CreatureScript
             bool vanquished;
             bool _introQiangDone;
             bool lowLife;
+            bool preEventDone;
 
             uint8 shadowCount;
             uint8 maxShadowCount;
 
-            void Reset()
+            void Reset() override
             {
                 shadowCount = 0;
                 maxShadowCount = 3;
@@ -571,12 +660,14 @@ class boss_spirit_kings : public CreatureScript
                 vanquished        = false;
                 _introQiangDone   = false;
                 lowLife           = false;
+                preEventDone      = false;
 
                 summons.DespawnAll();
+                events.Reset();
 
                 me->CastSpell(me, SPELL_INACTIVE, true);
                 me->CastSpell(me, SPELL_INACTIVE_STUN, true);
-                me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE);
+                me->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE));
 
                 if (pInstance)
                     pInstance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me);
@@ -584,7 +675,7 @@ class boss_spirit_kings : public CreatureScript
                 switch (me->GetEntry())
                 {
                     case NPC_QIANG:
-                        // DoAction(ACTION_FIRST_FIGHT);
+                        DoAction(ACTION_FIRST_FIGHT);
                         SetEquipmentSlots(false, EQUIP_QIANG_POLEARM, 0, EQUIP_NO_CHANGE);
                         break;
                     case NPC_SUBETAI:
@@ -599,52 +690,58 @@ class boss_spirit_kings : public CreatureScript
                 }
             }
 
-            void JustReachedHome()
+            void JustReachedHome() override
             {
-                if (pInstance)
-                    pInstance->SetBossState(DATA_SPIRIT_KINGS, FAIL);
-            }
+                if (me->GetEntry() != NPC_QIANG)
+                {
+                    me->AddAura(SPELL_INACTIVE, me);
+                    me->AddAura(SPELL_INACTIVE_STUN, me);
+
+                    me->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE));
+                }
+                else
+                    if (pInstance)
+                        if (pInstance->GetBossState(DATA_SPIRIT_KINGS) == FAIL)
+                            pInstance->SetBossState(DATA_SPIRIT_KINGS, NOT_STARTED);
+             }
 
             Creature* GetControler()
             {
                 if (pInstance)
-                    return pInstance->instance->GetCreature(pInstance->GetData64(NPC_SPIRIT_GUID_CONTROLER));
+                    return pInstance->GetCreature(NPC_SPIRIT_GUID_CONTROLER);
                 else
                     return NULL;
             }
 
-            void MoveInLineOfSight(Unit* who)
+            void MoveInLineOfSight(Unit* who) override
             {
                 if (me->IsWithinDistInMap(who, 50.0f, false) && !_introQiangDone && me->GetEntry() == NPC_QIANG)
                 {
+                    DoAction(ACTION_CHECK_SPIRITKINGS);
                     me->RemoveAurasDueToSpell(SPELL_INACTIVE);
                     me->RemoveAurasDueToSpell(SPELL_INACTIVE_STUN);
                     me->RemoveAurasDueToSpell(SPELL_ACTIVATION_VISUAL);
                     _introQiangDone = true;
                     Talk(QIANG_INTRO);
                 }
-                else if (me->IsWithinDistInMap(who, 20.0f, false) && !me->isInCombat())
-                {
-                    if (me->canStartAttack(who, false))
-                        AttackStart(who);
-                }
             }
 
-            void EnterCombat(Unit* attacker)
+            void EnterCombat(Unit* /*attacker*/) override
             {
-                if (!pInstance->CheckRequiredBosses(DATA_SPIRIT_KINGS))
-                {
-                    EnterEvadeMode();
-                    return;
-                }
 
                 if (pInstance)
                 {
+                    if (!pInstance->CheckRequiredBosses(DATA_SPIRIT_KINGS))
+                    {
+                        EnterEvadeMode(EVADE_REASON_OTHER);
+                        return;
+                    }
+
                     pInstance->SendEncounterUnit(ENCOUNTER_FRAME_ENGAGE, me);
                     pInstance->SetBossState(DATA_SPIRIT_KINGS, IN_PROGRESS);
 
-                    if (!pInstance->CheckRequiredBosses(DATA_SPIRIT_KINGS))
-                        pInstance->DoCastSpellOnPlayers(7); // Suicide
+                    DoAction(ACTION_CHECK_SPIRITKINGS);
+
                 }
 
                 switch (me->GetEntry())
@@ -666,10 +763,11 @@ class boss_spirit_kings : public CreatureScript
                             events.ScheduleEvent(EVENT_DELIRIOUS,       50000);
                         me->RemoveAurasDueToSpell(SPELL_CRAZED);
                         me->RemoveAurasDueToSpell(SPELL_COWARDICE);
-                        me->setPowerType(POWER_RAGE);
+                        me->SetPowerType(POWER_RAGE);
                         me->SetPower(POWER_RAGE, 0);
                         break;
                     case NPC_QIANG:
+                    {
                         Talk(QIANG_AGGRO);
                         events.ScheduleEvent(EVENT_FLANKING_MOGU,       40000);
                         events.ScheduleEvent(EVENT_MASSIVE_ATTACK,      3500);
@@ -681,6 +779,7 @@ class boss_spirit_kings : public CreatureScript
                         else
                             me->AddAura(SPELL_ACTIVATION_VISUAL, me);
                         break;
+                    }
                     case NPC_SUBETAI:
                         Talk(SUBETAI_AGGRO);
                         events.ScheduleEvent(EVENT_PILLAGE,             30000);
@@ -696,32 +795,86 @@ class boss_spirit_kings : public CreatureScript
                 me->RemoveAurasDueToSpell(SPELL_ACTIVATION_VISUAL);
             }
 
-            void DoAction(const int32 action)
+            void DoAction(const int32 action) override
             {
                 switch (action)
                 {
                     case ACTION_ENTER_COMBAT:
-                        if (!me->isInCombat())
-                            if (Player* victim = me->SelectNearestPlayerNotGM(50.0f))
+                    {
+                        if (!me->IsInCombat())
+                            if (Player* victim = me->SelectNearestPlayer(50.0f))
                                 AttackStart(victim);
+                    }
                     // No Break
                     case ACTION_FIRST_FIGHT:
+                    {
                         me->RemoveAurasDueToSpell(SPELL_INACTIVE);
                         me->RemoveAurasDueToSpell(SPELL_INACTIVE_STUN);
                         me->RemoveAurasDueToSpell(SPELL_ACTIVATION_VISUAL);
-                        me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE);
-                        me->setFaction(14);
+                        me->RemoveUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE));
+                        me->SetFaction(14);
                         break;
+                    }
+                    case ACTION_REACH_HOME:
+                    {
+                        events.Reset();
+                        summons.DespawnAll();
+                        me->SetFullHealth();
+                        me->SetReactState(REACT_PASSIVE);
+
+                        vanquished      = false;
+                        _introQiangDone = false;
+                        lowLife         = false;
+                        preEventDone    = false;
+
+                        shadowCount     = 0;
+                        maxShadowCount  = 3;
+
+                        if (me->HasAura(SPELL_INACTIVE_STUN))
+                            me->RemoveAura(SPELL_INACTIVE_STUN);
+                        if (me->HasUnitState(UNIT_STATE_NOT_MOVE))
+                            me->ClearUnitState(UNIT_STATE_NOT_MOVE);
+
+                        if (pInstance)
+                            pInstance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me);
+
+                        me->GetMotionMaster()->MoveTargetedHome();
+                        me->SetFullHealth();
+                        break;
+                    }
+                    case ACTION_CHECK_SPIRITKINGS:
+                    {
+                        if (GetClosestCreatureWithEntry(me, MOB_MENG, 200.0f, true))
+                        {
+                            me->SetFullHealth();
+                            me->SetReactState(REACT_PASSIVE);
+                            me->AddUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
+                            if (pInstance)
+                            {
+                                pInstance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me);
+                                if (pInstance->GetBossState(DATA_SPIRIT_KINGS) != NOT_STARTED &&
+                                    pInstance->GetBossState(DATA_SPIRIT_KINGS) != DONE)
+                                    pInstance->SetBossState(DATA_SPIRIT_KINGS, NOT_STARTED);
+                            }
+                            events.ScheduleEvent(EVENT_CHECK_SPIRITKINGS, 500);
+                            return;
+                        }
+                        else
+                        {
+                            me->SetReactState(REACT_AGGRESSIVE);
+                            me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
+                            if (pInstance)
+                                pInstance->SendEncounterUnit(ENCOUNTER_FRAME_ENGAGE, me);
+                            preEventDone = true;
+                        }
+                        break;
+                    }
                     default:
                         break;
                 }
             }
 
-            void JustDied(Unit* killer)
-            {
-            }
-
-            void JustSummoned(Creature* summon)
+            void JustSummoned(Creature* summon) override
             {
                 summons.Summon(summon);
 
@@ -729,7 +882,7 @@ class boss_spirit_kings : public CreatureScript
                     ++shadowCount;
             }
 
-            void SummonedCreatureDespawn(Creature* summon)
+            void SummonedCreatureDespawn(Creature* summon) override
             {
                 summons.Despawn(summon);
 
@@ -737,7 +890,7 @@ class boss_spirit_kings : public CreatureScript
                     --shadowCount;
             }
 
-            void MovementInform(uint32 type, uint32 id)
+            void MovementInform(uint32 type, uint32 id) override
             {
                 if (type == POINT_MOTION_TYPE)
                 {
@@ -748,15 +901,25 @@ class boss_spirit_kings : public CreatureScript
                 }
             }
 
-            void RegeneratePower(Powers power, int32& value)
+            void RegeneratePower(Powers /*power*/, int32& value) override
             {
                 // Any regeneration for Meng, except with Crazed or Cowardice
                 if (me->GetEntry() == NPC_MENG)
                     value = 0;
             }
 
-            void DamageTaken(Unit* attacker, uint32& damage)
+            void DamageTaken(Unit* attacker, uint32& damage) override
             {
+                if (me->GetEntry() == NPC_QIANG)
+                {
+                    DoAction(ACTION_CHECK_SPIRITKINGS);
+                    me->RemoveAura(SPELL_INACTIVE);
+                    me->RemoveAura(SPELL_INACTIVE_STUN);
+                }
+
+                if (me->GetEntry() == NPC_ZIAN && me->HasAura(SPELL_SHIELD_OF_DARKNESS))
+                    me->CastSpell(me, SPELL_DARKNESS, false);
+
                 if (me->HealthBelowPctDamaged(30, damage) && IsHeroic() && !lowLife)
                 {
                     // Triggered once only
@@ -770,12 +933,13 @@ class boss_spirit_kings : public CreatureScript
                     vanquished = true;
                     damage = 0;
 
-                    me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE);
+                    me->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE));
                     me->AddAura(SPELL_INACTIVE, me);
                     me->SetReactState(REACT_PASSIVE);
-                    me->getThreatManager().resetAllAggro();
-                    me->SetSpeed(MOVE_RUN, 0.0f, true);
-                    me->SetSpeed(MOVE_WALK, 0.0f, true);
+                    me->GetThreatManager().resetAllAggro();
+                    me->SetSpeed(MOVE_RUN, 0.0f);
+                    me->SetSpeed(MOVE_WALK, 0.0f);
+                    me->AddUnitState(UNIT_STATE_NOT_MOVE);
 
                     if (pInstance)
                         pInstance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me);
@@ -823,23 +987,40 @@ class boss_spirit_kings : public CreatureScript
                         controler->AI()->DoAction(ACTION_SAY_INTRO_FOR_NEXT_SPIRIT_IF_ANY);
                 }
 
-                if (AuraPtr aura = me->GetAura(SPELL_COWARDICE))
+                if (me->HasAura(SPELL_COWARDICE))
                 {
                     int32 percentage = me->GetPower(POWER_RAGE) / 10;
                     int32 bp = int32(CalculatePct(damage, percentage));
 
                     bp /= 5;
 
-                    if (AuraPtr cowardiceDot = attacker->GetAura(SPELL_COWARDICE_DOT))
+                    if (attacker->HasAura(SPELL_COWARDICE_DOT))
                         bp += attacker->GetRemainingPeriodicAmount(me->GetGUID(), SPELL_COWARDICE_DOT, SPELL_AURA_PERIODIC_DAMAGE);
 
                     me->CastCustomSpell(attacker, SPELL_COWARDICE_DOT, &bp, NULL, NULL, true);
                 }
             }
 
-            void KilledUnit(Unit* who)
+            void JustDied(Unit* p_Killer) override
             {
-                if (who->GetTypeId() == TYPEID_PLAYER)
+                ScriptedAI::JustDied(p_Killer);
+
+                /*if (IsLFR())
+                {
+                    me->SetLootRecipient(nullptr);
+
+                    if (me->GetEntry() == NPC_QIANG)
+                    {
+                        Player* l_Player = me->GetMap()->GetPlayers().begin()->GetSource();
+                        if (l_Player && l_Player->GetGroup())
+                            sLFGMgr->AutomaticLootAssignation(me, l_Player->GetGroup());
+                    }
+                }*/
+            }
+
+            void KilledUnit(Unit* who) override
+            {
+                if (who->IsPlayer())
                 {
                     switch (me->GetEntry())
                     {
@@ -861,13 +1042,17 @@ class boss_spirit_kings : public CreatureScript
                 }
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(const uint32 diff) override
             {
-                if (!UpdateVictim())
+                if (!UpdateVictim() && preEventDone)
                     return;
 
                 if (me->HasUnitState(UNIT_STATE_CASTING))
                     return;
+
+                if (pInstance)
+                    if (pInstance->GetBossState(DATA_SPIRIT_KINGS) == NOT_STARTED && me->GetHealth() < me->GetMaxHealth())
+                        pInstance->SetBossState(DATA_SPIRIT_KINGS, IN_PROGRESS);
 
                 events.Update(diff);
 
@@ -882,6 +1067,9 @@ class boss_spirit_kings : public CreatureScript
                             {
                                 me->CastSpell(me, SPELL_FLANKING_ORDERS, false);
                                 controler->AI()->DoAction(ACTION_FLANKING_MOGU);
+                                // In Heroic Mode, there are 2 flanking orders at the same time
+                                if (IsHeroic())
+                                    controler->AI()->DoAction(ACTION_FLANKING_MOGU);
                                 Talk(QIANG_SPELL);
                             }
 
@@ -894,7 +1082,7 @@ class boss_spirit_kings : public CreatureScript
                         }
                         case EVENT_MASSIVE_ATTACK:
                         {
-                            if (Unit* target = SelectTarget(SELECT_TARGET_TOPAGGRO))
+                            if (Unit* target = SelectTarget(SELECT_TARGET_MAXTHREAT))
                                 me->CastSpell(target, SPELL_MASSIVE_ATTACKS, false);
 
                             events.ScheduleEvent(EVENT_MASSIVE_ATTACK, 3500);
@@ -954,11 +1142,45 @@ class boss_spirit_kings : public CreatureScript
                             // While in Cowardice personality, Zian is Feared.
                             if (shadowCount < maxShadowCount) // Max 3 undying shadow during the fight
                             {
-                                if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM))
+                                std::list<Player*> playerList;
+                                GetPlayerListInGrid(playerList, me, 300.0f);
+                                std::list<Player*>::iterator itr, next;
+
+                                // Not applying on dead players or on players who already have an undying shadow
+                                for (itr = playerList.begin(); itr != playerList.end(); itr = next)
                                 {
-                                    me->CastSpell(target, SPELL_UNDYING_SHADOWS, false);
-                                    Talk(ZIAN_SPELL);
+                                    next = itr;
+                                    ++next;
+
+                                    if (!(*itr)->IsAlive() || (*itr)->HasAura(SPELL_FIXATE))
+                                        playerList.remove(*itr);
                                 }
+
+                                // No player to cast on: reschedule event
+                                if (playerList.empty())
+                                {
+                                    events.ScheduleEvent(EVENT_UNDYING_SHADOWS, 10000);
+                                    break;
+                                }
+
+                                // Picking a random target
+                                bool searching = true;
+                                itr = playerList.begin();
+                                Unit* target = 0;
+                                while (searching)
+                                {
+                                    if (urand(0, 1))
+                                    {
+                                        target = *itr;
+                                        searching = false;
+                                    }
+                                    ++itr;
+                                    if (itr == playerList.end())
+                                        itr = playerList.begin();
+                                }
+
+                                me->CastSpell(target, SPELL_UNDYING_SHADOWS, false);
+                                Talk(ZIAN_SPELL);
                             }
 
                             events.ScheduleEvent(EVENT_UNDYING_SHADOWS, 45000);
@@ -1013,6 +1235,11 @@ class boss_spirit_kings : public CreatureScript
                                 events.ScheduleEvent(EVENT_DELIRIOUS, urand(45000, 55000));
                             break;
                         }
+                        case EVENT_CHECK_SPIRITKINGS:
+                        {
+                            DoAction(ACTION_CHECK_SPIRITKINGS);
+                            break;
+                        }
                         default:
                             break;
                     }
@@ -1023,7 +1250,7 @@ class boss_spirit_kings : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new boss_spirit_kingsAI(creature);
         }
@@ -1043,15 +1270,15 @@ class mob_pinning_arrow : public CreatureScript
             }
 
             InstanceScript* pInstance;
-            uint64 playerGuid;
+            ObjectGuid playerGuid;
 
-            void Reset()
+            void Reset() override
             {
                 me->SetReactState(REACT_PASSIVE);
-                playerGuid = 0;
+                playerGuid = ObjectGuid::Empty;
             }
 
-            void SetGUID(uint64 guid, int32 /*id*/ = 0)
+            void SetGUID(ObjectGuid guid, int32 /*id*/ = 0) override
             {
                 playerGuid = guid;
 
@@ -1062,13 +1289,13 @@ class mob_pinning_arrow : public CreatureScript
                 }
             }
 
-            void KilledUnit(Unit* victim)
+            void KilledUnit(Unit* victim) override
             {
                 me->DespawnOrUnsummon();
                 victim->RemoveAurasDueToSpell(SPELL_PINNED_DOWN_DOT);
             }
 
-            void JustDied(Unit* attacker)
+            void JustDied(Unit* /*attacker*/) override
             {
                 if (Player* player = ObjectAccessor::FindPlayer(playerGuid))
                 {
@@ -1079,14 +1306,14 @@ class mob_pinning_arrow : public CreatureScript
                 me->DespawnOrUnsummon();
             }
 
-            void UpdateAI(uint32 const diff)
+            void UpdateAI(uint32 const /*diff*/) override
             {
                 if (me->HasUnitState(UNIT_STATE_UNATTACKABLE))
                     me->ClearUnitState(UNIT_STATE_UNATTACKABLE);
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new mob_pinning_arrowAI(creature);
         }
@@ -1112,16 +1339,16 @@ class mob_undying_shadow : public CreatureScript
             bool phase;
             uint32 switchPhaseTimer;
             float scale;
-            uint64 targetGuid;
+            ObjectGuid targetGuid;
 
-            void Reset()
+            void Reset() override
             {
                 me->CastSpell(me, SPELL_UNDYING_SHADOW_DOT, true);
                 DoZoneInCombat();
 
-                targetGuid = 0;
+                targetGuid = ObjectGuid::Empty;
 
-                if (Unit* target = SelectTarget(SELECT_TARGET_NEAREST))
+                if (Unit* target = SelectTarget(SELECT_TARGET_MINDISTANCE))
                 {
                     me->CastSpell(target, SPELL_FIXATE, true);
                     me->GetMotionMaster()->MoveChase(target);
@@ -1129,12 +1356,12 @@ class mob_undying_shadow : public CreatureScript
                 }
 
                 switchPhaseTimer = 0;
-                scale = me->GetFloatValue(OBJECT_FIELD_SCALE_X);
+                scale = me->GetObjectScale();
 
                 phase = PHASE_UNDYING_SHADOW;
             }
 
-            void DamageTaken(Unit* attacker, uint32& damage)
+            void DamageTaken(Unit* /*attacker*/, uint32& damage) override
             {
                 if (phase == PHASE_UNDYING_SHADOW)
                 {
@@ -1146,18 +1373,18 @@ class mob_undying_shadow : public CreatureScript
                         me->RemoveAurasDueToSpell(SPELL_UNDYING_SHADOW_DOT);
                         me->AddAura(SPELL_COALESCING_SHADOW_DOT, me);
                         me->AddUnitState(UNIT_STATE_ROOT | UNIT_STATE_STUNNED);
-                        me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE);
+                        me->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE));
                         phase = PHASE_COALESCING_SHADOW;
                         switchPhaseTimer = 30000;
                         damage = 0;
-                        targetGuid = 0;
+                        targetGuid = ObjectGuid::Empty;
                     }
                 }
                 else
                     damage = 0;
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(const uint32 diff) override
             {
                 if (switchPhaseTimer)
                 {
@@ -1166,7 +1393,7 @@ class mob_undying_shadow : public CreatureScript
                         me->RemoveAurasDueToSpell(SPELL_COALESCING_SHADOW_DOT);
                         me->AddAura(SPELL_UNDYING_SHADOW_DOT, me);
                         me->ClearUnitState(UNIT_STATE_ROOT | UNIT_STATE_STUNNED);
-                        me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE);
+                        me->RemoveUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE));
                         phase = PHASE_UNDYING_SHADOW;
                         switchPhaseTimer = 0;
                         DoZoneInCombat();
@@ -1191,7 +1418,7 @@ class mob_undying_shadow : public CreatureScript
                         switchPhaseTimer -= diff;
                     }
                 }
-                else if (targetGuid)
+                else if (!targetGuid.IsEmpty())
                 {
                     if (Unit* target = ObjectAccessor::FindPlayer(targetGuid))
                         me->GetMotionMaster()->MoveChase(target);
@@ -1199,7 +1426,7 @@ class mob_undying_shadow : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new mob_undying_shadowAI(creature);
         }
@@ -1217,7 +1444,7 @@ class spell_massive_attacks : public SpellScriptLoader
 
             uint8 targetsCount;
 
-            bool Load()
+            bool Load() override
             {
                 targetsCount = 1;
                 return true;
@@ -1233,14 +1460,14 @@ class spell_massive_attacks : public SpellScriptLoader
                 SetHitDamage(GetHitDamage() / targetsCount);
             }
 
-            void Register()
+            void Register() override
             {
                 OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_massive_attacks_SpellScript::CheckTargets, EFFECT_0, TARGET_UNIT_CONE_ENEMY_54);
                 OnEffectHitTarget += SpellEffectFn(spell_massive_attacks_SpellScript::RecalculateDamage, EFFECT_0, SPELL_EFFECT_SCHOOL_DAMAGE);
             }
         };
 
-        SpellScript* GetSpellScript() const
+        SpellScript* GetSpellScript() const override
         {
             return new spell_massive_attacks_SpellScript();
         }
@@ -1267,13 +1494,13 @@ class spell_volley : public SpellScriptLoader
                 switch (GetSpellInfo()->Id)
                 {
                     case SPELL_VOLLEY_1:
-                        coneAngle = M_PI / (1.5f);
+                        coneAngle = float(M_PI) / 1.5f;
                         break;
                     case SPELL_VOLLEY_2:
-                        coneAngle = M_PI / 4;
+                        coneAngle = float(M_PI) / 4.f;
                         break;
                     case SPELL_VOLLEY_3:
-                        coneAngle = M_PI / 6;
+                        coneAngle = float(M_PI) / 6.f;
                         break;
                 }
 
@@ -1289,13 +1516,13 @@ class spell_volley : public SpellScriptLoader
                 }
             }
 
-            void Register()
+            void Register() override
             {
                 OnEffectLaunch += SpellEffectFn(spell_volley_SpellScript::HandleDummyLaunch, EFFECT_0, SPELL_EFFECT_SCHOOL_DAMAGE);
             }
         };
 
-        SpellScript* GetSpellScript() const
+        SpellScript* GetSpellScript() const override
         {
             return new spell_volley_SpellScript();
         }
@@ -1318,13 +1545,13 @@ class spell_pinned_down : public SpellScriptLoader
                         pinningArrow->AI()->SetGUID(target->GetGUID());
             }
 
-            void Register()
+            void Register() override
             {
                 AfterHit += SpellHitFn(spell_pinned_down_SpellScript::HandleAfterHit);
             }
         };
 
-        SpellScript* GetSpellScript() const
+        SpellScript* GetSpellScript() const override
         {
             return new spell_pinned_down_SpellScript();
         }
@@ -1340,14 +1567,14 @@ class spell_maddening_shout : public SpellScriptLoader
         {
             PrepareAuraScript(spell_maddening_shout_AuraScript);
 
-            void OnAbsorb(AuraEffectPtr aurEff, DamageInfo& dmgInfo, uint32& absorbAmount)
+            void OnAbsorb(AuraEffect* /*aurEff*/, DamageInfo& dmgInfo, uint32& absorbAmount)
             {
                 if (Unit* attacker = dmgInfo.GetAttacker())
                     if (attacker->GetTypeId() != TYPEID_PLAYER)
                         absorbAmount = 0;
             }
 
-            void OnRemove(constAuraEffectPtr /*aurEff*/, AuraEffectHandleModes /*mode*/)
+            void OnRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
             {
                 if (Unit* target = GetTarget())
                 {
@@ -1356,14 +1583,14 @@ class spell_maddening_shout : public SpellScriptLoader
                 }
             }
 
-            void Register()
+            void Register() override
             {
                 OnEffectAbsorb += AuraEffectAbsorbFn(spell_maddening_shout_AuraScript::OnAbsorb, EFFECT_0);
                 OnEffectRemove += AuraEffectRemoveFn(spell_maddening_shout_AuraScript::OnRemove, EFFECT_0, SPELL_AURA_SCHOOL_ABSORB, AURA_EFFECT_HANDLE_REAL);
             }
         };
 
-        AuraScript* GetAuraScript() const
+        AuraScript* GetAuraScript() const override
         {
             return new spell_maddening_shout_AuraScript();
         }
@@ -1379,13 +1606,13 @@ class spell_crazed_cowardice : public SpellScriptLoader
         {
             PrepareAuraScript(spell_crazed_cowardice_AuraScript);
 
-            void HandlePeriodic(constAuraEffectPtr /*aurEff*/)
+            void HandlePeriodic(AuraEffect const* /*aurEff*/)
             {
                 PreventDefaultAction();
-                
+
                 if (Unit* caster = GetCaster())
                 {
-                    if (AuraPtr aura = GetAura())
+                    if (Aura* aura = GetAura())
                     {
                         caster->EnergizeBySpell(caster, aura->GetId(), 10, POWER_RAGE);
 
@@ -1409,13 +1636,13 @@ class spell_crazed_cowardice : public SpellScriptLoader
                 }
             }
 
-            void Register()
+            void Register() override
             {
                 OnEffectPeriodic += AuraEffectPeriodicFn(spell_crazed_cowardice_AuraScript::HandlePeriodic, EFFECT_0, SPELL_AURA_PERIODIC_DUMMY);
             }
         };
 
-        AuraScript* GetAuraScript() const
+        AuraScript* GetAuraScript() const override
         {
             return new spell_crazed_cowardice_AuraScript();
         }
@@ -1427,7 +1654,7 @@ class spell_crazed_cowardice : public SpellScriptLoader
             float runSpeed;
             float walkSpeed;
 
-            bool Load()
+            bool Load() override
             {
                 // Values from DB
                 runSpeed = 1.42857f;
@@ -1442,8 +1669,8 @@ class spell_crazed_cowardice : public SpellScriptLoader
                 {
                     if (GetSpellInfo()->Id == SPELL_COWARDICE)
                     {
-                        caster->SetSpeed(MOVE_RUN, 0.5f, true);
-                        caster->SetSpeed(MOVE_WALK, 0.5f, true);
+                        caster->SetSpeed(MOVE_RUN, 0.5f);
+                        caster->SetSpeed(MOVE_WALK, 0.5f);
                         caster->GetMotionMaster()->MoveFleeing(caster);
                     }
                     else
@@ -1451,10 +1678,10 @@ class spell_crazed_cowardice : public SpellScriptLoader
                         if (caster->GetMotionMaster()->GetCurrentMovementGeneratorType() == FLEEING_MOTION_TYPE)
                             caster->GetMotionMaster()->MovementExpired();
 
-                        caster->SetSpeed(MOVE_RUN, runSpeed, true);
-                        caster->SetSpeed(MOVE_WALK, walkSpeed, true);
+                        caster->SetSpeed(MOVE_RUN, runSpeed);
+                        caster->SetSpeed(MOVE_WALK, walkSpeed);
 
-                        if (Unit* target = caster->GetAI()->SelectTarget(SELECT_TARGET_TOPAGGRO))
+                        if (Unit* target = caster->GetAI()->SelectTarget(SELECT_TARGET_MAXTHREAT))
                         {
                             caster->SetTarget(target->GetGUID());
                             caster->GetAI()->AttackStart(target);
@@ -1463,13 +1690,13 @@ class spell_crazed_cowardice : public SpellScriptLoader
                 }
             }
 
-            void Register()
+            void Register() override
             {
                 OnHit += SpellHitFn(spell_crazed_cowardice_SpellScript::HandleOnHit);
             }
         };
 
-        SpellScript* GetSpellScript() const
+        SpellScript* GetSpellScript() const override
         {
             return new spell_crazed_cowardice_SpellScript();
         }
@@ -1485,13 +1712,13 @@ class spell_crazy_thought : public SpellScriptLoader
         {
             PrepareSpellScript(spell_crazy_thought_SpellScript);
 
-            void HandleEffect(SpellEffIndex effIndex)
+            void HandleEffect(SpellEffIndex /*effIndex*/)
             {
                 if (Unit* caster = GetCaster())
                 {
                     caster->EnergizeBySpell(caster, GetSpellInfo()->Id, 100, POWER_RAGE);
 
-                    if (AuraPtr cowardice = caster->GetAura(SPELL_COWARDICE))
+                    if (Aura* cowardice = caster->GetAura(SPELL_COWARDICE))
                     {
                         if (cowardice->GetEffect(1))
                         {
@@ -1499,7 +1726,7 @@ class spell_crazy_thought : public SpellScriptLoader
                             cowardice->SetNeedClientUpdateForTargets();
                         }
                     }
-                    else if (AuraPtr crazed = caster->GetAura(SPELL_CRAZED))
+                    else if (Aura* crazed = caster->GetAura(SPELL_CRAZED))
                     {
                         if (crazed->GetEffect(1))
                         {
@@ -1510,13 +1737,13 @@ class spell_crazy_thought : public SpellScriptLoader
                 }
             }
 
-            void Register()
+            void Register() override
             {
                 OnEffectHit += SpellEffectFn(spell_crazy_thought_SpellScript::HandleEffect, EFFECT_0, SPELL_EFFECT_ENERGIZE);
             }
         };
 
-        SpellScript* GetSpellScript() const
+        SpellScript* GetSpellScript() const override
         {
             return new spell_crazy_thought_SpellScript();
         }
@@ -1536,25 +1763,91 @@ class spell_coalescing_shadow : public SpellScriptLoader
             {
                 targets.clear();
 
-                float MaxDist = 10.0f * GetCaster()->GetFloatValue(OBJECT_FIELD_SCALE_X);
+                float MaxDist = 10.0f * GetCaster()->GetObjectScale();
 
                 Map::PlayerList const& players = GetCaster()->GetMap()->GetPlayers();
-                    if (!players.isEmpty())
-                        for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-                            if (Player* player = itr->getSource())
-                                if (player->GetExactDist2d(GetCaster()->GetPositionX(), GetCaster()->GetPositionY()) < MaxDist)
-                                    targets.push_back(player);
+                if (!players.isEmpty())
+                    for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
+                        if (Player* player = itr->GetSource())
+                            if (player->GetExactDist2d(GetCaster()->GetPositionX(), GetCaster()->GetPositionY()) < MaxDist)
+                                targets.push_back(player);
             }
 
-            void Register()
+            void Register() override
             {
                 OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_coalescing_shadow_SpellScript::CorrectRange, EFFECT_0, TARGET_UNIT_SRC_AREA_ENEMY);
             }
         };
 
-        SpellScript* GetSpellScript() const
+        SpellScript* GetSpellScript() const override
         {
             return new spell_coalescing_shadow_SpellScript();
+        }
+};
+
+/// 118163 - Sleight of hand
+class spell_sleight_of_hand : public SpellScriptLoader
+{
+    public:
+        spell_sleight_of_hand() : SpellScriptLoader("spell_sleight_of_hand") { }
+
+        class spell_sleight_of_hand_AuraScript : public AuraScript
+        {
+            PrepareAuraScript(spell_sleight_of_hand_AuraScript);
+
+            void Apply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+            {
+                if (Unit* caster = GetCaster())
+                    caster->ApplySpellImmune(0, IMMUNITY_MECHANIC, MECHANIC_STUN, false);
+            }
+
+            void Remove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+            {
+                if (Unit* caster = GetCaster())
+                    caster->ApplySpellImmune(0, IMMUNITY_MECHANIC, MECHANIC_STUN, true);
+            }
+
+            void Register() override
+            {
+                OnEffectApply += AuraEffectApplyFn(spell_sleight_of_hand_AuraScript::Apply, EFFECT_0, SPELL_AURA_MOD_DAMAGE_PERCENT_DONE, AURA_EFFECT_HANDLE_REAL);
+                OnEffectRemove += AuraEffectRemoveFn(spell_sleight_of_hand_AuraScript::Remove, EFFECT_0, SPELL_AURA_MOD_DAMAGE_PERCENT_DONE, AURA_EFFECT_HANDLE_REAL);
+            }
+        };
+
+        AuraScript* GetAuraScript() const override
+        {
+            return new spell_sleight_of_hand_AuraScript();
+        }
+};
+
+// 117697 - Shield of Darkness
+class spell_shield_of_darkness : public SpellScriptLoader
+{
+    public:
+        spell_shield_of_darkness() : SpellScriptLoader("spell_shield_of_darkness") { }
+
+        class spell_shield_of_darkness_SpellScript : public SpellScript
+        {
+            PrepareSpellScript(spell_shield_of_darkness_SpellScript);
+
+            void SetStack()
+            {
+                if (Unit* caster = GetCaster())
+                {
+                    Aura* shieldDarkness = caster->GetAura(SPELL_SHIELD_OF_DARKNESS);
+                    shieldDarkness->SetCharges(5);
+                }
+            }
+
+            void Register() override
+            {
+                AfterCast += SpellCastFn(spell_shield_of_darkness_SpellScript::SetStack);
+            }
+        };
+
+        SpellScript* GetSpellScript() const override
+        {
+            return new spell_shield_of_darkness_SpellScript();
         }
 };
 
@@ -1571,4 +1864,6 @@ void AddSC_boss_spirit_kings()
     new spell_crazed_cowardice();
     new spell_crazy_thought();
     new spell_coalescing_shadow();
+    new spell_sleight_of_hand();
+    new spell_shield_of_darkness();
 }

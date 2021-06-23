@@ -1,15 +1,27 @@
 /*
-    Dungeon : Template of the Jade Serpent 85-87
-    Wise mari
-    Jade servers
-*/
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #include "ScriptMgr.h"
 #include "ScriptedCreature.h"
 
 enum eBoss
 {
-    BOSS_WASE_MARI = 1,
+    BOSS_WASE_MARI = 1
 };
 
 enum eSpells
@@ -22,7 +34,7 @@ enum eSpells
     SPELL_HYDROLANCE_DMG_BOTTOM     = 106267,
     SPELL_HYDROLANCE_VISUAL         = 106055,
     SPELL_HYDROLANCE_DMG            = 106105,
-    SPELL_WASH_AWAY                 = 106331,
+    SPELL_WASH_AWAY                 = 106331
 };
 
 enum eTexts
@@ -33,7 +45,7 @@ enum eTexts
     TEXT_CALL_WATER       = 3,
     TEXT_PHASE_SWITCH     = 4,
     TEXT_DEATH            = 5,
-    TEXT_KILL_PLAYER      = 6,
+    TEXT_KILL_PLAYER      = 6
 };
 
 enum eEvents
@@ -42,14 +54,14 @@ enum eEvents
     EVENT_HYDROLANCE        = 2,
     EVENT_HYDROLANCE_START  = 3,
     EVENT_SWITCH_PHASE_TWO  = 4,
-    EVENT_WASH_AWAY         = 5,
+    EVENT_WASH_AWAY         = 5
 };
 
 enum eCreatures
 {
     CREATURE_FOUTAIN_TRIGGER            = 56586,
     CREATURE_CORRUPT_DROPLET            = 62358,
-    CREATURE_HYDROLANCE_BOTTOM_TRIGGER  = 56542,
+    CREATURE_HYDROLANCE_BOTTOM_TRIGGER  = 56542
 };
 
 enum eTimers
@@ -58,23 +70,23 @@ enum eTimers
     TIMER_HYDROLANCE_START      = 10000,
     TIMER_HYDROLANCE            =  5500,
     TIMER_SWITCH_PHASE_TWO      = 15000,
-    TIMER_WASH_AWAY             =   125,
+    TIMER_WASH_AWAY             =   300
 };
 
 enum hydrolancePhase
 {
     HYDROLANCE_BOTTOM   = 1,
     HYDROLANCE_LEFT     = 2,
-    HYDROLANCE_RIGHT    = 3,
+    HYDROLANCE_RIGHT    = 3
 };
 
-static const float fountainTriggerPos[4][3] = 
-{
-    {1022.743f, -2544.295f, 173.7757f},
-    {1023.314f, -2569.695f, 176.0339f},
-    {1059.943f, -2581.648f, 176.1427f},
-    {1075.231f, -2561.335f, 173.8758f},
-};
+//static const float fountainTriggerPos[4][3] =
+//{
+//    {1022.743f, -2544.295f, 173.7757f},
+//    {1023.314f, -2569.695f, 176.0339f},
+//    {1059.943f, -2581.648f, 176.1427f},
+//    {1075.231f, -2561.335f, 173.8758f}
+//};
 
 static const float hydrolanceLeftTrigger[5][3] =
 {
@@ -82,7 +94,7 @@ static const float hydrolanceLeftTrigger[5][3] =
     {1058.921f, -2573.487f, 174.2403f},
     {1055.910f, -2575.674f, 174.2403f},
     {1052.511f, -2577.188f, 174.2403f},
-    {1048.871f, -2577.961f, 174.2403f},
+    {1048.871f, -2577.961f, 174.2403f}
 };
 
 static const float hydrolanceRightTrigger[5][3] =
@@ -91,18 +103,13 @@ static const float hydrolanceRightTrigger[5][3] =
     {1032.795f, -2570.971f, 174.2403f},
     {1030.878f, -2567.781f, 174.2403f},
     {1029.667f, -2564.263f, 174.2403f},
-    {1029.213f, -2560.569f, 174.2403f},
+    {1029.213f, -2560.569f, 174.2403f}
 };
 
 class boss_wase_mari : public CreatureScript
 {
     public:
         boss_wase_mari() : CreatureScript("boss_wase_mari") { }
-
-        CreatureAI* GetAI(Creature* creature) const
-        {
-            return new boss_wise_mari_AI(creature);
-        }
 
         struct boss_wise_mari_AI : public BossAI
         {
@@ -115,16 +122,16 @@ class boss_wase_mari : public CreatureScript
             bool intro;
             uint8 phase;
             uint8 foutainCount;
-            uint64 foutainTrigger[4];
+            ObjectGuid foutainTrigger[4];
             uint32 hydrolancePhase;
 
-            void Reset()
+            void Reset() override
             {
                 for (uint8 i = 0; i < 4; i++)
-                    foutainTrigger[i] = 0;
+                    foutainTrigger[i] = ObjectGuid::Empty;
 
                 std::list<Creature*> searcher;
-                GetCreatureListWithEntryInGrid(searcher, me, CREATURE_FOUTAIN_TRIGGER, 50.0f);
+                me->GetCreatureListWithEntryInGrid(searcher, CREATURE_FOUTAIN_TRIGGER, 50.0f);
                 for (auto itr : searcher)
                 {
                     if (!itr)
@@ -143,7 +150,7 @@ class boss_wase_mari : public CreatureScript
                 _Reset();
             }
 
-            void EnterCombat(Unit* /*who*/)
+            void EnterCombat(Unit* /*who*/) override
             {
                 std::list<Creature*> searcher;
                 GetCreatureListWithEntryInGrid(searcher, me, CREATURE_FOUTAIN_TRIGGER, 50.0f);
@@ -182,44 +189,40 @@ class boss_wase_mari : public CreatureScript
                 _EnterCombat();
             }
 
-            void DoAction(const int32 action)
-            {
-            }
+            void DoAction(const int32 /*action*/) override
+            {}
 
-            void KilledUnit(Unit* /*victim*/)
+            void KilledUnit(Unit* /*victim*/) override
             {
                 Talk(TEXT_KILL_PLAYER);
             }
 
-            void JustDied(Unit* /*killer*/)
+            void JustDied(Unit* /*killer*/) override
             {
                 Talk(TEXT_DEATH);
                 _JustDied();
             }
 
-            void DamageTaken(Unit* /*attacker*/, uint32& /*damage*/)
-            {
+            void DamageTaken(Unit* /*attacker*/, uint32& /*damage*/) override
+            {}
 
-            }
-
-            void MoveInLineOfSight(Unit* who)
+            void MoveInLineOfSight(Unit* who) override
             {
-                if(who->GetTypeId() != TYPEID_PLAYER)
+                if (who->GetTypeId() != TYPEID_PLAYER)
                     return;
 
-                if(intro)
+                if (intro)
                     return;
 
-                if(!ennemyInArea)
+                if (!ennemyInArea)
                 {
                     Talk(TEXT_INTRO);
                     ennemyInArea = true;
                     return;
                 }
-                
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (!UpdateVictim())
                     return;
@@ -227,8 +230,8 @@ class boss_wase_mari : public CreatureScript
                 events.Update(diff);
 
                 // Wise Mari don't rotate
-                if (me->GetUInt32Value(UNIT_FIELD_TARGET))
-                    me->SetUInt32Value(UNIT_FIELD_TARGET, 0);
+                if (!me->GetTarget().IsEmpty())
+                    me->SetTarget(ObjectGuid::Empty);
 
                 if (me->HasUnitState(UNIT_STATE_CASTING) && phase != 2)
                     return;
@@ -244,7 +247,7 @@ class boss_wase_mari : public CreatureScript
 
                             Talk(TEXT_CALL_WATER);
 
-                            Creature* trigger = me->GetCreature(*me, foutainTrigger[++foutainCount]);
+                            Creature* trigger = ObjectAccessor::GetCreature(*me, foutainTrigger[++foutainCount]);
                             if (trigger)
                             {
                                 me->CastSpell(trigger, SPELL_CALL_WATER, true);
@@ -320,7 +323,7 @@ class boss_wase_mari : public CreatureScript
                                     break;
                             }
 
-                            if( hydrolancePhase == HYDROLANCE_RIGHT)
+                            if (hydrolancePhase == HYDROLANCE_RIGHT)
                                 hydrolancePhase = HYDROLANCE_BOTTOM;
                             else
                                 hydrolancePhase++;
@@ -336,13 +339,15 @@ class boss_wase_mari : public CreatureScript
                                 break;
 
                             Talk(TEXT_PHASE_SWITCH);
+                            me->GetThreatManager().clearReferences();
+                            me->GetMotionMaster()->MovePoint(1, me->GetHomePosition());
 
                             me->RemoveAurasDueToSpell(SPELL_WATER_BUBBLE);
                             float facing = me->GetOrientation();
-                            facing += M_PI/48;
+                            facing += (float)M_PI/48;
 
-                            if(facing > M_PI*2)
-                                facing -= M_PI*2;
+                            if (facing > (float)M_PI*2)
+                                facing -= (float)M_PI*2;
 
                             //me->UpdatePosition(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), facing);
                             me->SetOrientation(facing);
@@ -358,10 +363,10 @@ class boss_wase_mari : public CreatureScript
                                 break;
 
                             float facing = me->GetOrientation();
-                            facing += M_PI/48;
+                            facing += float(M_PI)/48;
 
-                            if(facing > M_PI*2)
-                                facing -= M_PI*2;
+                            if (facing > float(M_PI) *2)
+                                facing -= float(M_PI) *2;
 
                             me->SetOrientation(facing);
                             me->SetFacingTo(facing);
@@ -374,6 +379,11 @@ class boss_wase_mari : public CreatureScript
 
             }
         };
+
+        CreatureAI* GetAI(Creature* creature) const override
+        {
+            return new boss_wise_mari_AI(creature);
+        }
 };
 
 class mob_corrupt_living_water : public CreatureScript
@@ -381,40 +391,29 @@ class mob_corrupt_living_water : public CreatureScript
     public:
         mob_corrupt_living_water() : CreatureScript("mob_corrupt_living_water") { }
 
-        CreatureAI* GetAI(Creature* creature) const
-        {
-            return new mob_corrupt_living_water_AI(creature);
-        }
-
         struct mob_corrupt_living_water_AI : public ScriptedAI
         {
-            mob_corrupt_living_water_AI(Creature* creature) : ScriptedAI(creature)
-            {
-            }
+            mob_corrupt_living_water_AI(Creature* creature) : ScriptedAI(creature) {}
 
+            void Reset() override {}
 
-            void Reset()
-            {
-            }
-
-            void JustDied(Unit* /*killer*/)
+            void JustDied(Unit* /*killer*/) override
             {
                 for (int i = 0; i < 4; i++)
                 {
-                    Position pos;
-                    me->GetRandomNearPosition(pos, 4.0f);
+                    Position pos = me->GetRandomNearPosition(4.0f);
                     Creature* droplet = me->SummonCreature(CREATURE_CORRUPT_DROPLET, pos);
                     if (!droplet)
                         continue;
 
-                    if(Unit* unit = SelectTarget(SELECT_TARGET_RANDOM))
+                    if (Unit* unit = SelectTarget(SELECT_TARGET_RANDOM))
                         droplet->Attack(unit, true);
                 }
 
                 me->CastSpell(me, SPELL_SHA_RESIDUE, true);
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 /*diff*/) override
             {
                 if (!UpdateVictim())
                     return;
@@ -422,6 +421,11 @@ class mob_corrupt_living_water : public CreatureScript
                 DoMeleeAttackIfReady();
             }
         };
+
+        CreatureAI* GetAI(Creature* creature) const override
+        {
+            return new mob_corrupt_living_water_AI(creature);
+        }
 };
 
 void AddSC_boss_wise_mari()

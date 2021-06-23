@@ -1,8 +1,20 @@
 /*
-    Dungeon : Template of the Jade Serpent 85-87
-    Wise mari second boss
-    Jade servers
-*/
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #include "ScriptMgr.h"
 #include "ScriptedCreature.h"
@@ -17,7 +29,7 @@
 #define TIMER_INTENSITY 2000
 #define TIMER_DISSIPATION TIMER_INTENSITY
 #define TYPE_GET_EVENT_LOREWALKER_STONESTEP 5
- 
+
 
 enum eBoss
 {
@@ -26,7 +38,7 @@ enum eBoss
     BOSS_ZAO_SUNSEEKER = 3,
 
     BOSS_STRIFE = 4,
-    BOSS_PERIL = 5,
+    BOSS_PERIL = 5
 };
 
 enum eSpells
@@ -46,7 +58,7 @@ enum eSpells
     SPELL_AGONY                 = 114571,
     SPELL_DISSIPATION           = 113379,
     SPELL_INTENSITY             = 113315,
-    SPELL_ULTIMATE_POWER        = 113309,
+    SPELL_ULTIMATE_POWER        = 113309
 };
 
 enum eEvents
@@ -72,7 +84,7 @@ enum eEvents
     EVENT_STRIFE_1 = 15,
     EVENT_STRIFE_2 = 16,
     EVENT_STRIFE_3 = 17,
-    EVENT_STRIFE_4 = 18,
+    EVENT_STRIFE_4 = 18
 };
 
 enum eTexts
@@ -94,7 +106,7 @@ enum eTexts
     EVENT_TALK_STRIFE_1 = 11,
     EVENT_TALK_STRIFE_2 = 12,
     EVENT_TALK_STRIFE_3 = 13,
-    EVENT_TALK_STRIFE_4 = 14,
+    EVENT_TALK_STRIFE_4 = 14
 };
 
 enum eCreatures
@@ -104,18 +116,13 @@ enum eCreatures
     CREATURE_HAUNTING_SHA_1         = 58865,
     CREATURE_HAUNTING_SHA_2         = 58856,
     CREATURE_SUN                    = 56915,
-    CREATURE_OSONG                  = 56872,
+    CREATURE_OSONG                  = 56872
 };
 
 class boss_lorewalker_stonestep : public CreatureScript
 {
     public:
         boss_lorewalker_stonestep() : CreatureScript("boss_lorewalker_stonestep") { }
-
-        CreatureAI* GetAI(Creature* creature) const
-        {
-            return new boss_lorewalker_stonestep_AI(creature);
-        }
 
         struct boss_lorewalker_stonestep_AI : public BossAI
         {
@@ -125,16 +132,16 @@ class boss_lorewalker_stonestep : public CreatureScript
             }
 
             bool event_go;
-            uint64 scrollGUID;
+            ObjectGuid scrollGUID;
 
-            void Reset()
+            void Reset() override
             {
                 event_go = false;
                 me->GetMotionMaster()->MoveTargetedHome();
                 _Reset();
             }
 
-            void DoAction(const int32 action)
+            void DoAction(int32 action) override
             {
                 switch (action)
                 {
@@ -150,23 +157,21 @@ class boss_lorewalker_stonestep : public CreatureScript
                 }
             }
 
-            void KilledUnit(Unit* /*victim*/)
-            {
-            }
+            void KilledUnit(Unit* /*victim*/) override
+            {}
 
-            void JustDied(Unit* /*killer*/)
+            void JustDied(Unit* /*killer*/) override
             {
                 _JustDied();
             }
 
-            void DamageTaken(Unit* /*attacker*/, uint32& /*damage*/)
-            {
-            }
+            void DamageTaken(Unit* /*attacker*/, uint32& /*damage*/) override
+            {}
 
-            void MoveInLineOfSight(Unit* who)
+            void MoveInLineOfSight(Unit* who) override
             {
                 // If Lorewalker stonestep sees a player, launch the speech.
-                if (!event_go && who->GetTypeId() == TYPEID_PLAYER)
+                if (!event_go && who->ToPlayer())
                 {
                     event_go = true;
                     events.ScheduleEvent(EVENT_INTRO_0, 500);
@@ -174,7 +179,7 @@ class boss_lorewalker_stonestep : public CreatureScript
                 }
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 events.Update(diff);
 
@@ -255,9 +260,9 @@ class boss_lorewalker_stonestep : public CreatureScript
                                 TempSummon* temp = me->SummonCreature(CREATURE_OSONG, 842.752f, -2468.911f, 174.959f);
                                 if (!temp)
                                     break;
-                                temp->setFaction(14);
+                                temp->SetFaction(14);
                                 temp->Attack(SelectTarget(SELECT_TARGET_RANDOM), true);
-                                temp->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+                                temp->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                                 temp->SetFacingTo(1.239f);
                                 sCreatureTextMgr->SendChat(temp, 0, 0);
                             }
@@ -273,17 +278,17 @@ class boss_lorewalker_stonestep : public CreatureScript
 
             }
         };
+
+        CreatureAI* GetAI(Creature* creature) const override
+        {
+            return new boss_lorewalker_stonestep_AI(creature);
+        }
 };
 
 class mob_sun : public CreatureScript
 {
     public:
         mob_sun() : CreatureScript("mob_sun") { }
-
-        CreatureAI* GetAI(Creature* creature) const
-        {
-            return new mob_sun_AI(creature);
-        }
 
         struct mob_sun_AI : public BossAI
         {
@@ -296,7 +301,7 @@ class mob_sun : public CreatureScript
                 me->SetOrientation(1.239f);
             }
 
-            void DoAction(const int32 action)
+            void DoAction(int32 action) override
             {
                 switch (action)
                 {
@@ -306,12 +311,12 @@ class mob_sun : public CreatureScript
                 }
             }
 
-            void JustDied(Unit* killer)
+            void JustDied(Unit* /*killer*/) override
             {
                 me->GetInstanceScript()->SetData(TYPE_NUMBER_SUN_DEFEATED, 1);
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 events.Update(diff);
 
@@ -319,27 +324,27 @@ class mob_sun : public CreatureScript
                 {
                     switch (eventId)
                     {
-                    case 1:
-                        Unit* target = SelectTarget(SELECT_TARGET_RANDOM);
-                        if (target != nullptr)
-                            me->CastSpell(target, SPELL_SUNFIRE_RAYS, true);
-                        events.ScheduleEvent(1, 5000);
-                        break;
+                        case 1:
+                            Unit* target = SelectTarget(SELECT_TARGET_RANDOM);
+                            if (target != nullptr)
+                                me->CastSpell(target, SPELL_SUNFIRE_RAYS, true);
+                            events.ScheduleEvent(1, 5000);
+                            break;
                     }
                 }
             }
         };
+
+        CreatureAI* GetAI(Creature* creature) const override
+        {
+            return new mob_sun_AI(creature);
+        }
 };
 
 class mob_zao : public CreatureScript
 {
     public:
         mob_zao() : CreatureScript("mob_zao") { }
-
-        CreatureAI* GetAI(Creature* creature) const
-        {
-            return new mob_zao_AI(creature);
-        }
 
         struct mob_zao_AI : public BossAI
         {
@@ -348,11 +353,11 @@ class mob_zao : public CreatureScript
                 isCorrupted = false;
                 me->AddUnitState(UNIT_STATE_ROOT);
             }
-            std::list<uint64> suns;
+            std::list<ObjectGuid> suns;
 
             bool isCorrupted;
 
-            void DamageTaken(Unit* attacker, uint32&)
+            void DamageTaken(Unit* attacker, uint32& /*damage*/) override
             {
                 if (attacker->ToCreature()
                     && (attacker->ToCreature()->GetEntry() == CREATURE_HAUNTING_SHA_1
@@ -360,32 +365,32 @@ class mob_zao : public CreatureScript
                 {
                     attacker->ToCreature()->ForcedDespawn();
                     isCorrupted = true;
-                    me->setFaction(14);
-                    me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+                    me->SetFaction(14);
+                    me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                     me->CastSpell(me, SPELL_SHA_CORRUPTION_2, false);
                 }
             }
 
-            void DoAction(const int32 action)
+            void DoAction(int32 action) override
             {
                 switch (action)
                 {
-                case TYPE_ZAO_ENTER_COMBAT:
-                    events.ScheduleEvent(EVENT_ZAO_ATTACK, 1000);
-                    break;
-                case TYPE_ZAO_TALK:
-                    events.Reset();
-                    events.ScheduleEvent(EVENT_ZAO_ENTER_COMBAT_1, 1000);
-                    break;
+                    case TYPE_ZAO_ENTER_COMBAT:
+                        events.ScheduleEvent(EVENT_ZAO_ATTACK, 1000);
+                        break;
+                    case TYPE_ZAO_TALK:
+                        events.Reset();
+                        events.ScheduleEvent(EVENT_ZAO_ENTER_COMBAT_1, 1000);
+                        break;
                 }
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (suns.empty())
                 {
                     std::list<Creature*> searcher;
-                    GetCreatureListWithEntryInGrid(searcher, me, CREATURE_SUN, 50.0f);
+                    me->GetCreatureListWithEntryInGrid(searcher, CREATURE_SUN, 50.0f);
                     for (auto itr : searcher)
                     {
                         if (!itr)
@@ -424,7 +429,7 @@ class mob_zao : public CreatureScript
                             if (!suns.empty())
                             {
                                 uint32 rand = urand(0, suns.size());
-                                uint64 guid_target = 0;
+                                ObjectGuid guid_target = ObjectGuid::Empty;
                                 Creature* target = nullptr;
                                 for (auto guid : suns)
                                 {
@@ -448,6 +453,11 @@ class mob_zao : public CreatureScript
                 }
             }
         };
+
+        CreatureAI* GetAI(Creature* creature) const override
+        {
+            return new mob_zao_AI(creature);
+        }
 };
 
 class mob_haunting_sha : public CreatureScript
@@ -455,44 +465,39 @@ class mob_haunting_sha : public CreatureScript
     public:
         mob_haunting_sha() : CreatureScript("mob_haunting_sha") { }
 
-        CreatureAI* GetAI(Creature* creature) const
-        {
-            return new mob_haunting_sha_AI(creature);
-        }
-
         struct mob_haunting_sha_AI : public BossAI
         {
             mob_haunting_sha_AI(Creature* creature) : BossAI(creature, BOSS_ZAO_SUNSEEKER)
             {
-                me->setFaction(14);
+                me->SetFaction(14);
                 me->CastSpell(me, SPELL_EXTRACT_SHA, false);
             }
 
-            void EnterCombat(Unit* unit)
+            void EnterCombat(Unit* /*who*/) override
             {
                 events.ScheduleEvent(1, 1000);
             }
 
-            void DoAction(const int32 action)
+            void DoAction(int32 action) override
             {
                 if (action != 0)
                     return;
 
-                uint64 guid = me->GetInstanceScript()->GetData64(CREATURE_ZAO_SUNSEEKER);
-                if (guid != 0)
+                ObjectGuid guid = me->GetInstanceScript()->GetGuidData(CREATURE_ZAO_SUNSEEKER);
+                if (guid != ObjectGuid::Empty)
                 {
                     Creature* zao = me->GetMap()->GetCreature(guid);
-                    if(!zao)
+                    if (!zao)
                         return;
 
-                    me->getThreatManager().addThreat(zao, 1000000.f);
+                    me->GetThreatManager().addThreat(zao, 1000000.0f);
                     me->AI()->AttackStart(zao);
                 }
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
-                if (!me->getVictim())
+                if (!me->GetVictim())
                 {
                     Map::PlayerList const& PlayerList = me->GetInstanceScript()->instance->GetPlayers();
 
@@ -500,10 +505,10 @@ class mob_haunting_sha : public CreatureScript
                     {
                         for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
                         {
-                            Player* plr = i->getSource();
-                            if( !plr)
+                            Player* plr = i->GetSource();
+                            if (!plr)
                                 continue;
-                            me->getThreatManager().addThreat(plr, 1.0f);
+                            me->GetThreatManager().addThreat(plr, 1.0f);
                         }
                     }
                     me->AI()->AttackStart(SelectTarget(SELECT_TARGET_RANDOM));
@@ -516,9 +521,9 @@ class mob_haunting_sha : public CreatureScript
                     switch (eventId)
                     {
                     case 1:
-                        if (!me->getVictim())
+                        if (!me->GetVictim())
                             return;
-                        me->CastSpell(me->getVictim(), 114646, false);
+                        me->CastSpell(me->GetVictim(), 114646, false);
                         events.ScheduleEvent(1, 2000);
                         break;
                     }
@@ -527,6 +532,11 @@ class mob_haunting_sha : public CreatureScript
                 DoMeleeAttackIfReady();
             }
         };
+
+        CreatureAI* GetAI(Creature* creature) const override
+        {
+            return new mob_haunting_sha_AI(creature);
+        }
 };
 
 class mob_strife : public CreatureScript
@@ -534,16 +544,11 @@ class mob_strife : public CreatureScript
     public:
         mob_strife() : CreatureScript("mob_strife") { }
 
-        CreatureAI* GetAI(Creature* creature) const
-        {
-            return new mob_strife_AI(creature);
-        }
-
         struct mob_strife_AI : public BossAI
         {
             mob_strife_AI(Creature* creature) : BossAI(creature, BOSS_STRIFE)
             {
-                me->setFaction(14);
+                me->SetFaction(14);
                 timer_intensity = TIMER_INTENSITY;
                 timer_dissipation = TIMER_DISSIPATION;
                 countIntensity = 0;
@@ -554,18 +559,18 @@ class mob_strife : public CreatureScript
             int32 countIntensity;
             bool hasBeenHit;
 
-            void DamageTaken(Unit* unit, uint32&)
+            void DamageTaken(Unit* /*p_Unit*/, uint32& /*damage*/) override
             {
                 timer_dissipation = TIMER_DISSIPATION;
                 hasBeenHit = true;
             }
 
-            void EnterCombat(Unit* unit)
+            void EnterCombat(Unit* /*who*/) override
             {
                 events.ScheduleEvent(1, 1000);
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (!UpdateVictim())
                     return;
@@ -612,18 +617,23 @@ class mob_strife : public CreatureScript
                 {
                     switch (eventId)
                     {
-                    case 1:
-                        if (!me->getVictim())
-                            return;
-                        me->CastSpell(me->getVictim(), SPELL_AGONY, false);
-                        events.ScheduleEvent(1, 2000);
-                        break;
+                        case 1:
+                            if (!me->GetVictim())
+                                return;
+                            me->CastSpell(me->GetVictim(), SPELL_AGONY, false);
+                            events.ScheduleEvent(1, 2000);
+                            break;
                     }
                 }
 
                 DoMeleeAttackIfReady();
             }
         };
+
+        CreatureAI* GetAI(Creature* creature) const override
+        {
+            return new mob_strife_AI(creature);
+        }
 };
 
 class mob_peril : public CreatureScript
@@ -631,16 +641,11 @@ class mob_peril : public CreatureScript
     public:
         mob_peril() : CreatureScript("mob_peril") { }
 
-        CreatureAI* GetAI(Creature* creature) const
-        {
-            return new mob_peril_AI(creature);
-        }
-
         struct mob_peril_AI : public BossAI
         {
             mob_peril_AI(Creature* creature) : BossAI(creature, BOSS_PERIL)
             {
-                me->setFaction(14);
+                me->SetFaction(14);
                 timer_intensity = TIMER_INTENSITY;
                 timer_dissipation = TIMER_DISSIPATION;
                 countIntensity = 0;
@@ -651,18 +656,18 @@ class mob_peril : public CreatureScript
             int32 countIntensity;
             bool hasBeenHit;
 
-            void DamageTaken(Unit* unit, uint32&)
+            void DamageTaken(Unit* /*p_Unit*/, uint32& /*damage*/) override
             {
                 timer_dissipation = TIMER_DISSIPATION;
                 hasBeenHit = true;
             }
 
-            void EnterCombat(Unit* unit)
+            void EnterCombat(Unit* /*who*/) override
             {
                 events.ScheduleEvent(1, 1000);
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (!UpdateVictim())
                     return;
@@ -709,43 +714,42 @@ class mob_peril : public CreatureScript
                 {
                     switch (eventId)
                     {
-                    case 1:
-                        if (!me->getVictim())
-                            return;
-                        me->CastSpell(me->getVictim(), SPELL_AGONY, false);
-                        events.ScheduleEvent(1, 2000);
-                        break;
+                        case 1:
+                            if (!me->GetVictim())
+                                return;
+                            me->CastSpell(me->GetVictim(), SPELL_AGONY, false);
+                            events.ScheduleEvent(1, 2000);
+                            break;
                     }
                 }
 
                 DoMeleeAttackIfReady();
             }
         };
+
+        CreatureAI* GetAI(Creature* creature) const override
+        {
+            return new mob_peril_AI(creature);
+        }
 };
 
-class mob_nodding_tiger: public CreatureScript
+class mob_nodding_tiger : public CreatureScript
 {
     public:
         mob_nodding_tiger() : CreatureScript("mob_nodding_tiger") { }
 
-        CreatureAI* GetAI(Creature* creature) const
-        {
-            return new mob_nodding_tiger_AI(creature);
-        }
-
         struct mob_nodding_tiger_AI : public ScriptedAI
         {
-            mob_nodding_tiger_AI(Creature* creature) : ScriptedAI(creature)
-            {
-            }
+            mob_nodding_tiger_AI(Creature* creature) : ScriptedAI(creature) {}
+
             EventMap events;
 
-            void EnterCombat(Unit* unit)
+            void EnterCombat(Unit* /*who*/) override
             {
                 events.ScheduleEvent(1, 2000);
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (!UpdateVictim())
                     return;
@@ -757,7 +761,7 @@ class mob_nodding_tiger: public CreatureScript
                     switch (eventId)
                     {
                     case 1:
-                        me->CastSpell(me->getVictim(), 31289, false);
+                        me->CastSpell(me->GetVictim(), 31289, false);
                         events.ScheduleEvent(1, 3000);
                         break;
                     }
@@ -765,33 +769,32 @@ class mob_nodding_tiger: public CreatureScript
                 DoMeleeAttackIfReady();
             }
         };
+
+        CreatureAI* GetAI(Creature* creature) const override
+        {
+            return new mob_nodding_tiger_AI(creature);
+        }
 };
 
-class mob_golden_beetle: public CreatureScript
+class mob_golden_beetle : public CreatureScript
 {
     public:
         mob_golden_beetle() : CreatureScript("mob_golden_beetle") { }
 
-        CreatureAI* GetAI(Creature* creature) const
-        {
-            return new mob_golden_beetle_AI(creature);
-        }
-
         struct mob_golden_beetle_AI : public ScriptedAI
         {
-            mob_golden_beetle_AI(Creature* creature) : ScriptedAI(creature)
-            {
-            }
+            mob_golden_beetle_AI(Creature* creature) : ScriptedAI(creature) {}
+
             EventMap events;
 
-            void EnterCombat(Unit* unit)
+            void EnterCombat(Unit* /*who*/) override
             {
                 events.ScheduleEvent(1, 2000);
                 events.ScheduleEvent(2, 4000);
                 events.ScheduleEvent(3, 6000);
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (!UpdateVictim())
                     return;
@@ -803,15 +806,15 @@ class mob_golden_beetle: public CreatureScript
                     switch (eventId)
                     {
                     case 1:
-                        me->CastSpell(me->getVictim(), 128051, false);
+                        me->CastSpell(me->GetVictim(), 128051, false);
                         events.ScheduleEvent(1, 10000);
                         break;
                     case 2:
-                        me->CastSpell(me->getVictim(), 88023, false);
+                        me->CastSpell(me->GetVictim(), 88023, false);
                         events.ScheduleEvent(2, 5000);
                         break;
                     case 3:
-                        me->CastSpell(me->getVictim(), 31589, false);
+                        me->CastSpell(me->GetVictim(), 31589, false);
                         events.ScheduleEvent(3, 15000);
                         break;
                     }
@@ -819,32 +822,31 @@ class mob_golden_beetle: public CreatureScript
                 DoMeleeAttackIfReady();
             }
         };
+
+        CreatureAI* GetAI(Creature* creature) const override
+        {
+            return new mob_golden_beetle_AI(creature);
+        }
 };
 
-class mob_jiang_xiang: public CreatureScript
+class mob_jiang_xiang : public CreatureScript
 {
     public:
         mob_jiang_xiang() : CreatureScript("mob_jiang_xiang") { }
 
-        CreatureAI* GetAI(Creature* creature) const
-        {
-            return new mob_jiang_xiang_AI(creature);
-        }
-
         struct mob_jiang_xiang_AI : public ScriptedAI
         {
-            mob_jiang_xiang_AI(Creature* creature) : ScriptedAI(creature)
-            {
-            }
+            mob_jiang_xiang_AI(Creature* creature) : ScriptedAI(creature) {}
+
             EventMap events;
 
-            void EnterCombat(Unit* unit)
+            void EnterCombat(Unit* /*who*/) override
             {
                 events.ScheduleEvent(1, 2000);
                 events.ScheduleEvent(2, 4000);
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (!UpdateVictim())
                     return;
@@ -855,44 +857,43 @@ class mob_jiang_xiang: public CreatureScript
                 {
                     switch (eventId)
                     {
-                    case 1:
-                        me->CastSpell(me->getVictim(), 114805, false);
-                        events.ScheduleEvent(1, 10000);
-                        break;
-                    case 2:
-                        me->CastSpell(me->getVictim(), 114803, false);
-                        events.ScheduleEvent(2, 5000);
-                        break;
+                        case 1:
+                            me->CastSpell(me->GetVictim(), 114805, false);
+                            events.ScheduleEvent(1, 10000);
+                            break;
+                        case 2:
+                            me->CastSpell(me->GetVictim(), 114803, false);
+                            events.ScheduleEvent(2, 5000);
+                            break;
                     }
                 }
                 DoMeleeAttackIfReady();
             }
         };
+
+        CreatureAI* GetAI(Creature* creature) const override
+        {
+            return new mob_jiang_xiang_AI(creature);
+        }
 };
 
-class mob_songbird_queen: public CreatureScript
+class mob_songbird_queen : public CreatureScript
 {
     public:
         mob_songbird_queen() : CreatureScript("mob_songbird_queen") { }
 
-        CreatureAI* GetAI(Creature* creature) const
-        {
-            return new mob_songbird_queen_AI(creature);
-        }
-
         struct mob_songbird_queen_AI : public ScriptedAI
         {
-            mob_songbird_queen_AI(Creature* creature) : ScriptedAI(creature)
-            {
-            }
+            mob_songbird_queen_AI(Creature* creature) : ScriptedAI(creature) {}
+
             EventMap events;
 
-            void EnterCombat(Unit* unit)
+            void EnterCombat(Unit* /*who*/) override
             {
                 events.ScheduleEvent(1, 2000);
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (!UpdateVictim())
                     return;
@@ -903,26 +904,26 @@ class mob_songbird_queen: public CreatureScript
                 {
                     switch (eventId)
                     {
-                    case 1:
-                        me->CastSpell(me->getVictim(), 114826, false);
-                        events.ScheduleEvent(1, 10000);
-                        break;
+                        case 1:
+                            me->CastSpell(me->GetVictim(), 114826, false);
+                            events.ScheduleEvent(1, 10000);
+                            break;
                     }
                 }
                 DoMeleeAttackIfReady();
             }
         };
+
+        CreatureAI* GetAI(Creature* creature) const override
+        {
+            return new mob_songbird_queen_AI(creature);
+        }
 };
 
-class mob_talking_fish: public CreatureScript
+class mob_talking_fish : public CreatureScript
 {
     public:
         mob_talking_fish() : CreatureScript("mob_talking_fish") { }
-
-        CreatureAI* GetAI(Creature* creature) const
-        {
-            return new mob_talking_fish_AI(creature);
-        }
 
         enum eTalks
         {
@@ -934,18 +935,17 @@ class mob_talking_fish: public CreatureScript
 
         struct mob_talking_fish_AI : public ScriptedAI
         {
-            mob_talking_fish_AI(Creature* creature) : ScriptedAI(creature)
-            {
-            }
+            mob_talking_fish_AI(Creature* creature) : ScriptedAI(creature) {}
+
             EventMap events;
 
-            void EnterCombat(Unit* unit)
+            void EnterCombat(Unit* /*who*/) override
             {
                 Talk(TALK_0 + urand(0, 3));
                 events.ScheduleEvent(1, 2000);
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (!UpdateVictim())
                     return;
@@ -956,15 +956,20 @@ class mob_talking_fish: public CreatureScript
                 {
                     switch (eventId)
                     {
-                    case 1:
-                        me->CastSpell(me->getVictim(), 114811, false);
-                        events.ScheduleEvent(1, 10000);
-                        break;
+                        case 1:
+                            me->CastSpell(me->GetVictim(), 114811, false);
+                            events.ScheduleEvent(1, 10000);
+                            break;
                     }
                 }
                 DoMeleeAttackIfReady();
             }
         };
+
+        CreatureAI* GetAI(Creature* creature) const override
+        {
+            return new mob_talking_fish_AI(creature);
+        }
 };
 
 void AddSC_boss_lorewalker_stonestep()

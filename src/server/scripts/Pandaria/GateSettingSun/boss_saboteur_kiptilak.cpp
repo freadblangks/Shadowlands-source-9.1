@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -26,12 +26,12 @@ enum eSpells
 
     SPELL_SABOTAGE                      = 107268,
     SPELL_SABOTAGE_EXPLOSION            = 113645,
-    
+
     SPELL_PLAYER_EXPLOSION              = 113654,
 
     SPELL_MUNITION_STABLE               = 109987,
     SPELL_MUNITION_EXPLOSION            = 107153,
-    SPELL_MUNITION_EXPLOSION_AURA       = 120551,
+    SPELL_MUNITION_EXPLOSION_AURA       = 120551
 };
 
 enum eEvents
@@ -63,28 +63,28 @@ class boss_saboteur_kiptilak : public CreatureScript
 
             uint8 WorldInFlamesEvents;
 
-            void Reset()
+            void Reset() override
             {
                 _Reset();
-                
+
                 events.ScheduleEvent(EVENT_EXPLOSIVES, urand(7500,  10000));
                 events.ScheduleEvent(EVENT_SABOTAGE,   urand(22500, 30000));
 
                 WorldInFlamesEvents = 0;
             }
 
-            void EnterCombat(Unit* /*who*/)
+            void EnterCombat(Unit* /*who*/) override
             {
                 _EnterCombat();
             }
 
-            void JustReachedHome()
+            void JustReachedHome() override
             {
                 instance->SetBossState(DATA_KIPTILAK, FAIL);
                 summons.DespawnAll();
             }
 
-            void DamageTaken(Unit* attacker, uint32& damage)
+            void DamageTaken(Unit* attacker, uint32& damage) override
             {
                 switch (attacker->GetEntry())
                 {
@@ -117,7 +117,7 @@ class boss_saboteur_kiptilak : public CreatureScript
             void DoWorldInFlamesEvent()
             {
                 std::list<Creature*> munitionList;
-                GetCreatureListWithEntryInGrid(munitionList, me, NPC_STABLE_MUNITION, 100.0f);
+                me->GetCreatureListWithEntryInGrid(munitionList, NPC_STABLE_MUNITION, 100.0f);
 
                 for (auto itr: munitionList)
                 {
@@ -127,7 +127,7 @@ class boss_saboteur_kiptilak : public CreatureScript
                 }
             }
 
-            void JustSummoned(Creature* summoned)
+            void JustSummoned(Creature* summoned) override
             {
                 if (summoned->GetEntry() == NPC_STABLE_MUNITION)
                     summoned->AddAura(SPELL_MUNITION_STABLE, summoned);
@@ -135,7 +135,7 @@ class boss_saboteur_kiptilak : public CreatureScript
                 summons.Summon(summoned);
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (!UpdateVictim())
                     return;
@@ -163,13 +163,13 @@ class boss_saboteur_kiptilak : public CreatureScript
                 DoMeleeAttackIfReady();
             }
 
-            void JustDied(Unit* /*killer*/)
+            void JustDied(Unit* /*killer*/) override
             {
                 _JustDied();
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new boss_saboteur_kiptilakAI(creature);
         }
@@ -187,7 +187,7 @@ public:
         float orientation;
         uint32 checkTimer;
 
-        void Reset()
+        void Reset() override
         {
             me->SetReactState(REACT_PASSIVE);
             orientation = 0.0f;
@@ -201,7 +201,7 @@ public:
                     break;
                 case NPC_EXPLOSION_BUNNY_S_M:
                 case NPC_EXPLOSION_BUNNY_S_P:
-                    orientation = M_PI;
+                    orientation = (float)M_PI;
                     break;
                 case NPC_EXPLOSION_BUNNY_E_M:
                 case NPC_EXPLOSION_BUNNY_E_P:
@@ -215,29 +215,29 @@ public:
 
             float x = 0.0f;
             float y = 0.0f;
-            GetPositionWithDistInOrientation(me, 40.0f, orientation, x, y);
+            me->GetPositionWithDistInOrientation(40.0f, orientation, x, y);
             me->GetMotionMaster()->MovePoint(1, x, y, me->GetPositionZ());
 
             me->AddAura(SPELL_MUNITION_EXPLOSION_AURA, me);
         }
 
-        void DamageTaken(Unit* attacker, uint32& damage)
+        void DamageTaken(Unit* /*attacker*/, uint32& damage) override
         {
             damage = 0;
         }
 
-        void MovementInform(uint32 type, uint32 id)
+        void MovementInform(uint32 /*type*/, uint32 id) override
         {
             if (id == 1)
                 me->DespawnOrUnsummon();
         }
 
-        void EnterCombat(Unit* /*who*/)
+        void EnterCombat(Unit* /*who*/) override
         {
             return;
         }
-        
-        void UpdateAI(const uint32 diff)
+
+        void UpdateAI(uint32 diff) override
         {
             if (checkTimer <= diff)
             {
@@ -256,7 +256,7 @@ public:
         }
     };
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const override
     {
         return new npc_munition_explosion_bunnyAI (creature);
     }
@@ -287,7 +287,7 @@ class CheckMunitionExplosionPredicate
         Unit* _caster;
 };
 
-class spell_kiptilak_munitions_explosion : public SpellScriptLoader
+class spell_kiptilak_munitions_explosion: public SpellScriptLoader
 {
     public:
         spell_kiptilak_munitions_explosion() : SpellScriptLoader("spell_kiptilak_munitions_explosion") { }
@@ -302,20 +302,19 @@ class spell_kiptilak_munitions_explosion : public SpellScriptLoader
                     unitList.remove_if(CheckMunitionExplosionPredicate(caster));
             }
 
-            void Register()
+            void Register() override
             {
-                OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_kiptilak_munitions_explosion_SpellScript::FilterTargets, EFFECT_0, TARGET_SRC_CASTER);
                 OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_kiptilak_munitions_explosion_SpellScript::FilterTargets, EFFECT_0, TARGET_UNIT_SRC_AREA_ENTRY);
             }
         };
 
-        SpellScript* GetSpellScript() const
+        SpellScript* GetSpellScript() const override
         {
             return new spell_kiptilak_munitions_explosion_SpellScript();
         }
 };
 
-class spell_kiptilak_sabotage : public SpellScriptLoader
+class spell_kiptilak_sabotage: public SpellScriptLoader
 {
     public:
         spell_kiptilak_sabotage() :  SpellScriptLoader("spell_kiptilak_sabotage") { }
@@ -324,7 +323,7 @@ class spell_kiptilak_sabotage : public SpellScriptLoader
         {
             PrepareAuraScript(spell_kiptilak_sabotage_AuraScript);
 
-            void OnRemove(constAuraEffectPtr /*aurEff*/, AuraEffectHandleModes /*mode*/)
+            void OnRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
             {
                 Unit* target = GetTarget();
 
@@ -335,13 +334,13 @@ class spell_kiptilak_sabotage : public SpellScriptLoader
                 target->CastSpell(target, SPELL_SABOTAGE_EXPLOSION, true);
             }
 
-            void Register()
+            void Register() override
             {
                 AfterEffectRemove += AuraEffectRemoveFn(spell_kiptilak_sabotage_AuraScript::OnRemove, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
             }
         };
 
-        AuraScript* GetAuraScript() const
+        AuraScript* GetAuraScript() const override
         {
             return new spell_kiptilak_sabotage_AuraScript();
         }

@@ -1,18 +1,32 @@
 /*
-    Dungeon : Template of the Jade Serpent 85-87
-    Sha of doubt fourth boss
-    Jade servers
-*/
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #include "ScriptMgr.h"
 #include "ScriptedCreature.h"
+#include "SpellInfo.h"
+#include "SpellMgr.h"
 
 #define TYPE_CLASS_FIGMENT 8
 #define TYPE_CLASS_FIGMENT_DIE 9
 
 enum eBosses
 {
-    BOSS_SHA_OF_DOUBT,
+    BOSS_SHA_OF_DOUBT
 };
 
 enum eSpells
@@ -24,7 +38,7 @@ enum eSpells
     SPELL_BOUNDS_OF_REALITY_2   = 117665,
     SPELL_CHI_WAVE              = 132464,
     SPELL_CHI_WAVE_2            = 132466,
-    
+
     SPELL_FIGMENT_OF_DOUBT_2    = 106935,
     SPELL_FIGMENT_OF_DOUBT_3    = 106936,
     SPELL_COPY_WEAPON           = 41054,
@@ -37,7 +51,7 @@ enum eSpells
     SPELL_GATHERING_DOUBT_2     = 117571,
     SPELL_INVISIBILITY_DETECTION= 126839,
     SPELL_WEAKENED_BLOWS        = 115798,
-    SPELL_RELEASE_DOUBT         = 106112,
+    SPELL_RELEASE_DOUBT         = 106112
 };
 
 enum eEvents
@@ -56,12 +70,12 @@ enum eEvents
     EVENT_STUN = 10,
     EVENT_BLADE_SONG = 11,
     EVENT_UNTAMED_FURY = 12,
-    EVENT_GLIMPSE_OF_MADNESS = 13,
+    EVENT_GLIMPSE_OF_MADNESS = 13
 };
 
 enum eCreatures
 {
-    CREATURE_SHA_OF_DOUBT           = 56439,
+    CREATURE_SHA_OF_DOUBT           = 56439
 };
 
 enum eTalks
@@ -72,18 +86,13 @@ enum eTalks
     TALK_FIGMENT_02,
     TALK_RESET,
     TALK_SLAY_01,
-    TALK_SLAY_02,
+    TALK_SLAY_02
 };
 
 class boss_sha_of_doubt : public CreatureScript
 {
     public:
         boss_sha_of_doubt() : CreatureScript("boss_sha_of_doubt") { }
-
-        CreatureAI* GetAI(Creature* creature) const
-        {
-            return new boss_sha_of_doubt_AI(creature);
-        }
 
         struct boss_sha_of_doubt_AI : public BossAI
         {
@@ -93,24 +102,24 @@ class boss_sha_of_doubt : public CreatureScript
             }
             bool isAtBoundsOfReality;
 
-            void Reset()
+            void Reset() override
             {
                 Talk(TALK_RESET);
                 events.Reset();
                 _Reset();
             }
 
-            void KilledUnit(Unit* u)
+            void KilledUnit(Unit* /*who*/) override
             {
                 Talk(TALK_SLAY_01 + urand(0, 1));
             }
 
-            void JustDied(Unit* u)
+            void JustDied(Unit* /*killer*/) override
             {
                 Talk(TALK_DEATH);
             }
 
-            void EnterCombat(Unit* unit)
+            void EnterCombat(Unit* /*who*/) override
             {
                 Talk(TALK_AGGRO);
                 events.ScheduleEvent(EVENT_WITHER_WILL, 5000);
@@ -118,7 +127,7 @@ class boss_sha_of_doubt : public CreatureScript
                 events.ScheduleEvent(EVENT_BOUNDS_OF_REALITY, 3000);
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (!UpdateVictim())
                     return;
@@ -161,7 +170,7 @@ class boss_sha_of_doubt : public CreatureScript
                             {
                                 for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
                                 {
-                                    Player* plr = i->getSource();
+                                    Player* plr = i->GetSource();
                                     if (!plr)
                                         continue;
                                     plr->CastSpell(plr, SPELL_FIGMENT_OF_DOUBT_3, false);
@@ -176,22 +185,22 @@ class boss_sha_of_doubt : public CreatureScript
                             break;
                     }
                 }
-                
+
                 if (!me->HasAura(SPELL_BOUNDS_OF_REALITY_2))
                     DoMeleeAttackIfReady();
             }
         };
+
+        CreatureAI* GetAI(Creature* creature) const override
+        {
+            return new boss_sha_of_doubt_AI(creature);
+        }
 };
 
 class mob_figment_of_doubt : public CreatureScript
 {
     public:
         mob_figment_of_doubt() : CreatureScript("mob_figment_of_doubt") { }
-
-        CreatureAI* GetAI(Creature* creature) const
-        {
-            return new mob_figment_of_doubt_AI(creature);
-        }
 
         enum Classes
         {
@@ -214,7 +223,7 @@ class mob_figment_of_doubt : public CreatureScript
             EventMap events;
             Classes _class;
 
-            void JustDied(Unit* killer)
+            void JustDied(Unit* /*killer*/) override
             {
                 me->CastSpell(me, SPELL_DROWNED_STATE, false);
                 me->RemoveAura(SPELL_GATHERING_DOUBT);
@@ -222,11 +231,11 @@ class mob_figment_of_doubt : public CreatureScript
                 me->GetInstanceScript()->SetData(TYPE_CLASS_FIGMENT_DIE, _class);
             }
 
-            void EnterCombat(Unit* u)
+            void EnterCombat(Unit* /*who*/) override
             {
                 me->CastSpell(me, SPELL_GATHERING_DOUBT, false);
                 events.ScheduleEvent(EVENT_GATHERING_DOUBT, 1000);
-                
+
                 events.ScheduleEvent(EVENT_SIPHON_ESSENCE, 8000);
                 switch (_class)
                 {
@@ -245,7 +254,7 @@ class mob_figment_of_doubt : public CreatureScript
                 }
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (!UpdateVictim())
                     return;
@@ -265,31 +274,33 @@ class mob_figment_of_doubt : public CreatureScript
 
                                 me->ForcedDespawn(5000);
 
-                                uint64 guid_sha_of_doubt = 0;
+                                ObjectGuid guid_sha_of_doubt = ObjectGuid::Empty;
 
                                 if (me->GetInstanceScript())
-                                    guid_sha_of_doubt = me->GetInstanceScript()->GetData64(CREATURE_SHA_OF_DOUBT);
+                                    guid_sha_of_doubt = me->GetInstanceScript()->GetGuidData(CREATURE_SHA_OF_DOUBT);
 
-                                if (guid_sha_of_doubt != 0)
+                                if (guid_sha_of_doubt != ObjectGuid::Empty)
                                 {
                                     Creature* creature = me->GetMap()->GetCreature(guid_sha_of_doubt);
                                     if (!creature)
                                         return;
 
-                                    const SpellInfo* spellInfo = sSpellMgr->GetSpellInfo(SPELL_RELEASE_DOUBT);
+                                    const SpellInfo* spellInfo = sSpellMgr->GetSpellInfo(SPELL_RELEASE_DOUBT, GetDifficulty());
                                     if (!spellInfo)
                                         return;
 
                                     creature->CastSpell(creature, SPELL_CHI_WAVE, true);
-                                    me->HealBySpell(creature, spellInfo, uint32(float(creature->GetMaxHealth())* 0.1f));
+
+                                    HealInfo healInfo(me, creature, uint32(float(creature->GetMaxHealth())* 0.1f), spellInfo, spellInfo->GetSchoolMask());
+                                    me->HealBySpell(healInfo);
                                 }
                             }
                             else
                                 events.ScheduleEvent(EVENT_GATHERING_DOUBT, 1000);
                             break;
                         case EVENT_SPELL_PHANTOM_STRIKE:
-                            if (me->getVictim())
-                                me->CastSpell(me->getVictim(), 9806, false);
+                            if (me->GetVictim())
+                                me->CastSpell(me->GetVictim(), 9806, false);
                             events.ScheduleEvent(EVENT_SPELL_PHANTOM_STRIKE, 20000);
                             break;
                         case EVENT_SPELL_ARMOR_BUFF:
@@ -309,8 +320,8 @@ class mob_figment_of_doubt : public CreatureScript
                             events.ScheduleEvent(EVENT_SIPHON_ESSENCE, 8000);
                             break;
                         case EVENT_STUN:
-                            if (me->getVictim())
-                                me->CastSpell(me->getVictim(), 23454, false);
+                            if (me->GetVictim())
+                                me->CastSpell(me->GetVictim(), 23454, false);
                             events.ScheduleEvent(EVENT_STUN, 7000);
                             break;
                         case EVENT_BLADE_SONG:
@@ -322,8 +333,8 @@ class mob_figment_of_doubt : public CreatureScript
                             events.ScheduleEvent(EVENT_UNTAMED_FURY, 9000);
                             break;
                         case EVENT_GLIMPSE_OF_MADNESS:
-                            if (me->getVictim())
-                                me->CastSpell(me->getVictim(), 26108, false);
+                            if (me->GetVictim())
+                                me->CastSpell(me->GetVictim(), 26108, false);
                             events.ScheduleEvent(EVENT_GLIMPSE_OF_MADNESS, 8000);
                             break;
                     }
@@ -332,6 +343,11 @@ class mob_figment_of_doubt : public CreatureScript
                 DoMeleeAttackIfReady();
             }
         };
+
+        CreatureAI* GetAI(Creature* creature) const override
+        {
+            return new mob_figment_of_doubt_AI(creature);
+        }
 };
 
 void AddSC_boss_sha_of_doubt()

@@ -1,8 +1,23 @@
 /*
-    Dungeon : Shandopan Monastery 87-89
-    Instance General Script
-*/
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
+#include "GameObject.h"
+#include "PhasingHandler.h"
 #include "shadopan_monastery.h"
 #include "InstanceScript.h"
 
@@ -13,7 +28,7 @@ class instance_shadopan_monastery : public InstanceMapScript
 public:
     instance_shadopan_monastery() : InstanceMapScript("instance_shadopan_monastery", 959) { }
 
-    InstanceScript* GetInstanceScript(InstanceMap* map) const
+    InstanceScript* GetInstanceScript(InstanceMap* map) const override
     {
         return new instance_shadopan_monastery_InstanceMapScript(map);
     }
@@ -23,149 +38,146 @@ public:
         uint8 aliveNoviceCount;
         uint8 aliveMinibossCount;
 
-        uint64 guCloudstikeGuid;
-        uint64 masterSnowdriftGuid;
-        uint64 shaViolenceGuid;
-        uint64 taranZhuGuid;
+        ObjectGuid guCloudstikeGUID;
+        ObjectGuid masterSnowdriftGUID;
+        ObjectGuid shaViolenceGUID;
+        ObjectGuid taranZhuGUID;
 
-        uint64 azureSerpentGuid;
+        ObjectGuid azureSerpentGUID;
 
-        uint64 cloudstikeEntranceGuid;
-        uint64 cloudstikeExitGuid;
-        uint64 snowdriftEntranceGuid;
-        uint64 snowdriftPossessionsGuid;
-        uint64 snowdriftFirewallGuid;
-        uint64 snowdriftDojoDoorGuid;
-        uint64 snowdriftExitGuid;
-        
-        uint64 shaEntranceGuid;
-        uint64 shaExitGuid;
-        
-        std::list<uint64> minibossPositionsGuid;
-        std::list<uint64> minibossPositionsGuidSave;
+        ObjectGuid cloudstikeEntranceGUID;
+        ObjectGuid cloudstikeExitGUID;
+        ObjectGuid snowdriftEntranceGUID;
+        ObjectGuid snowdriftPossessionsGUID;
+        ObjectGuid snowdriftFirewallGUID;
+        ObjectGuid snowdriftDojoDoorGUID;
+        ObjectGuid snowdriftExitGUID;
 
-        std::list<uint64> firstDefeatedNovicePositionsGuid;
-        std::list<uint64> firstDefeatedNovicePositionsGuidSave;
+        ObjectGuid shaEntranceGUID;
+        ObjectGuid shaExitGUID;
 
-        std::list<uint64> secondDefeatedNovicePositionsGuid;
-        std::list<uint64> secondDefeatedNovicePositionsGuidSave;
-        
-        std::list<uint64> firstArcherySet;
-        std::list<uint64> secondArcherySet;
-        std::list<uint64> archeryTargetGuids;
+        std::list<ObjectGuid> minibossPositionsGUID;
+        std::list<ObjectGuid> minibossPositionsGUIDSave;
+
+        std::list<ObjectGuid> firstDefeatedNovicePositionsGUID;
+        std::list<ObjectGuid> firstDefeatedNovicePositionsGUIDSave;
+
+        std::list<ObjectGuid> secondDefeatedNovicePositionsGUID;
+        std::list<ObjectGuid> secondDefeatedNovicePositionsGUIDSave;
+
+        std::list<ObjectGuid> firstArcherySet;
+        std::list<ObjectGuid> secondArcherySet;
+        std::list<ObjectGuid> archeryTargetGUIDs;
 
         uint32 dataStorage[MAX_DATA];
 
-        instance_shadopan_monastery_InstanceMapScript(Map* map) : InstanceScript(map)
-        {}
+        instance_shadopan_monastery_InstanceMapScript(InstanceMap* map) : InstanceScript(map) {}
 
-        void Initialize()
+        void Initialize() override
         {
             SetBossNumber(EncounterCount);
 
             aliveNoviceCount            = MAX_NOVICE;
             aliveMinibossCount          = 2;
 
-            guCloudstikeGuid            = 0;
-            masterSnowdriftGuid         = 0;
-            shaViolenceGuid             = 0;
-            taranZhuGuid                = 0;
+            guCloudstikeGUID            = ObjectGuid::Empty;
+            masterSnowdriftGUID         = ObjectGuid::Empty;
+            shaViolenceGUID             = ObjectGuid::Empty;
+            taranZhuGUID                = ObjectGuid::Empty;
 
-            azureSerpentGuid            = 0;
+            azureSerpentGUID            = ObjectGuid::Empty;
 
-            cloudstikeEntranceGuid      = 0;
-            cloudstikeExitGuid          = 0;
-            snowdriftEntranceGuid       = 0;
-            snowdriftEntranceGuid       = 0;
-            snowdriftPossessionsGuid    = 0;
-            snowdriftFirewallGuid       = 0;
-            snowdriftDojoDoorGuid       = 0;
-            snowdriftExitGuid           = 0;
+            cloudstikeEntranceGUID      = ObjectGuid::Empty;
+            cloudstikeExitGUID          = ObjectGuid::Empty;
+            snowdriftEntranceGUID       = ObjectGuid::Empty;
+            snowdriftEntranceGUID       = ObjectGuid::Empty;
+            snowdriftPossessionsGUID    = ObjectGuid::Empty;
+            snowdriftFirewallGUID       = ObjectGuid::Empty;
+            snowdriftDojoDoorGUID       = ObjectGuid::Empty;
+            snowdriftExitGUID           = ObjectGuid::Empty;
 
-            shaEntranceGuid             = 0;
-            shaExitGuid                 = 0;
-            
+            shaEntranceGUID             = ObjectGuid::Empty;
+            shaExitGUID                 = ObjectGuid::Empty;
+
             firstArcherySet.clear();
             secondArcherySet.clear();
 
             memset(dataStorage, 0, MAX_DATA * sizeof(uint32));
         }
 
-        void OnCreatureCreate(Creature* creature)
+        void OnCreatureCreate(Creature* creature) override
         {
             switch (creature->GetEntry())
             {
-                case NPC_GU_CLOUDSTRIKE:    guCloudstikeGuid    = creature->GetGUID();          return;
-                case NPC_MASTER_SNOWDRIFT:  masterSnowdriftGuid = creature->GetGUID();          return;
-                case NPC_SHA_VIOLENCE:      shaViolenceGuid     = creature->GetGUID();          return;
-                case NPC_TARAN_ZHU:         taranZhuGuid        = creature->GetGUID();          return;
-                case NPC_AZURE_SERPENT:     azureSerpentGuid    = creature->GetGUID();          return;
-                case NPC_ARCHERY_TARGET:    archeryTargetGuids.push_back(creature->GetGUID());  return;
+                case NPC_GU_CLOUDSTRIKE:    guCloudstikeGUID    = creature->GetGUID();          return;
+                case NPC_MASTER_SNOWDRIFT:  masterSnowdriftGUID = creature->GetGUID();          return;
+                case NPC_SHA_VIOLENCE:      shaViolenceGUID     = creature->GetGUID();          return;
+                case NPC_TARAN_ZHU:         taranZhuGUID        = creature->GetGUID();          return;
+                case NPC_AZURE_SERPENT:     azureSerpentGUID    = creature->GetGUID();          return;
+                case NPC_ARCHERY_TARGET:    archeryTargetGUIDs.push_back(creature->GetGUID());  return;
                 case NPC_SNOWDRIFT_POSITION:
                 {
-                    uint32 guid = creature->GetDBTableGUIDLow();
-
                     if (creature->GetDistance(snowdriftCenterPos) > 5.0f && creature->GetDistance(snowdriftCenterPos) < 15.0f)
                     {
-                        minibossPositionsGuid.push_back(creature->GetGUID());
-                        minibossPositionsGuidSave.push_back(creature->GetGUID());
+                        minibossPositionsGUID.push_back(creature->GetGUID());
+                        minibossPositionsGUIDSave.push_back(creature->GetGUID());
                     }
                     else if (creature->GetDistance(snowdriftCenterPos) > 15.0f  && creature->GetDistance(snowdriftCenterPos) < 17.5f)
                     {
-                        firstDefeatedNovicePositionsGuid.push_back(creature->GetGUID());
-                        firstDefeatedNovicePositionsGuidSave.push_back(creature->GetGUID());
+                        firstDefeatedNovicePositionsGUID.push_back(creature->GetGUID());
+                        firstDefeatedNovicePositionsGUIDSave.push_back(creature->GetGUID());
                     }
                     else if (creature->GetDistance(snowdriftCenterPos) > 17.5f && creature->GetDistance(snowdriftCenterPos) < 25.0f)
                     {
-                        secondDefeatedNovicePositionsGuid.push_back(creature->GetGUID());
-                        secondDefeatedNovicePositionsGuidSave.push_back(creature->GetGUID());
+                        secondDefeatedNovicePositionsGUID.push_back(creature->GetGUID());
+                        secondDefeatedNovicePositionsGUIDSave.push_back(creature->GetGUID());
                     }
                     break;
                 }
             }
         }
 
-        void OnGameObjectCreate(GameObject* go)
+        void OnGameObjectCreate(GameObject* go) override
         {
             switch (go->GetEntry())
             {
                 case GO_CLOUDSTRIKE_ENTRANCE:
-                    cloudstikeEntranceGuid = go->GetGUID();
-                    HandleGameObject(0, true, go);
+                    cloudstikeEntranceGUID = go->GetGUID();
+                    HandleGameObject(ObjectGuid::Empty, true, go);
                     break;
                 case GO_CLOUDSTRIKE_EXIT:
-                    cloudstikeExitGuid = go->GetGUID();
+                    cloudstikeExitGUID = go->GetGUID();
                     break;
                 case GO_SNOWDRIFT_ENTRANCE:
-                    snowdriftEntranceGuid = go->GetGUID();
-                    HandleGameObject(0, true, go);
+                    snowdriftEntranceGUID = go->GetGUID();
+                    HandleGameObject(ObjectGuid::Empty, true, go);
                     break;
                 case GO_SNOWDRIFT_POSSESSIONS:
-                    go->SetPhaseMask(2, true);
-                    snowdriftPossessionsGuid = go->GetGUID();
+                    PhasingHandler::AddPhase(go, 50);
+                    snowdriftPossessionsGUID = go->GetGUID();
                     break;
                 case GO_SNOWDRIFT_FIRE_WALL:
-                    snowdriftFirewallGuid = go->GetGUID();
+                    snowdriftFirewallGUID = go->GetGUID();
                     break;
                 case GO_SNOWDRIFT_DOJO_DOOR:
-                    snowdriftDojoDoorGuid = go->GetGUID();
+                    snowdriftDojoDoorGUID = go->GetGUID();
                     break;
                 case GO_SNOWDRIFT_EXIT:
-                    snowdriftExitGuid = go->GetGUID();
+                    snowdriftExitGUID = go->GetGUID();
                     break;
                 case GO_SHA_ENTRANCE:
-                    shaEntranceGuid = go->GetGUID();
-                    HandleGameObject(0, true, go);
+                    shaEntranceGUID = go->GetGUID();
+                    HandleGameObject(ObjectGuid::Empty, true, go);
                     break;
                 case GO_SHA_EXIT:
-                    shaExitGuid = go->GetGUID();
+                    shaExitGUID = go->GetGUID();
                     break;
                 default:
                     return;
             }
         }
 
-        bool SetBossState(uint32 id, EncounterState state)
+        bool SetBossState(uint32 id, EncounterState state) override
         {
             if (!InstanceScript::SetBossState(id, state))
                 return false;
@@ -179,23 +191,25 @@ public:
                         case NOT_STARTED:
                         case FAIL:
                         {
-                            HandleGameObject(cloudstikeEntranceGuid, true);
-                            HandleGameObject(cloudstikeExitGuid,     false);
+                            HandleGameObject(cloudstikeEntranceGUID, true);
+                            HandleGameObject(cloudstikeExitGUID,     false);
                             break;
                         }
                         case IN_PROGRESS:
                         {
-                            HandleGameObject(cloudstikeEntranceGuid, false);
-                            HandleGameObject(cloudstikeExitGuid,     false);
+                            HandleGameObject(cloudstikeEntranceGUID, false);
+                            HandleGameObject(cloudstikeExitGUID,     false);
                             break;
                         }
                         case DONE:
                         {
-                            HandleGameObject(cloudstikeEntranceGuid, true);
-                            HandleGameObject(cloudstikeExitGuid,     true);
-                            HandleGameObject(snowdriftEntranceGuid,  true);
+                            HandleGameObject(cloudstikeEntranceGUID, true);
+                            HandleGameObject(cloudstikeExitGUID,     true);
+                            HandleGameObject(snowdriftEntranceGUID,  true);
                             break;
                         }
+                        default:
+                            break;
                     }
                     break;
                 }
@@ -207,28 +221,30 @@ public:
                         case FAIL:
                             aliveNoviceCount                    = MAX_NOVICE;
                             aliveMinibossCount                  = 2;
-                            minibossPositionsGuid               = minibossPositionsGuidSave;
-                            firstDefeatedNovicePositionsGuid    = firstDefeatedNovicePositionsGuidSave;
-                            secondDefeatedNovicePositionsGuid   = secondDefeatedNovicePositionsGuidSave;
-                            
-                            HandleGameObject(snowdriftEntranceGuid, true);
-                            HandleGameObject(snowdriftFirewallGuid, false);
-                            HandleGameObject(snowdriftDojoDoorGuid, false);
-                            HandleGameObject(snowdriftExitGuid,     false);
+                            minibossPositionsGUID               = minibossPositionsGUIDSave;
+                            firstDefeatedNovicePositionsGUID    = firstDefeatedNovicePositionsGUIDSave;
+                            secondDefeatedNovicePositionsGUID   = secondDefeatedNovicePositionsGUIDSave;
+
+                            HandleGameObject(snowdriftEntranceGUID, true);
+                            HandleGameObject(snowdriftFirewallGUID, false);
+                            HandleGameObject(snowdriftDojoDoorGUID, false);
+                            HandleGameObject(snowdriftExitGUID,     false);
                             break;
                         case IN_PROGRESS:
-                            HandleGameObject(snowdriftEntranceGuid, false);
-                            HandleGameObject(snowdriftDojoDoorGuid, false);
+                            HandleGameObject(snowdriftEntranceGUID, false);
+                            HandleGameObject(snowdriftDojoDoorGUID, false);
                             break;
                         case DONE:
-                            if (GameObject* possessions = instance->GetGameObject(snowdriftPossessionsGuid))
-                                possessions->SetPhaseMask(1, true);
-                            
-                            HandleGameObject(snowdriftEntranceGuid, true);
-                            HandleGameObject(snowdriftFirewallGuid, true);
-                            HandleGameObject(snowdriftDojoDoorGuid, true);
-                            HandleGameObject(snowdriftExitGuid,     true);
-                            HandleGameObject(shaEntranceGuid,       true);
+                            if (GameObject* possessions = instance->GetGameObject(snowdriftPossessionsGUID))
+                                PhasingHandler::ResetPhaseShift(possessions);
+
+                            HandleGameObject(snowdriftEntranceGUID, true);
+                            HandleGameObject(snowdriftFirewallGUID, true);
+                            HandleGameObject(snowdriftDojoDoorGUID, true);
+                            HandleGameObject(snowdriftExitGUID,     true);
+                            HandleGameObject(shaEntranceGUID,       true);
+                            break;
+                        default:
                             break;
                     }
                     break;
@@ -239,14 +255,16 @@ public:
                     {
                         case NOT_STARTED:
                         case FAIL:
-                            HandleGameObject(shaEntranceGuid,   true);
-                            HandleGameObject(shaExitGuid,       false);
+                            HandleGameObject(shaEntranceGUID,   true);
+                            HandleGameObject(shaExitGUID,       false);
                             break;
                         case IN_PROGRESS:
-                            HandleGameObject(shaEntranceGuid,   false);
+                            HandleGameObject(shaEntranceGUID,   false);
                         case DONE:
-                            HandleGameObject(shaEntranceGuid,   true);
-                            HandleGameObject(shaExitGuid,       true);
+                            HandleGameObject(shaEntranceGUID,   true);
+                            HandleGameObject(shaExitGUID,       true);
+                            break;
+                        default:
                             break;
                     }
                     break;
@@ -257,16 +275,12 @@ public:
                         DoAddAuraOnPlayers(SPELL_HATE);
                     else
                     {
-                        Map::PlayerList const &PlayerList = instance->GetPlayers();
-
-                        if (!PlayerList.isEmpty())
-                            for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
-                                if (Player* player = i->getSource())
-                                {
-                                    player->RemoveAurasDueToSpell(SPELL_HATE);
-                                    player->RemoveAurasDueToSpell(SPELL_HAZE_OF_HATE);
-                                    player->RemoveAurasDueToSpell(SPELL_HAZE_OF_HATE_VISUAL);
-                                }
+                        DoOnPlayers([](Player* player)
+                        {
+                            player->RemoveAurasDueToSpell(SPELL_HATE);
+                            player->RemoveAurasDueToSpell(SPELL_HAZE_OF_HATE);
+                            player->RemoveAurasDueToSpell(SPELL_HAZE_OF_HATE_VISUAL);
+                        });
                     }
                     break;
                 }
@@ -277,25 +291,25 @@ public:
             return true;
         }
 
-        void SetData(uint32 type, uint32 data)
+        void SetData(uint32 type, uint32 data) override
         {
             switch (type)
             {
                 case DATA_DEFEATED_NOVICE:
                     if (!--aliveNoviceCount)
-                        if (Creature* snowdrift = instance->GetCreature(masterSnowdriftGuid))
+                        if (Creature* snowdrift = instance->GetCreature(masterSnowdriftGUID))
                             if (snowdrift->IsAIEnabled)
                                 snowdrift->AI()->DoAction(ACTION_NOVICE_DONE);
                     break;
                 case DATA_DEFEATED_MINIBOSS:
                     if (!--aliveMinibossCount)
                     {
-                        if (Creature* snowdrift = instance->GetCreature(masterSnowdriftGuid))
+                        if (Creature* snowdrift = instance->GetCreature(masterSnowdriftGUID))
                             if (snowdrift->IsAIEnabled)
                                 snowdrift->AI()->DoAction(ACTION_MINIBOSS_DONE);
 
-                        HandleGameObject(snowdriftFirewallGuid, true);
-                        HandleGameObject(snowdriftDojoDoorGuid, true);
+                        HandleGameObject(snowdriftFirewallGUID, true);
+                        HandleGameObject(snowdriftDojoDoorGUID, true);
                     }
                     break;
                 default:
@@ -305,7 +319,7 @@ public:
             }
         }
 
-        uint32 GetData(uint32 type)
+        uint32 GetData(uint32 type) const override
         {
             if (type < MAX_DATA)
                 return dataStorage[type];
@@ -313,46 +327,52 @@ public:
             return 0;
         }
 
-        uint64 GetData64(uint32 type)
+        ObjectGuid GetGuidData(uint32 type) const override
         {
             switch (type)
             {
-                case NPC_GU_CLOUDSTRIKE:        return guCloudstikeGuid;
-                case NPC_MASTER_SNOWDRIFT:      return masterSnowdriftGuid;
-                case NPC_SHA_VIOLENCE:          return shaViolenceGuid;
-                case NPC_TARAN_ZHU:             return taranZhuGuid;
-                case NPC_AZURE_SERPENT:         return azureSerpentGuid;
-                case NPC_ARCHERY_TARGET:        return JadeCore::Containers::SelectRandomContainerElement(archeryTargetGuids);
+                case NPC_GU_CLOUDSTRIKE:
+                    return guCloudstikeGUID;
+                case NPC_MASTER_SNOWDRIFT:
+                    return masterSnowdriftGUID;
+                case NPC_SHA_VIOLENCE:
+                    return shaViolenceGUID;
+                case NPC_TARAN_ZHU:
+                    return taranZhuGUID;
+                case NPC_AZURE_SERPENT:
+                    return azureSerpentGUID;
+                case NPC_ARCHERY_TARGET:
+                    return Trinity::Containers::SelectRandomContainerElement(archeryTargetGUIDs);
                 case DATA_RANDOM_FIRST_POS:
                 {
-                    if (firstDefeatedNovicePositionsGuid.empty())
-                        return 0;
+                    if (firstDefeatedNovicePositionsGUID.empty())
+                        return ObjectGuid::Empty;
 
-                    uint64 guid = JadeCore::Containers::SelectRandomContainerElement(firstDefeatedNovicePositionsGuid);
-                    firstDefeatedNovicePositionsGuid.remove(guid);
-                    return guid;
+                    ObjectGuid GUID = Trinity::Containers::SelectRandomContainerElement(firstDefeatedNovicePositionsGUID);
+                    //firstDefeatedNovicePositionsGUID.remove(GUID);
+                    return GUID;
                 }
                 case DATA_RANDOM_SECOND_POS:
                 {
-                    if (secondDefeatedNovicePositionsGuid.empty())
-                        return 0;
+                    if (secondDefeatedNovicePositionsGUID.empty())
+                        return ObjectGuid::Empty;
 
-                    uint64 guid = JadeCore::Containers::SelectRandomContainerElement(secondDefeatedNovicePositionsGuid);
-                    secondDefeatedNovicePositionsGuid.remove(guid);
-                    return guid;
+                    ObjectGuid GUID = Trinity::Containers::SelectRandomContainerElement(secondDefeatedNovicePositionsGUID);
+                    //secondDefeatedNovicePositionsGUID.remove(GUID);
+                    return GUID;
                 }
                 case DATA_RANDOM_MINIBOSS_POS:
                 {
-                    if (minibossPositionsGuid.empty())
-                        return 0;
+                    if (minibossPositionsGUID.empty())
+                        return ObjectGuid::Empty;
 
-                    uint64 guid = JadeCore::Containers::SelectRandomContainerElement(minibossPositionsGuid);
-                    minibossPositionsGuid.remove(guid);
-                    return guid;
+                    ObjectGuid GUID = Trinity::Containers::SelectRandomContainerElement(minibossPositionsGUID);
+                    //minibossPositionsGUID.remove(GUID);
+                    return GUID;
                 }
             }
 
-            return 0;
+            return ObjectGuid::Empty;
         }
     };
 

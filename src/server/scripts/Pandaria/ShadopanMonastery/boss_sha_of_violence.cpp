@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -27,9 +27,9 @@ enum eSpells
     SPELL_DISORIENTING_SMASH    = 106872,
     SPELL_PARTING_SMOKE         = 127576,
     SPELL_ENRAGE                = 130196,
-    
+
     SPELL_ICE_TRAP              = 110610,
-    SPELL_EXPLOSION             = 106966,
+    SPELL_EXPLOSION             = 106966
 };
 
 enum eEvents
@@ -37,7 +37,7 @@ enum eEvents
     // Gu
     EVENT_SMOKE_BLADES          = 1,
     EVENT_SHA_SPIKE             = 2,
-    EVENT_DISORIENTING_SMASH    = 3,
+    EVENT_DISORIENTING_SMASH    = 3
 };
 
 class boss_sha_of_violence : public CreatureScript
@@ -55,35 +55,35 @@ class boss_sha_of_violence : public CreatureScript
             InstanceScript* pInstance;
             bool enrageDone;
 
-            void Reset()
+            void Reset() override
             {
                 _Reset();
                 enrageDone = false;
-                
-                events.ScheduleEvent(EVENT_SMOKE_BLADES,        urand(25000, 35000));
-                events.ScheduleEvent(EVENT_SHA_SPIKE,           urand(10000, 20000));
-                events.ScheduleEvent(EVENT_DISORIENTING_SMASH,  urand(20000, 30000));
+
+                events.ScheduleEvent(EVENT_SMOKE_BLADES, urand(25000, 35000));
+                events.ScheduleEvent(EVENT_SHA_SPIKE, urand(10000, 20000));
+                events.ScheduleEvent(EVENT_DISORIENTING_SMASH, urand(20000, 30000));
             }
 
-            void JustReachedHome()
+            void JustReachedHome() override
             {
                 pInstance->SetBossState(DATA_SHA_VIOLENCE, FAIL);
                 summons.DespawnAll();
             }
 
-            void JustSummoned(Creature* summon)
+            void JustSummoned(Creature* summon) override
             {
                 summons.Summon(summon);
                 summon->CastSpell(summon, SPELL_ICE_TRAP, true);
             }
 
-            void DamageTaken(Unit* attacker, uint32& damage)
+            void DamageTaken(Unit* /*attacker*/, uint32& damage) override
             {
                 if (!enrageDone && me->HealthBelowPctDamaged(20, damage))
                     me->CastSpell(me, SPELL_ENRAGE, true);
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (!UpdateVictim())
                     return;
@@ -99,13 +99,13 @@ class boss_sha_of_violence : public CreatureScript
                     case EVENT_SHA_SPIKE:
                         if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 0, true))
                             me->CastSpell(target, SPELL_SHA_SPIKE, false);
-                        
+
                         events.ScheduleEvent(EVENT_SHA_SPIKE,           urand(10000, 20000));
                         break;
                     case EVENT_DISORIENTING_SMASH:
                         if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 0, true))
                             me->CastSpell(target, SPELL_DISORIENTING_SMASH, false);
-                        
+
                         events.ScheduleEvent(EVENT_DISORIENTING_SMASH,  urand(20000, 30000));
                         break;
                     default:
@@ -116,7 +116,7 @@ class boss_sha_of_violence : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new boss_sha_of_violenceAI(creature);
         }

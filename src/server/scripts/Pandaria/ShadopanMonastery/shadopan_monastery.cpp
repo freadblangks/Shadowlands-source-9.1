@@ -1,9 +1,23 @@
 /*
-    Dungeon : Shandopan Monastery 87-89
-    Instance General Script
-*/
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #include "shadopan_monastery.h"
+#include "SpellAuras.h"
 
 enum eSpells
 {
@@ -28,7 +42,7 @@ enum eSpells
     // Fragment of Hatred
     //SPELL_ICE_TRAP              = 135382,
     SPELL_SINISTER_STRIKE       = 112931,
-    SPELL_VOLLEY_OF_HATRED      = 112911,
+    SPELL_VOLLEY_OF_HATRED      = 112911
 };
 
 enum eEvents
@@ -47,7 +61,7 @@ enum eEvents
     // Fragment of Hatred
     //EVENT_ICE_TRAP              = 8,
     EVENT_SINISTER_STRIKE       = 9,
-    EVENT_VOLLEY_OF_HATRED      = 10,
+    EVENT_VOLLEY_OF_HATRED      = 10
 };
 
 class npc_shadopan_ambusher : public CreatureScript
@@ -62,14 +76,14 @@ class npc_shadopan_ambusher : public CreatureScript
             uint32 criseTimer;
             bool inFight;
 
-            void Reset()
+            void Reset() override
             {
                 criseTimer = 5000;
                 inFight = false;
                 me->AddAura(SPELL_STEALTH_COSMETIC, me);
             }
 
-            void MoveInLineOfSight(Unit* who)
+            void MoveInLineOfSight(Unit* who) override
             {
                 if (!inFight && me->GetDistance(who) < 35.0f)
                 {
@@ -78,8 +92,8 @@ class npc_shadopan_ambusher : public CreatureScript
                     me->GetMotionMaster()->MoveJump(who->GetPositionX() + frand(-2.0f, 2.0f), who->GetPositionY() + frand(-2.0f, 2.0f), who->GetPositionZ(), 20.0f, 20.0f, 1);
                 }
             }
-            
-            void MovementInform(uint32 uiType, uint32 uiId)
+
+            void MovementInform(uint32 uiType, uint32 uiId) override
             {
                 if (uiType != EFFECT_MOTION_TYPE)
                     return;
@@ -87,12 +101,12 @@ class npc_shadopan_ambusher : public CreatureScript
                 if (uiId == 1)
                 {
                     DoZoneInCombat();
-                    if (Unit* target = SelectTarget(SELECT_TARGET_NEAREST))
+                    if (Unit* target = SelectTarget(SELECT_TARGET_MINDISTANCE))
                         AttackStart(target);
                 }
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (!UpdateVictim())
                     return;
@@ -102,7 +116,7 @@ class npc_shadopan_ambusher : public CreatureScript
                     DoZoneInCombat();
                     if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 0, true))
                     {
-                        me->getThreatManager().addThreat(target, 1000000.0f);
+                        me->GetThreatManager().addThreat(target, 1000000.0f);
                         me->CastSpell(me, SPELL_CRISE, true);
                     }
 
@@ -114,7 +128,7 @@ class npc_shadopan_ambusher : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new npc_shadopan_ambusherAI(creature);
         }
@@ -135,24 +149,24 @@ class npc_shadopan_archery : public CreatureScript
             uint16 fireTimer;
             InstanceScript* pInstance;
 
-            void Reset()
+            void Reset() override
             {
                 fireTimer = urand(2000, 4000);
                 me->setActive(true);
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (!pInstance || !pInstance->GetData(DATA_ARCHERY))
                     return;
-                
+
                 if (fireTimer <= diff)
                 {
-                    uint64 targetGuid = 0;
+                    ObjectGuid targetGUID = ObjectGuid::Empty;
 
                     if (pInstance->GetData(DATA_ARCHERY) == 1 && me->GetEntry() == NPC_ARCHERY_FIRST)
                     {
-                        targetGuid = pInstance->GetData64(NPC_ARCHERY_TARGET);
+                        targetGUID = pInstance->GetGuidData(NPC_ARCHERY_TARGET);
                         fireTimer = urand(2000, 4000);
                     }
                     else if (pInstance->GetData(DATA_ARCHERY) == 2 && me->GetEntry() == NPC_ARCHERY_SECOND)
@@ -166,8 +180,8 @@ class npc_shadopan_archery : public CreatureScript
                             uint8 advance = urand(0, playerList.getSize() - 1);
                             for (uint8 i = 0; i < advance; ++i, ++Itr);
 
-                            if (Player* player = Itr->getSource())
-                                targetGuid = player->GetGUID();
+                            if (Player* player = Itr->GetSource())
+                                targetGUID = player->GetGUID();
                         }
 
                         fireTimer = urand(5000, 10000);
@@ -175,14 +189,14 @@ class npc_shadopan_archery : public CreatureScript
                     else
                         fireTimer = 5000;
 
-                    if (Unit* target = ObjectAccessor::FindUnit(targetGuid))
+                    if (Unit* target = ObjectAccessor::GetUnit(*me, targetGUID))
                         me->CastSpell(target, SPELL_ICE_ARROW, false);
                 }
                 else fireTimer -= diff;
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new npc_shadopan_archeryAI(creature);
         }
@@ -199,11 +213,11 @@ class npc_shadopan_hatred : public CreatureScript
 
             EventMap events;
 
-            void Reset()
+            void Reset() override
             {
                 if (me->GetEntry() == NPC_RESIDUAL_OF_HATRED)
                 {
-                    events.ScheduleEvent(EVENT_CURSE_OF_AGONY, urand(5000, 1000));
+                    events.ScheduleEvent(EVENT_CURSE_OF_AGONY, urand(1000, 5000));
                     events.ScheduleEvent(EVENT_RING_OF_MALICE, urand(12500, 15000));
                     events.ScheduleEvent(EVENT_SHADOW_BOLT, urand(2500, 10000));
                 }
@@ -222,18 +236,18 @@ class npc_shadopan_hatred : public CreatureScript
                 }
             }
 
-            void EnterCombat(Unit* /*victim*/)
+            void EnterCombat(Unit* /*victim*/) override
             {
                 DoZoneInCombat();
             }
 
-            void DamageTaken(Unit* attacker, uint32& damage)
+            void DamageTaken(Unit* /*attacker*/, uint32& damage) override
             {
                 if (me->HasAura(SPELL_APPARITIONS_AURA))
                     damage = 0;
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (!UpdateVictim())
                     return;
@@ -248,7 +262,7 @@ class npc_shadopan_hatred : public CreatureScript
                         if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM))
                             me->CastSpell(target, SPELL_CURSE_OF_AGONY, false);
 
-                        events.ScheduleEvent(EVENT_CURSE_OF_AGONY, urand(5000, 1000));
+                        events.ScheduleEvent(EVENT_CURSE_OF_AGONY, urand(1000, 5000));
                         break;
                     }
                     case EVENT_RING_OF_MALICE:
@@ -259,7 +273,7 @@ class npc_shadopan_hatred : public CreatureScript
                     }
                     case EVENT_SHADOW_BOLT:
                     {
-                        if (Unit* target = SelectTarget(SELECT_TARGET_TOPAGGRO))
+                        if (Unit* target = SelectTarget(SELECT_TARGET_MAXTHREAT))
                             me->CastSpell(target, SPELL_SHADOW_BOLT, false);
 
                         events.ScheduleEvent(EVENT_SHADOW_BOLT, urand(2500, 10000));
@@ -268,7 +282,7 @@ class npc_shadopan_hatred : public CreatureScript
                     // Vestige of Hatred
                     case EVENT_BLACK_CLEAVE:
                     {
-                        if (Unit* target = SelectTarget(SELECT_TARGET_TOPAGGRO))
+                        if (Unit* target = SelectTarget(SELECT_TARGET_MAXTHREAT))
                             me->CastSpell(target, SPELL_BLACK_CLEAVE, false);
 
                         events.ScheduleEvent(EVENT_BLACK_CLEAVE, 15000);
@@ -276,7 +290,7 @@ class npc_shadopan_hatred : public CreatureScript
                     }
                     case EVENT_DEATH_GRIP:
                     {
-                        if (Unit* target = SelectTarget(SELECT_TARGET_FARTHEST))
+                        if (Unit* target = SelectTarget(SELECT_TARGET_MAXDISTANCE))
                             me->CastSpell(target, SPELL_DEATH_GRIP, false);
 
                         events.ScheduleEvent(EVENT_DEATH_GRIP, urand(7500, 12500));
@@ -293,7 +307,7 @@ class npc_shadopan_hatred : public CreatureScript
                     // Vestige of Hatred
                     case EVENT_SINISTER_STRIKE:
                     {
-                        if (Unit* target = SelectTarget(SELECT_TARGET_TOPAGGRO))
+                        if (Unit* target = SelectTarget(SELECT_TARGET_MAXTHREAT))
                             me->CastSpell(target, SPELL_SINISTER_STRIKE, false);
 
                         events.ScheduleEvent(EVENT_SINISTER_STRIKE, urand(2500, 10000));
@@ -320,13 +334,13 @@ class npc_shadopan_hatred : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new npc_shadopan_hatredAI(creature);
         }
 };
 
-class spell_shadopan_explosion : public SpellScriptLoader
+class spell_shadopan_explosion: public SpellScriptLoader
 {
     public:
         spell_shadopan_explosion() : SpellScriptLoader("spell_shadopan_explosion") { }
@@ -335,26 +349,26 @@ class spell_shadopan_explosion : public SpellScriptLoader
         {
             PrepareAuraScript(spell_shadopan_explosion_AuraScript);
 
-            void OnRemove(constAuraEffectPtr, AuraEffectHandleModes)
+            void OnRemove(AuraEffect const*, AuraEffectHandleModes)
             {
                 if (GetTargetApplication()->GetRemoveMode() == AURA_REMOVE_BY_DEATH)
                     if (Unit* caster = GetCaster())
                         caster->CastSpell(caster, SPELL_EXPLOSION_DAMAGE, true);
             }
 
-            void Register()
+            void Register() override
             {
                 OnEffectRemove += AuraEffectRemoveFn(spell_shadopan_explosion_AuraScript::OnRemove, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
             }
         };
 
-        AuraScript* GetAuraScript() const
+        AuraScript* GetAuraScript() const override
         {
             return new spell_shadopan_explosion_AuraScript();
         }
 };
 
-class spell_shadopan_apparitions : public SpellScriptLoader
+class spell_shadopan_apparitions: public SpellScriptLoader
 {
     public:
         spell_shadopan_apparitions() : SpellScriptLoader("spell_shadopan_apparitions") { }
@@ -363,7 +377,7 @@ class spell_shadopan_apparitions : public SpellScriptLoader
         {
             PrepareAuraScript(spell_shadopan_apparitions_AuraScript);
 
-            void OnPeriodic(constAuraEffectPtr aurEff)
+            void OnPeriodic(AuraEffect const* /*auraEff*/)
             {
                 PreventDefaultAction();
 
@@ -376,24 +390,24 @@ class spell_shadopan_apparitions : public SpellScriptLoader
                     }
 
                     std::list<Creature*> hatredList;
-                    
+
                     caster->GetCreatureListWithEntryInGridAppend(hatredList, NPC_RESIDUAL_OF_HATRED, 20.0f);
                     caster->GetCreatureListWithEntryInGridAppend(hatredList, NPC_VESTIGE_OF_HATRED,  20.0f);
                     caster->GetCreatureListWithEntryInGridAppend(hatredList, NPC_FRAGMENT_OF_HATRED, 20.0f);
 
                     for (auto hatred: hatredList)
-                        if (hatred->isAlive())
-                            hatred->CastSpell(hatred, GetSpellInfo()->Effects[EFFECT_0].TriggerSpell, true);
+                        if (hatred->IsAlive())
+                            hatred->CastSpell(hatred, GetSpellInfo()->GetEffect(0)->TriggerSpell, true);
                 }
             }
 
-            void Register()
+            void Register() override
             {
                 OnEffectPeriodic += AuraEffectPeriodicFn(spell_shadopan_apparitions_AuraScript::OnPeriodic, EFFECT_0, SPELL_AURA_PERIODIC_TRIGGER_SPELL);
             }
         };
 
-        AuraScript* GetAuraScript() const
+        AuraScript* GetAuraScript() const override
         {
             return new spell_shadopan_apparitions_AuraScript();
         }
@@ -404,7 +418,7 @@ enum areaTrigger
     AREATRIGGER_ARCHERY_FIRST_BEGIN     = 8271,
     AREATRIGGER_ARCHERY_FIRST_END       = 8272,
     AREATRIGGER_ARCHERY_SECOND_FIRST    = 7121,
-    AREATRIGGER_ARCHERY_SECOND_END      = 7126,
+    AREATRIGGER_ARCHERY_SECOND_END      = 7126
 };
 
 class areatrigger_at_shadopan_archery : public AreaTriggerScript
@@ -413,14 +427,14 @@ class areatrigger_at_shadopan_archery : public AreaTriggerScript
 
         areatrigger_at_shadopan_archery() : AreaTriggerScript("areatrigger_at_shadopan_archery") {}
 
-        bool OnTrigger(Player* player, AreaTriggerEntry const* trigger)
+        bool OnTrigger(Player* player, AreaTriggerEntry const* trigger, bool /*enter*/) override
         {
             InstanceScript* pInstance = player->GetInstanceScript();
 
             if (!pInstance)
                 return false;
 
-            switch(trigger->id)
+            switch (trigger->ID)
             {
                 case AREATRIGGER_ARCHERY_FIRST_BEGIN:
                     pInstance->SetData(DATA_ARCHERY, 1);
