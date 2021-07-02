@@ -34,7 +34,19 @@ EndContentData */
 #include "ScriptedEscortAI.h"
 #include "ScriptedFollowerAI.h"
 #include "ScriptedGossip.h"
+// quest Easy Money
+enum Quest
+{
+    Quest_Easy_Money         = 27003,
+};
 
+enum Creature
+{
+    NPC_Adarrah              = 44833,46873,
+    NPC_Lady_Humps           = 46536,
+};
+
+enum 
 /*######
 ## npc_custodian_of_time
 ######*/
