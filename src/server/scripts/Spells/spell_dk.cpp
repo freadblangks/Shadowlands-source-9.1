@@ -70,12 +70,37 @@ enum DeathKnightSpells
     SPELL_DK_UNHOLY                             = 137007,
     SPELL_DK_UNHOLY_VIGOR                       = 196263,
     SPELL_DK_VOLATILE_SHIELDING                 = 207188,
-    SPELL_DK_VOLATILE_SHIELDING_DAMAGE          = 207194
+    SPELL_DK_VOLATILE_SHIELDING_DAMAGE          = 207194,
+    SPELL_DK_IMPROVED_BLOOD_PRESENCE            = 50371,
 };
 
 enum Misc
 {
     NPC_DK_DANCING_RUNE_WEAPON                  = 27893
+};
+
+// 50371 = DK improved Blood Presence
+class SPELL_DK_IMPROVED_BLOOD_PRESENCE : public SpellScript
+{
+    PrepareSpellScript(spell_dk_improved_blood_presence);
+    bool CheckProc(ProcEventInfo& eventInfo)
+
+    if (Unit* caster = eventInfo.GetActor())
+    {
+        Player* player = caster->CastSpell();
+        if (!player || caster->getClass() != CLASS_DEATH_KNIGHT)
+            return false;
+        for (uint8 i = 0; i < player->CastSpell(IMPROVED_BLOOD_PRESENCE); ++i)
+            if (player->CastSpell(i) == 0)
+                return false;
+       
+        return true;           
+    }
+    
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(spell_dk_improved_blood_presence::CheckProc);
+    }
 };
 
 // 70656 - Advantage (T10 4P Melee Bonus)
@@ -799,4 +824,5 @@ void AddSC_deathknight_spell_scripts()
     RegisterAuraScript(spell_dk_pvp_4p_bonus);
     RegisterSpellScript(spell_dk_raise_dead);
     RegisterAuraScript(spell_dk_vampiric_blood);
+    RegisterSpellScript(spell_dk_improved_blood_presence);
 }
