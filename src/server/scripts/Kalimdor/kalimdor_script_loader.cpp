@@ -215,6 +215,7 @@ void AddKalimdorScripts()
     AddSC_ungoro_crater();
     AddSC_winterspring();
     AddSC_azshara();
+    AddSC_uldum();
     AddSC_instance_halls_of_origination();
     AddSC_boss_temple_guardian_anhuur();
     AddSC_boss_earthrager_ptah();
@@ -225,5 +226,4 @@ void AddKalimdorScripts()
     AddSC_boss_alysrazor();
     AddSC_boss_baleroc();
 
-    AddSC_uldum();
 }
