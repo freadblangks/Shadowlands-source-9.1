@@ -25,6 +25,22 @@
 #include <sstream>
 
 #define    MAX_ENCOUNTER  1
+#define    MAX_ENCOUNTER  2
+
+class Decontamination : public QuestScript
+{
+public:    
+    Decontamination() : QuestScript(GNOScriptName,27635) { }
+
+    InstanceScript* GetInstanceScript(InstanceMap* map, 90) { }
+    {
+       return new Decontamination_InstanceMapScript(map);
+    }
+
+    struct Decontamination_InstanceMapScript : public InstanceScript
+    {
+        Decontamination_InstanceMapScript(InstanceMap* map) : InstanceScript(map)
+        
 
 class instance_gnomeregan : public InstanceMapScript
 {

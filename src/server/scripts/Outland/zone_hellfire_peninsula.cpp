@@ -25,6 +25,10 @@ EndScriptData */
 /* ContentData
 npc_aeranas
 npc_ancestral_wolf
+go_haaleshi_altar
+npc_naladu
+npc_tracy_proudwell
+npc_trollbane
 npc_wounded_blood_elf
 npc_fel_guard_hound
 EndContentData */
@@ -1039,13 +1043,220 @@ public:
     }
 };
 
+/*######
+## go_haaleshi_altar
+######*/
+
+class go_haaleshi_altar : public GameObjectScript
+{
+public:
+    go_haaleshi_altar() : GameObjectScript("go_haaleshi_altar") { }
+
+    bool OnGossipHello(Player* /*player*/, GameObject* go)
+    {
+        go->SummonCreature(C_AERANAS, -1321.79f, 4043.80f, 116.24f, 1.25f, TEMPSUMMON_TIMED_DESPAWN, 180000);
+        return false;
+    }
+};
+
+/*######
+## npc_naladu
+######*/
+
+#define GOSSIP_NALADU_ITEM1 "Why don't you escape?"
+
+enum eNaladu
+{
+    GOSSIP_TEXTID_NALADU1   = 9788
+};
+
+class npc_naladu : public CreatureScript
+{
+public:
+    npc_naladu() : CreatureScript("npc_naladu") { }
+
+    bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action)
+    {
+        player->PlayerTalkClass->ClearMenus();
+        if (action == GOSSIP_ACTION_INFO_DEF+1)
+            player->SEND_GOSSIP_MENU(GOSSIP_TEXTID_NALADU1, creature->GetGUID());
+
+        return true;
+    }
+
+    bool OnGossipHello(Player* player, Creature* creature)
+    {
+        if (creature->isQuestGiver())
+            player->PrepareQuestMenu(creature->GetGUID());
+
+        player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_NALADU_ITEM1, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF+1);
+        player->SEND_GOSSIP_MENU(player->GetGossipTextId(creature), creature->GetGUID());
+        return true;
+    }
+};
+
+/*######
+## npc_tracy_proudwell
+######*/
+
+#define GOSSIP_TEXT_REDEEM_MARKS        "I have marks to redeem!"
+#define GOSSIP_TRACY_PROUDWELL_ITEM1    "I heard that your dog Fei Fei took Klatu's prayer beads..."
+#define GOSSIP_TRACY_PROUDWELL_ITEM2    "<back>"
+
+enum eTracy
+{
+    GOSSIP_TEXTID_TRACY_PROUDWELL1       = 10689,
+    QUEST_DIGGING_FOR_PRAYER_BEADS       = 10916
+};
+
+class npc_tracy_proudwell : public CreatureScript
+{
+public:
+    npc_tracy_proudwell() : CreatureScript("npc_tracy_proudwell") { }
+
+    bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action)
+    {
+        player->PlayerTalkClass->ClearMenus();
+        switch (action)
+        {
+            case GOSSIP_ACTION_INFO_DEF+1:
+                player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_TRACY_PROUDWELL_ITEM2, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 2);
+                player->SEND_GOSSIP_MENU(GOSSIP_TEXTID_TRACY_PROUDWELL1, creature->GetGUID());
+                break;
+            case GOSSIP_ACTION_INFO_DEF+2:
+                player->SEND_GOSSIP_MENU(player->GetGossipTextId(creature), creature->GetGUID());
+                break;
+            case GOSSIP_ACTION_TRADE:
+                player->GetSession()->SendListInventory(creature->GetGUID());
+                break;
+        }
+
+        return true;
+    }
+
+    bool OnGossipHello(Player* player, Creature* creature)
+    {
+        if (creature->isQuestGiver())
+            player->PrepareQuestMenu(creature->GetGUID());
+
+        if (creature->isVendor())
+            player->ADD_GOSSIP_ITEM(GOSSIP_ICON_VENDOR, GOSSIP_TEXT_REDEEM_MARKS, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_TRADE);
+
+        if (player->GetQuestStatus(QUEST_DIGGING_FOR_PRAYER_BEADS) == QUEST_STATUS_INCOMPLETE)
+            player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_TRACY_PROUDWELL_ITEM1, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
+
+        player->SEND_GOSSIP_MENU(player->GetGossipTextId(creature), creature->GetGUID());
+        return true;
+    }
+};
+
+/*######
+## npc_trollbane
+######*/
+
+#define GOSSIP_TROLLBANE_ITEM1      "Tell me of the Sons of Lothar."
+#define GOSSIP_TROLLBANE_ITEM2      "<more>"
+#define GOSSIP_TROLLBANE_ITEM3      "Tell me of your homeland."
+
+enum eTrollbane
+{
+    GOSSIP_TEXTID_TROLLBANE1        = 9932,
+    GOSSIP_TEXTID_TROLLBANE2        = 9933,
+    GOSSIP_TEXTID_TROLLBANE3        = 8772
+};
+
+class npc_trollbane : public CreatureScript
+{
+public:
+    npc_trollbane() : CreatureScript("npc_trollbane") { }
+
+    bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action)
+    {
+        player->PlayerTalkClass->ClearMenus();
+        switch (action)
+        {
+            case GOSSIP_ACTION_INFO_DEF+1:
+                player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_TROLLBANE_ITEM2, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 2);
+                player->SEND_GOSSIP_MENU(GOSSIP_TEXTID_TROLLBANE1, creature->GetGUID());
+                break;
+            case GOSSIP_ACTION_INFO_DEF+2:
+                player->SEND_GOSSIP_MENU(GOSSIP_TEXTID_TROLLBANE2, creature->GetGUID());
+                break;
+            case GOSSIP_ACTION_INFO_DEF+3:
+                player->SEND_GOSSIP_MENU(GOSSIP_TEXTID_TROLLBANE3, creature->GetGUID());
+                break;
+        }
+
+        return true;
+    }
+
+    bool OnGossipHello(Player* player, Creature* creature)
+    {
+        if (creature->isQuestGiver())
+            player->PrepareQuestMenu(creature->GetGUID());
+
+        player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_TROLLBANE_ITEM1, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
+        player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_TROLLBANE_ITEM3, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 3);
+        player->SEND_GOSSIP_MENU(player->GetGossipTextId(creature), creature->GetGUID());
+        return true;
+    }
+};
+
+/*######
+## npc_Magistrix_Carinda
+######*/
+
+enum npc_Magistrix_Carinda
+{
+    Quest_Arelions_Journal              = 9374,
+    Object_Arelions_Journal             = 23339,
+    Npc_Blistering_Oozeling             = 16903,
+    Quest_Arelions_Mistress             = 9472,
+    npc_Viera_Sunwhisper                = 17226,
+    item_Carindas_Scroll_of_Retribution = 23693,
+    Quest_Arelions_Secret               = 10286,
+    Quest_The_Mistress_Revealed         = 10287
+}
+
+class npc_Magistrix_Carinda : public CreatureScript
+{
+public:
+    npc_Magistrix_Carinda() : CreatureScript("npc_Magistrix_Carinda") { }
+
+    struct npc_Magistrix_CarindaAI : public ScriptedAI
+    {
+        npc_Magistrix_CarindaAI(Creature* creature) : ScriptedAI(creature)
+        {
+            Initialize();
+        }
+}
+
+
+
+class npc_barada : public CreatureScript
+{
+
+
 void AddSC_hellfire_peninsula()
 {
     new npc_aeranas();
     new npc_ancestral_wolf();
+    new go_haaleshi_altar();
+    new npc_naladu();
+    new npc_tracy_proudwell();
+    new npc_trollbane();
     new npc_wounded_blood_elf();
     new npc_fel_guard_hound();
     new npc_colonel_jules();
     new npc_barada();
     new npc_magister_aledis();
+    new npc_Magistrix_Carinda();
+    new Quest_Arelions_Journal();
+    new Object_Arelions_Journal();
+    new Npc_Blistering_Oozeling();             
+    new Quest_Arelions_Mistress();             
+    new npc_Viera_Sunwhisper();                
+    new item_Carindas_Scroll_of_Retribution(); 
+    new Quest_Arelions_Secret();               
+    new Quest_The_Mistress_Revealed();         
 }
