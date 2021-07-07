@@ -30,23 +30,15 @@
 
 enum Spells
 {
-    SPELL_LAND_OF_THE_DEAD_CAST = 321226,
-    SPELL_LAND_OF_THE_DEAD_MISSILE = 319874,
-    SPELL_LAND_OF_THE_DEAD_MISSILE_SECOND = 319902,
-    SPELL_LAND_OF_THE_DEAD_MISSILE_THIRD = 333627,
-    SPELL_FINAL_HARVEST = 321247,
-    SPELL_FINAL_HARVEST_DAMAGE = 321253,
-    SPELL_NECROTIC_BOLT = 320170,
-    SPELL_UNHOLY_FRENZY = 320012,
-    SPELL_NECROTIC_BREATH_TRIGGER = 337074,
+    SPELL_COMET_STORM = 326675,
     EVENT_LAND_OF_THE_DEAD = 1,
-    EVENT_NECROTIC_BREATH
+    EVENT_NECROTIC_BREATH  = 2
 };
 
-//163157
-struct boss_amarth : public BossAI
+//166945
+struct boss_Nalthor_the_Rimebinder : public BossAI
 {
-    boss_amarth(Creature* creature) : BossAI(creature, DATA_AMARTH) 
+    boss_Nalthor_the_Rimebinder(Creature* creature) : BossAI(creature, DATA_NALTHOR_THE_RIMEBINDER) 
     { 
         Vehicle* vehicle = me->GetVehicleKit();
     }
@@ -60,7 +52,7 @@ struct boss_amarth : public BossAI
     {
         _JustEngagedWith();
         Talk(0);
-        events.ScheduleEvent(SPELL_NECROTIC_BOLT, 3s);
+        events.ScheduleEvent(SPELL_COMET_STORM, 0s);
         events.ScheduleEvent(EVENT_LAND_OF_THE_DEAD, 5s);
         events.ScheduleEvent(SPELL_FINAL_HARVEST, 8s);
         events.ScheduleEvent(EVENT_NECROTIC_BREATH, 10s);
@@ -72,8 +64,8 @@ struct boss_amarth : public BossAI
     {
         switch (spellInfo->Id)
         {
-        case SPELL_FINAL_HARVEST:
-            DoCastAOE(SPELL_FINAL_HARVEST_DAMAGE, true);
+        case SPELL_COMET_STORM:
+            DoCastAOE(SPELL_COMET_STORM, true);
             break;
         }
     }
@@ -82,20 +74,20 @@ struct boss_amarth : public BossAI
     {
         switch (eventId)
         {
-        case SPELL_NECROTIC_BOLT:
-            DoCastVictim(SPELL_NECROTIC_BOLT, false);
+        case SPELL_COMET_STORM:
+            DoCastVictim(SPELL_COMET_STORM, false);
             events.Repeat(15s);
             break;
 
-        case EVENT_LAND_OF_THE_DEAD:
-            me->CastSpell(nullptr, SPELL_LAND_OF_THE_DEAD_CAST, false);
-            me->CastSpell(me->GetRandomNearPosition(20.0f), SPELL_LAND_OF_THE_DEAD_MISSILE, true);
-            me->CastSpell(me->GetRandomNearPosition(20.0f), SPELL_LAND_OF_THE_DEAD_MISSILE_SECOND, true);
-            me->CastSpell(me->GetRandomNearPosition(20.0f), SPELL_LAND_OF_THE_DEAD_MISSILE_THIRD, true);
+        case EVENT_COMET_STORM:
+            me->CastSpell(nullptr, SPELL_COMET_STORM_CAST, false);
+            me->CastSpell(me->GetRandomNearPosition(20.0f), SPELL_COMET_STORM_MISSILE, true);
+            me->CastSpell(me->GetRandomNearPosition(20.0f), SPELL_COMET_STORM_DEAD_MISSILE_SECOND, true);
+            me->CastSpell(me->GetRandomNearPosition(20.0f), SPELL_COMET_STORM_DEAD_MISSILE_THIRD, true);
             events.Repeat(20s);
             break;
 
-        case SPELL_FINAL_HARVEST:
+        case SPELL_COMET_STORM:
             me->CastSpell(nullptr, SPELL_FINAL_HARVEST, false);
             events.Repeat(25s);
             break;
@@ -122,10 +114,10 @@ struct boss_amarth : public BossAI
     }
 };
 
-//162692
-struct npc_amarth : public ScriptedAI
+//166945
+struct npc_Nalthor_the_Rimebinder : public ScriptedAI
 {
-    npc_amarth(Creature* c) : ScriptedAI(c) { }
+    npc_Nalthor_the_Rimebinder(Creature* creature) : ScriptedAI(c) { }
 
     void Reset() override
     {
@@ -135,8 +127,8 @@ struct npc_amarth : public ScriptedAI
     }
 };
 
-void AddSC_boss_amarth()
+void AddSC_boss_Nalthor_the_Rimebinder()
 {
-    RegisterCreatureAI(boss_amarth);
-    RegisterCreatureAI(npc_amarth);
+    RegisterCreatureAI(boss_Nalthor_the_Rimebinder);
+    RegisterCreatureAI(npc_Nalthor_the_Rimebinder);
 }
