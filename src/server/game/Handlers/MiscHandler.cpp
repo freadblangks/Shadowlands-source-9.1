@@ -514,6 +514,9 @@ void WorldSession::HandleAreaTriggerOpcode(WorldPackets::AreaTrigger::AreaTrigge
                             if (qInfo->HasSpecialFlag(QUEST_SPECIAL_FLAGS_SEQUENCED_OBJECTIVES))
                                 completedObjectiveInSequencedQuest = true;
                             break;
+                            if (qInfo->HasSpecialFlag(QUEST_SPECIAL_FLAGS_EXPLORATION_OR_EVENT))
+                                player->AreaExploredOrEventHappens(questId);
+                            break;
                         }
                     }
 
