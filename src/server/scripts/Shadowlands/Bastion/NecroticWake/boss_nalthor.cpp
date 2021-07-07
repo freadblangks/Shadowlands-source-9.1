@@ -30,17 +30,13 @@
 
 enum Spells
 {
-    SPELL_FINAL_HARVEST = 321247,
-    SPELL_LAND_OF_THE_DEAD = 321226,
-    SPELL_FINAL_HARVEST = 321247,
-    SPELL_NECROTIC_BOLT = 320170,
-    SPELL_UNHOLY_FRENZY = 320012,
-    EVENT_LAND_OF_THE_DEAD = 1,
-    EVENT_NECROTIC_BREATH
+    SPELL_FINAL_HARVEST = 321247, 
+    EVENT_LAND_OF_THE_DEAD = 1, 
+    EVENT_NECROTIC_BREATH  = 2,
 };
 
-//163157
-struct boss_nalthor : public BossAI
+//166945
+struct boss_Nalthor_the_Rimebinder : public BossAI
 {
     boss_nalthor(Creature* creature) : BossAI(creature, DATA_AMARTH) 
     { 
@@ -55,8 +51,7 @@ struct boss_nalthor : public BossAI
     void JustEngagedWith(Unit* /*who*/) override
     {
         _JustEngagedWith();
-        Talk(0);
-        events.ScheduleEvent(SPELL_NECROTIC_BOLT, 3s);
+        Talk(0); 
         events.ScheduleEvent(EVENT_LAND_OF_THE_DEAD, 5s);
         events.ScheduleEvent(SPELL_FINAL_HARVEST, 8s);
         events.ScheduleEvent(EVENT_NECROTIC_BREATH, 10s);
@@ -77,13 +72,8 @@ struct boss_nalthor : public BossAI
     void ExecuteEvent(uint32 eventId) override
     {
         switch (eventId)
-        {
-        case SPELL_NECROTIC_BOLT:
-            DoCastVictim(SPELL_NECROTIC_BOLT, false);
-            events.Repeat(15s);
-            break;
-
-        case EVENT_LAND_OF_THE_DEAD:
+        { 
+        case EVENT_LAND_OF_THE_DEAD: 
             me->CastSpell(nullptr, SPELL_LAND_OF_THE_DEAD_CAST, false);
             me->CastSpell(me->GetRandomNearPosition(20.0f), SPELL_LAND_OF_THE_DEAD_MISSILE, true);
             me->CastSpell(me->GetRandomNearPosition(20.0f), SPELL_LAND_OF_THE_DEAD_MISSILE_SECOND, true);
@@ -118,8 +108,8 @@ struct boss_nalthor : public BossAI
     }
 };
 
-//162692
-struct npc_nalthor : public ScriptedAI
+//166945
+struct npc_Nalthor_the_Rimebinder : public ScriptedAI
 {
     npc_nalthor(Creature* c) : ScriptedAI(c) { }
 
@@ -131,8 +121,8 @@ struct npc_nalthor : public ScriptedAI
     }
 };
 
-void void AddSC_boss_nalthor()
+void void AddSC_boss_Nalthor_the_Rimebinder()
 {
-    RegisterCreatureAI(boss_nalthor);
-    RegisterCreatureAI(npc_nalthor);
+    RegisterCreatureAI(boss_Nalthor_the_Rimebinder);
+    RegisterCreatureAI(npc_Nalthor_the_Rimebinder);
 }
