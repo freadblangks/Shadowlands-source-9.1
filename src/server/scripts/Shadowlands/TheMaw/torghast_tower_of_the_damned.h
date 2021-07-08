@@ -13,8 +13,8 @@
 #include "TransportMgr.h"
 #include "AreaTrigger.h"
 #include "AreaTriggerAI.h"
-#include "torghast_tower_of_the_damned.h"
 #include "zone_the_maw.cpp"
+#include "torghast_tower_of_the_damned.h" 
 #include "instance_torgast_tower_of_the_damned.cpp"
 
 class torgast_tower_of_the_damned
