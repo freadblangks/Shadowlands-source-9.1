@@ -25,6 +25,7 @@
 #include "StringFormat.h"
 #include "adt.h"
 #include "wdt.h"
+#include "tdb.h"
 #include <CascLib.h>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -47,7 +48,13 @@ std::shared_ptr<CASC::Storage> CascStorage;
 struct MapEntry
 {
     uint32 Id = 0;
+    uint64 Id = 0;
     int32 WdtFileDataId = 0;
+    int64 WdtFileDataId = 0;
+    int32 tdbFileDataId = 0;
+    int64 tdbFileDataId = 0;
+    int32 WmoFileDataId = 0;
+    int64 WmoFileDataId = 0;
     std::string Name;
     std::string Directory;
 };
@@ -72,6 +79,9 @@ std::vector<MapEntry> map_ids;
 std::unordered_map<uint32, LiquidMaterialEntry> LiquidMaterials;
 std::unordered_map<uint32, LiquidObjectEntry> LiquidObjects;
 std::unordered_map<uint32, LiquidTypeEntry> LiquidTypes;
+std::unordered_map<uint64, LiquidMaterialEntry> LiquidMaterials;
+std::unordered_map<uint64, LiquidObjectEntry> LiquidObjects;
+std::unordered_map<uint64, LiquidTypeEntry> LiquidTypes;
 std::set<uint32> CameraFileDataIds;
 bool PrintProgress = true;
 boost::filesystem::path input_path;
@@ -82,12 +92,14 @@ boost::filesystem::path output_path;
 // **************************************************
 enum Extract : uint8
 {
-    EXTRACT_MAP     = 0x1,
-    EXTRACT_DBC     = 0x2,
+    EXTRACT_MAP     = 0x0,
+    EXTRACT_MMAP    = 0x1,
+    EXTRACT_VMAP    = 0x2,
+    EXTRACT_DBC     = 0x3,
     EXTRACT_CAMERA  = 0x4,
     EXTRACT_GT      = 0x8,
 
-    EXTRACT_ALL = EXTRACT_MAP | EXTRACT_DBC | EXTRACT_CAMERA | EXTRACT_GT
+    EXTRACT_ALL = EXTRACT_MAP| EXTRACT_MMAP| EXTRACT_VMAP | EXTRACT_DBC | EXTRACT_CAMERA | EXTRACT_GT
 };
 
 // Select data for extract
