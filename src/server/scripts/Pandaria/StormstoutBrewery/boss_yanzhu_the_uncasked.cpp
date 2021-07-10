@@ -109,6 +109,14 @@ enum ChenYanzhuYells
     CHEN_SAY_OUTRO_4,                   // I think the brewery might be on fire.
 };
 
+enum Effect
+{
+    EFFECT_0,
+    EFFECT_1,
+    EFFECT_2,
+    EFFECT_3,
+};
+
 enum Spells
 {
     // Boss
