@@ -1,7 +1,5 @@
 /*
- * Copyright (C) 2008-20XX JadeCore <http://www.pandashan.com>
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
+ * Copyright 2021 ShadowCore
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -24,24 +22,28 @@
 
 DoorData const doorData[] =
 {
-    {GOB_ANTECHAMBER_DOOR_ENTRANCE, 0,              DOOR_TYPE_ROOM,     BOUNDARY_S},
-    {GOB_ANTECHAMBER_DOOR_EXIT,     0,              DOOR_TYPE_ROOM,     BOUNDARY_E},
-    {GOB_ORATIUM_DOOR_ENTRANCE,     DATA_ZORLOK,    DOOR_TYPE_ROOM,     BOUNDARY_W},
-    {GOB_QUARTERS_DOOR_ENTRANCE,    DATA_ZORLOK,     DOOR_TYPE_PASSAGE,  BOUNDARY_S},
-    {GOB_QUARTERS_DOOR_EXIT,        DATA_TAYAK,     DOOR_TYPE_PASSAGE,  BOUNDARY_W},
-    {GOB_STAIRWAYS_DOOR_EXIT,       0,              DOOR_TYPE_ROOM,     BOUNDARY_N},
-    {GOB_BALCONY_DOOR_EXIT,         DATA_MELJARAK,  DOOR_TYPE_PASSAGE,  BOUNDARY_S},
-    {GOB_ATRIUM_DOOR_ENTRANCE,      0,              DOOR_TYPE_ROOM,     BOUNDARY_N},
-    {GOB_ATRIUM_DOOR_EXIT,          0,              DOOR_TYPE_ROOM,     BOUNDARY_W},
-    {GOB_SANCTUM_DOOR_ENTRANCE,     0,              DOOR_TYPE_ROOM,     BOUNDARY_E},
-    {GOB_HEARTOFFEAR_DOOR_ENTRANCE, DATA_UNSOK,     DOOR_TYPE_PASSAGE,  BOUNDARY_E},
-    {0,         0,              DOOR_TYPE_ROOM,     0}, // EOF
+    {GOB_ANTECHAMBER_DOOR_ENTRANCE, 0,              DOOR_TYPE_ROOM      },
+    {GOB_ANTECHAMBER_DOOR_EXIT,     0,              DOOR_TYPE_ROOM      },
+    {GOB_ORATIUM_DOOR_ENTRANCE,     DATA_ZORLOK,    DOOR_TYPE_ROOM      },
+    {GOB_QUARTERS_DOOR_ENTRANCE,    DATA_ZORLOK,    DOOR_TYPE_PASSAGE   },
+    {GOB_QUARTERS_DOOR_EXIT,        DATA_TAYAK,     DOOR_TYPE_PASSAGE   },
+    {GOB_STAIRWAYS_DOOR_EXIT,       0,              DOOR_TYPE_ROOM      },
+    {GOB_BALCONY_DOOR_EXIT,         DATA_MELJARAK,  DOOR_TYPE_PASSAGE   },
+    {GOB_ATRIUM_DOOR_ENTRANCE,      0,              DOOR_TYPE_ROOM      },
+    {GOB_ATRIUM_DOOR_EXIT,          0,              DOOR_TYPE_ROOM      },
+    {GOB_SANCTUM_DOOR_ENTRANCE,     0,              DOOR_TYPE_ROOM      },
+    {GOB_HEARTOFFEAR_DOOR_ENTRANCE, DATA_UNSOK,     DOOR_TYPE_PASSAGE   }
 };
 
 class instance_heart_of_fear : public InstanceMapScript
 {
     public:
         instance_heart_of_fear() : InstanceMapScript("instance_heart_of_fear", 1009) { }
+
+        enum eMisc
+        {
+            HeartOfFearSecondPart = 530
+        };
 
         InstanceScript* GetInstanceScript(InstanceMap* map) const
         {
@@ -50,58 +52,47 @@ class instance_heart_of_fear : public InstanceMapScript
 
         struct instance_heart_of_fear_InstanceMapScript : public InstanceScript
         {
-            instance_heart_of_fear_InstanceMapScript(Map* map) : InstanceScript(map) {}
+            instance_heart_of_fear_InstanceMapScript(InstanceMap* map) : InstanceScript(map) {}
 
             // Boss GUIDs
-            uint64 zorlokGuid;
-            uint64 tayakGuid;
-            uint64 garalonGuid;
-            uint64 meljarakGuid;
-            uint64 unsokGuid;
-            uint64 shekzeerGuid;
-
-            // Add GUIDs
-            uint64 stormSpiritGuid;
+            ObjectGuid zorlokGuid;
+            ObjectGuid tayakGuid;
+            ObjectGuid garalonGuid;
+            ObjectGuid meljarakGuid;
+            ObjectGuid unsokGuid;
+            ObjectGuid shekzeerGuid;
 
             // Special Doors GUIDs
-            uint64 zorlokEntranceDoorGuid;
-            uint64 tayakEntranceDoorGuid;
-            uint64 tayakExitDoorGuid;
-            uint64 garalonEntranceDoorGuid;
-            uint64 meljarakExitDoorGuid;
-            uint64 unsokEntranceDoorGuid;
-            uint64 shekzeerEntranceDoorGuid;
+            ObjectGuid zorlokEntranceDoorGuid;
+            ObjectGuid tayakEntranceDoorGuid;
+            ObjectGuid tayakExitDoorGuid;
+            ObjectGuid garalonEntranceDoorGuid;
+            ObjectGuid meljarakExitDoorGuid;
+            ObjectGuid unsokEntranceDoorGuid;
+            ObjectGuid shekzeerEntranceDoorGuid;
 
-            void Initialize()
+            // Shek'zeer Gameobjects
+            ObjectGuid empressChamberGuid;
+            ObjectGuid mandidQueenCeilGuid;
+
+            bool m_SecondPartInitialized;
+
+            void Initialize() override
             {
                 SetBossNumber(DATA_MAX_BOSS_DATA);
                 LoadDoorData(doorData);
 
-                zorlokGuid      = 0;
-                tayakGuid       = 0;
-                garalonGuid     = 0;
-                meljarakGuid    = 0;
-                unsokGuid       = 0;
-                shekzeerGuid    = 0;
-
-                zorlokEntranceDoorGuid      = 0;
-                tayakEntranceDoorGuid       = 0;
-                tayakExitDoorGuid           = 0;
-                garalonEntranceDoorGuid     = 0;
-                meljarakExitDoorGuid        = 0;
-                unsokEntranceDoorGuid       = 0;
-                shekzeerEntranceDoorGuid    = 0;
+                m_SecondPartInitialized = false;
             }
 
-            void OnCreatureCreate(Creature* creature)
+            void OnCreatureCreate(Creature* creature) override
             {
+                InstanceScript::OnCreatureCreate(creature);
+
                 switch (creature->GetEntry())
                 {
                     case NPC_ZORLOK:
                         zorlokGuid = creature->GetGUID();
-                        break;
-                    case NPC_STORM_SPIRIT:
-                        stormSpiritGuid = creature->GetGUID();
                         break;
                     case NPC_TAYAK:
                         tayakGuid = creature->GetGUID();
@@ -123,8 +114,10 @@ class instance_heart_of_fear : public InstanceMapScript
                 }
             }
 
-            void OnGameObjectCreate(GameObject* go)
+            void OnGameObjectCreate(GameObject* go) override
             {
+                InstanceScript::OnGameObjectCreate(go);
+
                 switch (go->GetEntry())
                 {
                     // Generic doors
@@ -149,49 +142,75 @@ class instance_heart_of_fear : public InstanceMapScript
                         break;
                     case GOB_STAIRWAYS_DOOR_EXIT:
                         AddDoor(go, true);
+                        go->SetGoState(GO_STATE_READY);
                         garalonEntranceDoorGuid = go->GetGUID();
                         break;
                     case GOB_BALCONY_DOOR_EXIT:
                         AddDoor(go, true);
+                        go->SetGoState(GO_STATE_READY);
                         meljarakExitDoorGuid = go->GetGUID();
                         break;
                     case GOB_SANCTUM_DOOR_ENTRANCE:
                         AddDoor(go, true);
+                        go->SetGoState(GO_STATE_READY);
                         unsokEntranceDoorGuid = go->GetGUID();
                         break;
                     case GOB_HEARTOFFEAR_DOOR_ENTRANCE:
                         AddDoor(go, true);
+                        go->SetGoState(GO_STATE_READY);
                         shekzeerEntranceDoorGuid = go->GetGUID();
+                        break;
+                    case GOB_EMPRESS_CHAMBER:
+                        empressChamberGuid = go->GetGUID();
+                        break;
+                    case GOB_MANTID_QUEEN_CEIL:
+                        mandidQueenCeilGuid = go->GetGUID();
                         break;
                     default:
                         break;
                 }
             }
 
-            bool SetBossState(uint32 id, EncounterState state)
+            void OnGameObjectRemove(GameObject* go) override
+            {
+                InstanceScript::OnGameObjectRemove(go);
+
+                switch (go->GetEntry())
+                {
+                    // Generic doors
+                    case GOB_ANTECHAMBER_DOOR_ENTRANCE:
+                    case GOB_ANTECHAMBER_DOOR_EXIT:
+                    case GOB_ATRIUM_DOOR_ENTRANCE:
+                    case GOB_ATRIUM_DOOR_EXIT:
+                    case GOB_ORATIUM_DOOR_ENTRANCE:
+                    case GOB_QUARTERS_DOOR_ENTRANCE:
+                    case GOB_QUARTERS_DOOR_EXIT:
+                    case GOB_STAIRWAYS_DOOR_EXIT:
+                    case GOB_BALCONY_DOOR_EXIT:
+                    case GOB_SANCTUM_DOOR_ENTRANCE:
+                    case GOB_HEARTOFFEAR_DOOR_ENTRANCE:
+                        AddDoor(go, false);
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            bool SetBossState(uint32 id, EncounterState state) override
             {
                 if (!InstanceScript::SetBossState(id, state))
                     return false;
-                /*
-                switch (id)
-                {
 
-                    default:
-                        break;
-                }
-                */
                 return true;
             }
 
-            uint64 GetData64(uint32 type)
+            ObjectGuid GetGuidData(uint32 type) const override
             {
                 switch (type)
                 {
                     // --- Creatures ---
                     case NPC_ZORLOK:
                         return zorlokGuid;
-                    case NPC_STORM_SPIRIT:
-                        return stormSpiritGuid;
                     case NPC_TAYAK:
                         return tayakGuid;
                     case NPC_GARALON:
@@ -217,35 +236,50 @@ class instance_heart_of_fear : public InstanceMapScript
                         return unsokEntranceDoorGuid;
                     case GOB_HEARTOFFEAR_DOOR_ENTRANCE:
                         return shekzeerEntranceDoorGuid;
+                    case GOB_EMPRESS_CHAMBER:
+                        return empressChamberGuid;
+                    case GOB_MANTID_QUEEN_CEIL:
+                        return mandidQueenCeilGuid;
                     default:
                         break;
                 }
 
-                return 0;
+                return InstanceScript::GetGuidData(type);
             }
 
-            bool IsWipe()
+            /*bool IsWipe() const override
             {
                 Map::PlayerList const& PlayerList = instance->GetPlayers();
 
                 if (PlayerList.isEmpty())
                     return true;
 
+                std::list<Player*> servantList;
+                servantList.clear();
+
                 for (Map::PlayerList::const_iterator Itr = PlayerList.begin(); Itr != PlayerList.end(); ++Itr)
                 {
-                    Player* player = Itr->getSource();
+                    Player* player = Itr->GetSource();
 
                     if (!player)
                         continue;
 
-                    if (player->IsAlive() && !player->isGameMaster())
+                    if (player->IsAlive() && !player->IsGameMaster() && !player->HasAura(SPELL_CONVERT_SERVANT))
                         return false;
+                    else if (player->HasAura(SPELL_CONVERT_SERVANT))
+                        servantList.push_back(player);
                 }
 
-                return true;
-            }
+                // Killing the servant players
+                if (!servantList.empty())
+                    if (Creature* shekzeer = instance->GetCreature(GetData64(NPC_SHEKZEER)))
+                        for (Player* servant : servantList)
+                            shekzeer->Kill(servant);
 
-            bool CheckRequiredBosses(uint32 bossId, Player const* player = NULL) const
+                return true;
+            }*/
+
+            bool CheckRequiredBosses(uint32 bossId, Player const* player = NULL) const override
             {
                 if (!InstanceScript::CheckRequiredBosses(bossId, player))
                     return false;
@@ -264,6 +298,54 @@ class instance_heart_of_fear : public InstanceMapScript
                 }
 
                 return true;
+            }
+
+            void OnPlayerEnter(Player* player) override
+            {
+                InstanceScript::OnPlayerEnter(player);
+
+                if (!m_SecondPartInitialized && instance->IsLFR())
+                {
+                    /*uint32 l_DungeonID = player->GetGroup() ? sLFGMgr->GetDungeon(player->GetGroup()->GetGUID()) : 0;
+                    if (l_DungeonID == eMisc::HeartOfFearSecondPart)
+                    {
+                        m_SecondPartInitialized = true;
+
+                        if (Creature* l_Garalon = ObjectAccessor::GetCreature(*player, garalonGuid))
+                        {
+                            std::list<Unit*> l_TrashMobs;
+
+                            Trinity::AnyFriendlyUnitInObjectRangeCheck l_Check(l_Garalon, l_Garalon, 50.0f);
+                            Trinity::UnitListSearcher<Trinity::AnyFriendlyUnitInObjectRangeCheck> l_Searcher(l_Garalon, l_TrashMobs, l_Check);
+                            l_Garalon->VisitNearbyObject(50.0f, l_Searcher);
+
+                            for (Unit* l_Unit : l_TrashMobs)
+                            {
+                                if (l_Unit->ToCreature() == nullptr)
+                                    continue;
+
+                                /// Basic settings
+                                l_Unit->SetVisible(false);
+                                l_Unit->AddUnitFlag(UnitFlags(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE));
+                                l_Unit->ToCreature()->SetReactState(REACT_PASSIVE);
+                            }
+
+                            std::list<GameObject*> l_DoorList;
+                            GetGameObjectListWithEntryInGrid(l_DoorList, l_Garalon, GOB_DOOR_TO_MELJARAK, 200.0f);
+
+                            for (GameObject* l_Door : l_DoorList)
+                                l_Door->SetGoState(GO_STATE_ACTIVE);
+                        }
+                    }*/
+                }
+            }
+
+            void OnPlayerExit(Player* player) override
+            {
+                InstanceScript::OnPlayerExit(player);
+
+                if (player->HasAura(SPELL_RESHAPE_LIFE))
+                    player->RemoveAura(SPELL_RESHAPE_LIFE);
             }
         };
 };

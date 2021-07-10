@@ -1,12 +1,25 @@
 /*
-    Dungeon : Gate of the Setting Sun 90 Heroic
-    Instance General Script
-*/
+ * Copyright 2021 ShadowCore
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #include "gate_setting_sun.h"
 #include "ScriptMgr.h"
 #include "ScriptedCreature.h"
 #include "Vehicle.h"
+#include "GameObject.h"
 
 enum spells
 {
@@ -14,7 +27,7 @@ enum spells
     SPELL_EXPLOSE_GATE                  = 115456,
 
     SPELL_BOMB_CAST_VISUAL              = 106729,
-    SPELL_BOMB_AURA                     = 106875,
+    SPELL_BOMB_AURA                     = 106875
 };
 
 class mob_serpent_spine_defender : public CreatureScript
@@ -28,19 +41,19 @@ public:
 
         uint32 attackTimer;
 
-        void Reset()
+        void Reset() override
         {
             attackTimer = urand(1000, 5000);
         }
 
-        void DamageDealt(Unit* /*target*/, uint32& damage, DamageEffectType /*damageType*/)
+        void DamageDealt(Unit* /*target*/, uint32& damage, DamageEffectType /*damageType*/) override
         {
             damage = 0;
         }
 
-        void UpdateAI(const uint32 diff)
+        void UpdateAI(uint32 diff) override
         {
-            if (!me->isInCombat())
+            if (!me->IsInCombat())
             {
                 if (attackTimer <= diff)
                 {
@@ -56,7 +69,7 @@ public:
         }
     };
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const override
     {
         return new mob_serpent_spine_defenderAI(creature);
     }
@@ -77,24 +90,24 @@ public:
         InstanceScript* pInstance;
         uint32 bombTimer;
 
-        void Reset()
+        void Reset() override
         {
             me->GetMotionMaster()->MoveRandom(5.0f);
             bombTimer = urand(1000, 7500);
         }
 
         // Called when spell hits a target
-        void SpellHitTarget(Unit* target, SpellInfo const* /*spell*/)
+        void SpellHitTarget(Unit* target, SpellInfo const* /*spell*/) override
         {
             if (target->GetEntry() == NPC_BOMB_STALKER)
                 me->AddAura(SPELL_BOMB_AURA, target);
         }
 
-        void UpdateAI(const uint32 diff)
+        void UpdateAI(uint32 diff) override
         {
             if (bombTimer <= diff)
             {
-                if (Unit* stalker = pInstance->instance->GetCreature(pInstance->GetData64(DATA_RANDOM_BOMB_STALKER)))
+                if (Unit* stalker = pInstance->instance->GetCreature(pInstance->GetGuidData(DATA_RANDOM_BOMB_STALKER)))
                     if (!stalker->HasAura(SPELL_BOMB_AURA))
                         me->CastSpell(stalker, SPELL_BOMB_CAST_VISUAL, true);
 
@@ -104,7 +117,7 @@ public:
         }
     };
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const override
     {
         return new npc_krikthik_bombarderAI (creature);
     }
@@ -116,7 +129,7 @@ class AreaTrigger_at_first_door : public AreaTriggerScript
     public:
         AreaTrigger_at_first_door() : AreaTriggerScript("at_first_door") {}
 
-        bool OnTrigger(Player* player, AreaTriggerEntry const* /*trigger*/)
+        bool OnTrigger(Player* player, AreaTriggerEntry const* /*trigger*/, bool /*entered*/) override
         {
             if (player->GetInstanceScript())
                 player->GetInstanceScript()->SetData(DATA_OPEN_FIRST_DOOR, DONE);
@@ -130,7 +143,7 @@ class go_setting_sun_brasier : public GameObjectScript
 public:
     go_setting_sun_brasier() : GameObjectScript("go_setting_sun_brasier") { }
 
-    bool OnGossipHello(Player* player, GameObject* /*go*/)
+    bool OnGossipHello(Player* player, GameObject* /*go*/) override
     {
         if (player->GetInstanceScript())
             player->GetInstanceScript()->SetData(DATA_BRASIER_CLICKED, DONE);
@@ -144,7 +157,7 @@ class go_setting_sun_temp_portal : public GameObjectScript
 public:
     go_setting_sun_temp_portal() : GameObjectScript("go_setting_sun_temp_portal") { }
 
-    bool OnGossipHello(Player* player, GameObject* go)
+    bool OnGossipHello(Player* player, GameObject* go) override
     {
         switch (go->GetEntry())
         {
@@ -168,7 +181,7 @@ class vehicle_artillery_to_wall : public VehicleScript
     public:
         vehicle_artillery_to_wall() : VehicleScript("vehicle_artillery_to_wall") {}
 
-        void OnAddPassenger(Vehicle* veh, Unit* /*passenger*/, int8 /*seatId*/)
+        void OnAddPassenger(Vehicle* veh, Unit* /*passenger*/, int8 /*seatId*/) override
         {
             if (veh->GetBase())
                 if (veh->GetBase()->ToCreature())
@@ -178,22 +191,21 @@ class vehicle_artillery_to_wall : public VehicleScript
 
         struct vehicle_artillery_to_wallAI : public ScriptedAI
         {
-            vehicle_artillery_to_wallAI(Creature* creature) : ScriptedAI(creature)
-            {}
+            vehicle_artillery_to_wallAI(Creature* creature) : ScriptedAI(creature) {}
 
             uint32 launchEventTimer;
 
-            void Reset()
+            void Reset() override
             {
                 launchEventTimer = 0;
             }
 
-            void DoAction(int32 const action)
+            void DoAction(int32 const /*action*/) override
             {
                 launchEventTimer = 2500;
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (!launchEventTimer)
                     return;
@@ -205,7 +217,7 @@ class vehicle_artillery_to_wall : public VehicleScript
                         if (Unit* passenger = me->GetVehicleKit()->GetPassenger(0))
                         {
                             passenger->ExitVehicle();
-                            passenger->GetMotionMaster()->MoveJump(1100.90f, 2304.58f, 381.23f, 30.0f, 50.0f);
+                            passenger->GetMotionMaster()->MoveJump(1100.90f, 2304.58f, 381.23f, 0.0f, 30.0f, 50.0f, EVENT_JUMP, true);
                         }
                     }
 
@@ -215,12 +227,35 @@ class vehicle_artillery_to_wall : public VehicleScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new vehicle_artillery_to_wallAI(creature);
         }
 };
 
+class go_setting_sun_elevator : public GameObjectScript
+{
+    public:
+        go_setting_sun_elevator() : GameObjectScript("go_setting_sun_elevator") { }
+
+        InstanceScript* m_Instance;
+
+        bool OnGossipHello(Player* p_Player, GameObject* /*go*/) override
+        {
+            if (!p_Player)
+                return false;
+
+            std::list<Player*> l_PlayerList;
+            GetPlayerListInGrid(l_PlayerList, p_Player, 45.0f);
+
+            for (Player* player : l_PlayerList)
+                player->TeleportTo(962, 1193.399f, 2290.80f, 430.87f, 1.52f);
+
+            return false;
+        }
+};
+
+#ifndef __clang_analyzer__
 void AddSC_gate_setting_sun()
 {
     new mob_serpent_spine_defender();
@@ -229,4 +264,6 @@ void AddSC_gate_setting_sun()
     new go_setting_sun_brasier();
     new go_setting_sun_temp_portal();
     new vehicle_artillery_to_wall();
+    new go_setting_sun_elevator();
 }
+#endif

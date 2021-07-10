@@ -1,7 +1,5 @@
 /*
- * Copyright (C) 2012-2013 JadeCore <http://www.pandashan.com/>
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
+ * Copyright 2021 ShadowCore
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -17,59 +15,134 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// TODO : Finish Heroic mode
-
 #include "GameObjectAI.h"
 #include "ScriptMgr.h"
 #include "ScriptedCreature.h"
 #include "heart_of_fear.h"
+#include "Creature.h"
+#include "CreatureAI.h"
+#include "Spell.h"
+
+enum eZorlokSpells
+{
+    SPELL_MANTID_WINGS          = 126316,
+    SPELL_ATTENUATION           = 122440,
+    SPELL_CONVERT               = 122740,
+    SPELL_INHALE                = 122852,
+    SPELL_EXHALE                = 122761,
+    SPELL_EXHALE_DMG            = 122760,
+    SPELL_PHEROMONES_OF_ZEAL    = 123812,   // Aura inflicting damages to players
+    SPELL_PHEROMONES_CLOUD      = 123811,   // Creating Cloud of pheromones
+    SPELL_FORCE_AND_VERVE       = 122713,
+    SPELL_NOISE_CANCELLING      = 122706,
+    SPELL_MISSILE_NOISE_CANC    = 122707,
+    SPELL_SONG_OF_THE_EMPRESS   = 123791,
+    SPELL_SONIC_RING_VISUAL     = 122334,
+    SPELL_SONIC_RING_AURA       = 122336,
+    SPELL_SONIC_PULSE_VISUAL    = 124668,
+    SPELL_SONIC_PULSE_AURA      = 124673,
+    SPELL_INHALE_PHEROMONES     = 124018,
+    SPELL_REINFORCE             = 123833,
+    SPELL_ZORLOK_BERSERK        = 120207,
+    SPELL_MAGNETIC_PULSE        = 147379,    // Pull the players on the boss
+    SPELL_ECHO_OF_ZORLOK        = 127496,
+
+    SPELL_VIZIER_ZORLOK_BONUS   = 132194
+};
+
+enum eZorlokEvent
+{
+    EVENT_INHALE                    = 1,
+    EVENT_EXHALE                    = 2,
+    EVENT_BERSERK                   = 3,
+    EVENT_ATTENUATION               = 4,
+    EVENT_SUMMON_RINGS              = 5,
+    EVENT_SUMMON_RINGS1             = 6,
+    EVENT_SUMMON_RINGS2             = 7,
+    EVENT_PHEROMONES_CLOUD          = 8,
+    EVENT_FORCE_AND_VERVE           = 9,
+    EVENT_CAST_FANDV                = 10,
+    EVENT_CONVERT                   = 11,
+    EVENT_PULL_RAID                 = 12,
+    EVENT_SONIC_PULSE               = 13,
+    EVENT_SUMMON_LAST_ECHO          = 14,
+    EVENT_SONIC_MOVE                = 15
+};
+
+enum eZorlokActions
+{
+    ACTION_SONIC_RING           = 2,
+    ACTION_INHALE_PHEROMONES    = 3,
+    ACTION_WIPE                 = 4,
+    ACTION_SONIC_PULSE          = 5
+};
+
+enum eZorlokTypes
+{
+    TYPE_EXHALE_TARGET  = 1,
+    TYPE_PHASE_ZORLOK   = 2
+};
+
+enum eZorlokAdds
+{
+    NPC_SONIC_RING              = 62689,
+    NPC_SONIC_PULSE             = 63837,
+    NPC_ECHO_OF_ATTENUATION     = 65173,
+    NPC_ECHO_OF_FORCE_AND_VERVE = 65174
+};
+
+enum eZorlokPhase
+{
+    PHASE_ZORLOK1               = 1,
+    PHASE_ZORLOK2               = 4 // value '4' needed, DON'T CHANGE IT !!!
+};
 
 enum ePlatforms
 {
-    PLATFORM_ZORLOK_SW              = 1,    // Platform South-west (Force and verve)
-    PLATFORM_ZORLOK_NE              = 2,    // Platform North-east (attenuation)
-    PLATFORM_ZORLOK_SE              = 3,    // Platform South-east (Convert)
+    PLATFORM_ZORLOK_SW          = 1,    // Platform South-west (Force and verve)
+    PLATFORM_ZORLOK_NE          = 2,    // Platform North-east (Attenuation)
+    PLATFORM_ZORLOK_SE          = 3    // Platform South-east (Convert)
 };
 
 enum eTalk
 {
-    TALK_AGGRO                      = 1,
-    TALK_DEATH                      = 2,
-    TALK_EVENT_IDLE_1A              = 3,    // 1st phase of trash mobs
-    TALK_EVENT_IDLE_1B              = 4,
-    TALK_EVENT_IDLE_1C              = 5,
-    TALK_EVENT_IDLE_2               = 6,    // 2nd phase of trash mobs
-    TALK_EVENT_IDLE_3               = 7,    // 3rd phase of trash mobs
-    TALK_EVENT_IDLE_4               = 8,    // 4th phase of trash mobs
-    TALK_EVENT_PHASE_1              = 9,
-    TALK_EVENT_PHASE_2              = 10,
-    TALK_EVENT_PHASE_3              = 11,
-    TALK_EVENT_TRASH_A_COMBAT       = 12,
-    TALK_EVENT_TRASH_A_DIES         = 13,
-    TALK_EVENT_TRASH_B_COMBAT       = 14,
-    TALK_EVENT_TRASH_B_DIES         = 15,
-    TALK_EVENT_TRASH_C_COMBAT       = 16,
-    TALK_EVENT_TRASH_C_DIES         = 17,
-    TALK_SLAY_01                    = 18,   // Killing a player
-    TALK_SLAY_02                    = 19,
-    TALK_EXHALE                     = 20,
-    TALK_INHALE                     = 21,
-    TALK_CONVERT                    = 22,
-    TALK_PITCH                      = 23,   // Echoes of power
+    TALK_AGGRO                  = 1,
+    TALK_DEATH                  = 2,
+    TALK_EVENT_IDLE_1A          = 3,    // 1st phase of trash mobs
+    TALK_EVENT_IDLE_1B          = 4,
+    TALK_EVENT_IDLE_1C          = 5,
+    TALK_EVENT_IDLE_2           = 6,    // 2nd phase of trash mobs
+    TALK_EVENT_IDLE_3           = 7,    // 3rd phase of trash mobs
+    TALK_EVENT_IDLE_4           = 8,    // 4th phase of trash mobs
+    TALK_EVENT_PHASE_1          = 9,
+    TALK_EVENT_PHASE_2          = 10,
+    TALK_EVENT_PHASE_3          = 11,
+    TALK_EVENT_TRASH_A_COMBAT   = 12,
+    TALK_EVENT_TRASH_A_DIES     = 13,
+    TALK_EVENT_TRASH_B_COMBAT   = 14,
+    TALK_EVENT_TRASH_B_DIES     = 15,
+    TALK_EVENT_TRASH_C_COMBAT   = 16,
+    TALK_EVENT_TRASH_C_DIES     = 17,
+    TALK_SLAY_01                = 18,   // Killing a player
+    TALK_SLAY_02                = 19,
+    TALK_EXHALE                 = 20,
+    TALK_INHALE                 = 21,
+    TALK_CONVERT                = 22,
+    TALK_PITCH                  = 23    // Echoes of power
 };
 
 Position zorlokPlatforms[3] =
 {
     {-2317.21f,     300.67f,    409.90f,    0.0f},  // SW Platform
     {-2234.36f,     216.88f,    409.90f,    0.0f},  // NE Platform
-    {-2315.77f,     218.20f,    409.90f,    0.0f},  // SE Platform
+    {-2315.77f,     218.20f,    409.90f,    0.0f}   // SE Platform
 };
 
-Position zorlokReachPoints[3] = 
+Position zorlokReachPoints[3] =
 {
     {-2317.21f,     300.67f,    420.0f,     0.0f},  // NE Platform
     {-2234.36f,     216.88f,    420.0f,     0.0f},  // SW Platform
-    {-2315.77f,     218.20f,    420.0f,     0.0f},  // SE Platform
+    {-2315.77f,     218.20f,    420.0f,     0.0f}   // SE Platform
 };
 
 Position oratiumCenter[2] =
@@ -91,22 +164,22 @@ Position finalPhaseWalls2[3] =
 {
     {-2255.168f, 308.7326f, 406.0f,   0.7853968f},
     {-2240.0f,   294.0f,    406.0f,   0.7853968f},
-    {-2225.753f, 280.1424f, 406.381f, 0.7853968f},
+    {-2225.753f, 280.1424f, 406.381f, 0.7853968f}
 };
 
 float tabCenter[3] = {-2274.8f, 259.187f, 406.5f};
 
 float rangeAttenuation1[2][2] =
 {
-    -2256.0f, -2208.0f,
-      190.0f,   240.0f
+    {-2256.0f, -2208.0f},
+    {190.0f,   240.0f}
 };
 
 float rangeAttenuation2[2][2] =
 {
     // Coords to redone
-    -2297.0f, -2250.0f,
-      237.0f,   280.0f
+    {-2297.0f, -2250.0f},
+      {237.0f,   280.0f}
 };
 
 // Zorlok - 62980
@@ -124,6 +197,7 @@ class boss_zorlok : public CreatureScript
                 pInstance = creature->GetInstanceScript();
             }
 
+            // Global
             InstanceScript* pInstance;
             EventMap events;
             bool isActive;
@@ -134,52 +208,84 @@ class boss_zorlok : public CreatureScript
             uint8 hasTalk;
             uint32 platformToUse;
             uint32 actualPlatform;
-            uint8 sonicSpirals;
+            // Inhale - Exhale
             uint32 exhaleTarget;
+            bool inhaleDone;
+            // Attenuation
+            uint8 sonicRingCount;
+            uint8 sonicPulseCount;
+            float ringOrientation;
+            float xr, yr, zr, orientation;       // Starting coords for sonic ring wave
+            float pulseOrientation;
+            float xp, yp, zp, op;       // Starting coords for sonic pulse wave (Heroic mode)
             bool clocksideRings;
+            // Echo
             bool isEcho;
             bool isAttEcho;
             bool isFaVEcho;
-            bool inhaleDone;
+            bool hasSummonedLastEcho;
             
-            void Reset()
+            void Reset() override
             {
                 events.Reset();
-                me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID, EQUIP_ZORLOK);
+                summons.DespawnAll();
+                me->SetVirtualItem(0, EQUIP_ZORLOK);
                 // Make sure we can target zorlok
-                me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC);
-                // Set fying
-                me->SetCanFly(true);
-                me->SetSpeed(MOVE_FLIGHT, 4.5f);
-                me->SetByteFlag(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_HOVER);
-                me->SetDisableGravity(true);
-                me->SetReactState(REACT_PASSIVE);
-                me->RemoveAllAreaTriggers();
+                me->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
 
                 // Set Echo
                 isAttEcho = me->GetEntry() == NPC_ECHO_OF_ATTENUATION;
                 isFaVEcho = me->GetEntry() == NPC_ECHO_OF_FORCE_AND_VERVE;
                 isEcho    = (isAttEcho || isFaVEcho);
 
-                isActive = false;
-                if (pInstance)
+                // Set fying
+                if (!isEcho)
+                {
+                    DoCast(me, SPELL_MANTID_WINGS);
+                    me->SetCanFly(true);
+                    me->SetSpeed(MOVE_FLIGHT, 4.5f);
+                    me->SetHover(true);
+                    me->SetDisableGravity(true);
+                    me->SetReactState(REACT_PASSIVE);
+                    me->RemoveAllAreaTriggers();
+                }
+                else
+                    me->AddAura(SPELL_ECHO_OF_ZORLOK, me);
+
+                // Zor'lok isn't immediately active, but echoes are.
+                isActive = isEcho;
+
+                if (pInstance && !isEcho)
                 {
                     EncounterState bossState = pInstance->GetBossState(DATA_ZORLOK);
                     if (bossState != DONE && bossState != NOT_STARTED)
                         pInstance->SetBossState(DATA_ZORLOK, NOT_STARTED);
                 }
-                numPlat = 0;
-                phase = 0;
-                platformToUse = 0;
-                hasTalk = 0;
-                actualPlatform = 0;
-                sonicSpirals = 0;
-                clocksideRings = true;
-                inhaleDone = false;
-                exhaleTarget = 0;
+
+                numPlat             = 0;
+                phase               = isEcho ? GetZorlok()->AI()->GetData(TYPE_PHASE_ZORLOK) : 0;
+                platformToUse       = 0;
+                hasTalk             = 0;
+                actualPlatform      = 0;
+                sonicRingCount      = 0;
+                sonicPulseCount     = 0;
+                xr = 0, yr = 0, zr = 0, orientation = 0;
+                xp = 0, yp = 0, zp = 0, op = 0;
+                clocksideRings      = true;
+                inhaleDone          = false;
+                exhaleTarget        = 0;
+                pulseOrientation    = 0.0f;
+                ringOrientation     = 0.0f;
+                hasSummonedLastEcho = false;
+
+                // Echo in phase 2 should not move
+                if (isEcho && phase == 2)
+                    me->AddUnitFlag(UNIT_FLAG_REMOVE_CLIENT_CONTROL);
 
                 platforms.clear();
-                RemoveWalls();
+                if (!isEcho)
+                    RemoveWalls();
+
                 // In heroic mode, the platforms are ordered, so we just need to increase numPlat and having it matching to ePlatforms values, which
                 // are heroic ordered, to get the right platform.
                 //
@@ -217,20 +323,20 @@ class boss_zorlok : public CreatureScript
                 me->getThreatManager().clearReferences();
                 me->SetCanFly(true);
                 me->SetReactState(REACT_PASSIVE);
-                me->HandleEmote(EMOTE_ONESHOT_LIFTOFF);
+                me->HandleEmoteCommand(EMOTE_ONESHOT_LIFTOFF);
                 me->SetDisableGravity(true);
-                me->SendMovementFlagUpdate();
-                me->SetByteFlag(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_HOVER);
+                me->SetHover(true);
                 me->AddUnitMovementFlag(MOVEMENTFLAG_CAN_FLY | MOVEMENTFLAG_FLYING);
-                me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC);
+                me->AddUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
 
                 if (isActive)
                 {
                     if (phase == PHASE_ZORLOK1 && hasTalk < numPlat)
                     {
-                        // temp crash fix
-                        //me->GetMotionMaster()->MovePoint(platformToUse, zorlokReachPoints[platformToUse - 1]);
-                        me->MonsterTextEmote("Imperial Vizier Zor'lok is flying to one of hist platforms!", 0, true);
+                        me->GetMotionMaster()->MovePoint(platformToUse, zorlokReachPoints[platformToUse - 1]);
+                        std::ostringstream str;
+                        str << "Imperial Vizier Zor'lok is flying to one of hist platforms!";
+                        me->TextEmote(str.str().c_str(), 0, true);
                         hasTalk = numPlat;
                     }
                     else
@@ -245,9 +351,8 @@ class boss_zorlok : public CreatureScript
                 me->SetCanFly(false);
                 me->SetDisableGravity(false);
                 me->RemoveUnitMovementFlag(MOVEMENTFLAG_FLYING);
-                me->RemoveByteFlag(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_HOVER);
-                me->SendMovementFlagUpdate();
-                me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC);
+                me->SetHover(false);
+                me->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
                 events.ScheduleEvent(EVENT_INHALE, 15000);
 
                 if (platformToUse != actualPlatform)
@@ -289,13 +394,36 @@ class boss_zorlok : public CreatureScript
                 }
             }
 
-            void JustDied(Unit* /*who*/)
+            // Specific for echo
+            Creature* GetZorlok()
+            {
+                if (Creature* Zorlok = pInstance->GetCreature(NPC_ZORLOK))
+                    return Zorlok;
+
+                return 0;
+            }
+
+            // Return an angle between 0.0f and 6.28f from a non corrected value
+            float CorrectAngle(float angle)
+            {
+                if (angle > 2 * float(M_PI))
+                    angle -= 2 * float(M_PI);
+                else if (angle < 0.0f)
+                    angle += 2 * float(M_PI);
+                // angle = (angle > (2 * M_PI)) ? (angle - (2 * M_PI)) : ((angle < 0.0f) ? (angle + (2 * M_PI)) : angle);
+                return angle;
+            }
+
+            void JustDied(Unit* /*who*/) override
             {
                 events.Reset();
                 summons.DespawnAll();
                 me->RemoveAllAreaTriggers();
 
-                if (isEcho)
+                if (isEcho || !pInstance)
+                    return;
+
+                if (pInstance->GetBossState(DATA_ZORLOK) == DONE)
                     return;
 
                 me->SetCanFly(false);
@@ -304,40 +432,78 @@ class boss_zorlok : public CreatureScript
 
                 Talk(TALK_DEATH);
 
-                if (pInstance)
-                {
-                    pInstance->SetBossState(DATA_ZORLOK, DONE);
-                    pInstance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me);
+                pInstance->SetBossState(DATA_ZORLOK, DONE);
+                pInstance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me);
 
-                    pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_CONVERT);
-                    pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_FORCE_AND_VERVE);
-                }
+                pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_CONVERT);
+                pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_FORCE_AND_VERVE);
+                pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_PHEROMONES_OF_ZEAL);
+
+                /*if (me->GetMap()->IsLFR())
+                {
+                    me->ResetLootRecipients();
+                    Player* l_Player = me->GetMap()->GetPlayers().begin()->GetSource();
+                    if (l_Player && l_Player->GetGroup())
+                        sLFGMgr->AutomaticLootAssignation(me, l_Player->GetGroup());
+                }*/
 
                 _JustDied();
+
+                Map::PlayerList const& l_PlrList = me->GetMap()->GetPlayers();
+                for (Map::PlayerList::const_iterator l_Itr = l_PlrList.begin(); l_Itr != l_PlrList.end(); ++l_Itr)
+                {
+                    if (Player* l_Player = l_Itr->GetSource())
+                        me->CastSpell(l_Player, SPELL_VIZIER_ZORLOK_BONUS, true);
+                }
             }
 
-            void JustReachedHome()
+            void JustReachedHome() override
             {
-                if (isEcho)
+                if (isEcho || !isActive)
                     return;
 
                 _JustReachedHome();
 
+                isActive = false;
+                events.Reset();
+                if (me->HasAura(SPELL_SONG_OF_THE_EMPRESS))
+                    me->RemoveAura(SPELL_SONG_OF_THE_EMPRESS);
+
                 if (pInstance)
                     pInstance->SetBossState(DATA_ZORLOK, FAIL);
+
+                me->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
+                me->RemoveUnitFlag(UNIT_FLAG_IN_COMBAT);
             }
 
-            void EnterCombat(Unit* attacker)
+            void EnterCombat(Unit* /*p_Attacker*/) override
             {
-                pInstance->SendEncounterUnit(ENCOUNTER_FRAME_ENGAGE, me);
+                if (pInstance)
+                {
+                    pInstance->SendEncounterUnit(ENCOUNTER_FRAME_ENGAGE, me);
+                    if (pInstance->GetBossState(DATA_ZORLOK) != IN_PROGRESS)
+                        pInstance->SetBossState(DATA_ZORLOK, IN_PROGRESS);
+                }
+                // Creating walls
+                for (uint8 i = 0; i < 3; ++i)
+                    // Arena walls
+                    me->SummonGameObject(GOB_ARENA_WALLS, finalPhaseWalls2[i].GetPositionX(), finalPhaseWalls2[i].GetPositionY(), finalPhaseWalls2[i].GetPositionZ(), finalPhaseWalls2[i].GetOrientation(), QuaternionData(), 7200);
+
+
                 // 10 minutes enrage timer
-                events.ScheduleEvent(EVENT_BERSERK, 600000);
+                if (!isEcho)
+                    events.ScheduleEvent(EVENT_BERSERK, 600000);
+
+                if (isAttEcho)
+                    events.ScheduleEvent(EVENT_ATTENUATION, 15000);
+                if (isFaVEcho)
+                    events.ScheduleEvent(EVENT_FORCE_AND_VERVE, 15000);
             }
 
-            void MoveInLineOfSight(Unit* attacker)
+            void MoveInLineOfSight(Unit* attacker) override
             {
                 // Do nothing if not in attack phase (ie. flying), or if the unit beside isn't a player
-                if (!me->HasReactState(REACT_DEFENSIVE) || attacker->GetTypeId() != TYPEID_PLAYER)
+                if (!isEcho && (!me->HasReactState(REACT_DEFENSIVE) || attacker->GetTypeId() != TYPEID_PLAYER))
                     return;
 
                 // If is using Song of Empress, stop it
@@ -348,9 +514,12 @@ class boss_zorlok : public CreatureScript
                 me->AddThreat(attacker, 0.0f);
             }
 
-            void KilledUnit(Unit* victim)
+            void KilledUnit(Unit* victim) override
             {
-                if (victim->GetTypeId() == TYPEID_PLAYER)
+                if (isEcho)
+                    return;
+
+                if (victim->IsPlayer())
                     Talk(TALK_SLAY_01 + urand(0, 1));
             }
 
@@ -358,28 +527,32 @@ class boss_zorlok : public CreatureScript
             {
                 // In Heroic mode, the platforms order is fixed
                 if (IsHeroic())
-                    return platformToUse = numPlat++;
+                    return platformToUse = ++numPlat;
 
                 // Using a while loop considering it's possible none of the platforms could be selected due to the rand condition : if so, we need to redo
                 // another loop(s) until a platform is picked.
                 while (true)
                 {
+                    // count is used to set the same chance to be chosen for all platforms
+                    uint32 count = 0;
                     for (auto platform : platforms)
                     {
-                        if (urand(0,1))
+                        // can only trigger if urand returns 0
+                        if (!urand(0, uint32(platforms.size() - (1 + count))))
                         {
                             platforms.remove(platform);
                             ++numPlat;
                             return platformToUse = platform;
                         }
+                        ++count;
                     }
                 }
             }
 
-            void DamageTaken(Unit* attacker, uint32 &damage)
+            void DamageTaken(Unit* attacker, uint32 &damage) override
             {
                 // Check if trashes are done
-                if (pInstance)
+                if (pInstance && !isEcho)
                 {
                     EncounterState bossState = pInstance->GetBossState(DATA_ZORLOK);
                     if (bossState == NOT_STARTED || bossState == TO_BE_DECIDED)
@@ -394,17 +567,14 @@ class boss_zorlok : public CreatureScript
 
                         if (ShieldMaster || Zealok || Fanatic || BoneSmasher || Supplicant || Supplicant2 || Supplicant3)
                         {
-                            EnterEvadeMode();
+                            EnterEvadeMode(EVADE_REASON_OTHER);
                             pInstance->SetBossState(DATA_ZORLOK, NOT_STARTED);
                             return;
                         }
                     }
                 }
 
-                if (isEcho)
-                    return;
-
-                if ((isFlying && isActive) || (attacker->GetTypeId() != TYPEID_PLAYER))
+                if (isEcho || (isFlying && isActive) || (attacker->GetTypeId() != TYPEID_PLAYER))
                     return;
 
                 if (!isActive)
@@ -434,7 +604,7 @@ class boss_zorlok : public CreatureScript
                     }
                 }
 
-                if (phase == PHASE_ZORLOK2)
+                if (isEcho || phase == PHASE_ZORLOK2)
                     return;
 
                 // Phase 1
@@ -444,10 +614,18 @@ class boss_zorlok : public CreatureScript
                     // Switching platforms at 100%, 80% and 60% remaining life
                     if (numPlat < 3)
                     {
+                        if (IsHeroic())
+                        {
+                            // Leaving Force and Verve Echo
+                            if (numPlat == 1)
+                                me->SummonCreature(NPC_ECHO_OF_FORCE_AND_VERVE, me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), me->GetOrientation());
+
+                            if (numPlat == 2)
+                                me->SummonCreature(NPC_ECHO_OF_ATTENUATION, me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), me->GetOrientation());
+                        }
                         uint32 platformToUse = ChoosePlatform();
-                        //temp crash fix.
                         me->GetMotionMaster()->MoveTakeoff(platformToUse, zorlokReachPoints[platformToUse - 1]);
-                        me->MonsterTextEmote("Imperial Vizier Zor'lok is flying to one of his platforms!", 0, true);
+                        me->TextEmote("Imperial Vizier Zor'lok is flying to one of his platforms!", 0, true);
                     }
                     // At 40% remaining phase, switch on phase 2
                     else
@@ -461,84 +639,97 @@ class boss_zorlok : public CreatureScript
                 }
             }
 
-            void DoAction (int32 const action)
+            void DoAction (int32 const action) override
             {
                 switch (action)
                 {
-                    case ACTION_SONIC_CARD:
+                    case ACTION_SONIC_RING:
                     {
-                        if (sonicSpirals == 3)
+                        if (!sonicRingCount)
                         {
-                            sonicSpirals = 0;
                             clocksideRings = (urand(0, 1) ? true : false);
+                            xr = me->GetPositionX();
+                            yr = me->GetPositionY();
+                            zr = me->GetPositionZ();
+                            orientation = me->GetOrientation();
                         }
-                        ++sonicSpirals;
 
-                        me->SummonCreature(NPC_SONIC_RING_FORWARD,  me->GetPositionX(), me->GetPositionY(), me->GetPositionZ());
-                        me->SummonCreature(NPC_SONIC_RING_BACK,     me->GetPositionX(), me->GetPositionY(), me->GetPositionZ());
-                        me->SummonCreature(NPC_SONIC_RING_90LEFT,   me->GetPositionX(), me->GetPositionY(), me->GetPositionZ());
-                        me->SummonCreature(NPC_SONIC_RING_90RIGHT,  me->GetPositionX(), me->GetPositionY(), me->GetPositionZ());
-                        
-                        events.ScheduleEvent((clocksideRings ? EVENT_SUMMON_RINGS1 : EVENT_SUMMON_RINGS2), 1000);
-                        break;
-                    }
-                    case ACTION_SONIC_QUAD1:
-                    {
-                        me->SummonCreature(NPC_SONIC_RING_30LEFT,   me->GetPositionX(), me->GetPositionY(), me->GetPositionZ());
-                        me->SummonCreature(NPC_SONIC_RING_150RIGHT, me->GetPositionX(), me->GetPositionY(), me->GetPositionZ());
-                        me->SummonCreature(NPC_SONIC_RING_120LEFT,  me->GetPositionX(), me->GetPositionY(), me->GetPositionZ());
-                        me->SummonCreature(NPC_SONIC_RING_60RIGHT,  me->GetPositionX(), me->GetPositionY(), me->GetPositionZ());
+                        float variation = float(M_PI)/2;
 
-                        if (!clocksideRings)
+                        float frontAngle = CorrectAngle(orientation + ringOrientation);
+                        float leftAngle  = CorrectAngle(frontAngle + variation);
+                        float rightAngle = CorrectAngle(frontAngle - variation);
+                        float backAngle  = CorrectAngle(frontAngle + 2 * variation);
+
+                        me->SummonCreature(NPC_SONIC_RING, xr, yr, zr, frontAngle);
+                        me->SummonCreature(NPC_SONIC_RING, xr, yr, zr, leftAngle);
+                        me->SummonCreature(NPC_SONIC_RING, xr, yr, zr, rightAngle);
+                        me->SummonCreature(NPC_SONIC_RING, xr, yr, zr, backAngle);
+
+                        if (sonicRingCount >= 10)
                         {
-                            if (sonicSpirals < 3)
-                                events.ScheduleEvent(EVENT_SUMMON_RINGS, 1000);
-                            else
-                            {
-                                me->SetReactState(REACT_DEFENSIVE);
-                                me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PACIFIED|UNIT_FLAG_DISABLE_MOVE|UNIT_FLAG_IMMUNE_TO_PC|UNIT_FLAG_STUNNED);
-                                me->RemoveFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_DISABLE_TURN);
-                                me->SetFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_ALLOW_ENEMY_INTERACT);
-                            }
+                            sonicRingCount  = 0;
+                            ringOrientation = 0.0f;
+                            // Resetting coords
+                            xr = 0.0f;
+                            yr = 0.0f;
+                            zr = 0.0f;
+                            orientation = 0.0f;
+                            // Reset Zor'lok in combat
+                            me->SetReactState(REACT_DEFENSIVE);
+                            me->RemoveUnitFlag(UnitFlags(UNIT_FLAG_PACIFIED|UNIT_FLAG_REMOVE_CLIENT_CONTROL|UNIT_FLAG_IMMUNE_TO_PC|UNIT_FLAG_STUNNED));
+                            me->RemoveUnitFlag2(UNIT_FLAG2_DISABLE_TURN);
+                            me->AddUnitFlag2(UNIT_FLAG2_ALLOW_ENEMY_INTERACT);
                         }
                         else
-                            events.ScheduleEvent(EVENT_SUMMON_RINGS2, 1000);
+                        {
+                            ++sonicRingCount;
+                            ringOrientation = CorrectAngle(ringOrientation + (clocksideRings ? -M_PI / 6 : M_PI / 6));
+                            events.ScheduleEvent(EVENT_SUMMON_RINGS, 1000);
+                        }
+
                         break;
                     }
-                    case ACTION_SONIC_QUAD2:
+                    case ACTION_SONIC_PULSE:
                     {
-                        me->SummonCreature(NPC_SONIC_RING_60LEFT,   me->GetPositionX(), me->GetPositionY(), me->GetPositionZ());
-                        me->SummonCreature(NPC_SONIC_RING_120RIGHT, me->GetPositionX(), me->GetPositionY(), me->GetPositionZ());
-                        me->SummonCreature(NPC_SONIC_RING_150LEFT,  me->GetPositionX(), me->GetPositionY(), me->GetPositionZ());
-                        me->SummonCreature(NPC_SONIC_RING_30RIGHT,  me->GetPositionX(), me->GetPositionY(), me->GetPositionZ());
-
-                        if (clocksideRings)
+                        // To have a proper spawn, we save the position on first pulse, and progressively increase/decrease (according to clocksideRings)
+                        // the angle the pulse will have and so, the path they'll follow
+                        if (!sonicPulseCount)
                         {
-                            if (sonicSpirals < 3)
-                                events.ScheduleEvent(EVENT_SUMMON_RINGS, 1000);
-                            else
-                            {
-                                me->SetReactState(REACT_DEFENSIVE);
-                                me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PACIFIED|UNIT_FLAG_DISABLE_MOVE|UNIT_FLAG_IMMUNE_TO_PC|UNIT_FLAG_STUNNED);
-                                me->RemoveFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_DISABLE_TURN);
-                                me->SetFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_ALLOW_ENEMY_INTERACT);
-                            }
+                            xp = me->GetPositionX();
+                            yp = me->GetPositionY();
+                            zp = me->GetPositionZ();
+                            op = me->GetOrientation();
+                        }
+
+                        float variation = 2.f * float(M_PI) / 3.f;
+
+                        // Summons in Y (3 branches)
+                        float mainAngle = CorrectAngle(op + pulseOrientation);
+                        float angLeft   = CorrectAngle(mainAngle + variation);
+                        float angRight  = CorrectAngle(mainAngle - variation);
+
+                        me->SummonCreature(NPC_SONIC_PULSE, xp, yp, zp, mainAngle);
+                        me->SummonCreature(NPC_SONIC_PULSE, xp, yp, zp, angLeft);
+                        me->SummonCreature(NPC_SONIC_PULSE, xp, yp, zp, angRight);
+
+                        if (sonicPulseCount >= 8)
+                        {
+                            sonicPulseCount = 0;
+                            pulseOrientation = 0.0f;
+                            // Resetting coords;
+                            xp = 0.0f;
+                            yp = 0.0f;
+                            zp = 0.0f;
+                            op = 0.0f;
                         }
                         else
-                            events.ScheduleEvent(EVENT_SUMMON_RINGS1, 1000);
+                        {
+                            ++sonicPulseCount;
+                            pulseOrientation = CorrectAngle(pulseOrientation + (clocksideRings ? -M_PI / 6 : M_PI / 6));
+                            events.ScheduleEvent(EVENT_SONIC_PULSE, 1500);
+                        }
 
-                        break;
-                    }
-                    case ACTION_INHALE_PHEROMONES:
-                    {
-                        if (inhaleDone)
-                            return;
-
-                        me->RemoveAreaTrigger(SPELL_PHEROMONES_CLOUD);
-                        pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_PHEROMONES_OF_ZEAL);
-                        me->GetMotionMaster()->MoveLand(PHASE_ZORLOK2 + 10,  oratiumCenter[1]);
-                        inhaleDone = true;
-                        SetLanding(PHASE_ZORLOK2);
                         break;
                     }
                     case ACTION_WIPE:
@@ -553,21 +744,28 @@ class boss_zorlok : public CreatureScript
 
                         isActive = false;
                         platforms.clear();
-                        if (!IsHeroic() && !isEcho)
+                        if (!IsHeroic())
                         {
                             platforms.push_back(PLATFORM_ZORLOK_SW);
                             platforms.push_back(PLATFORM_ZORLOK_NE);
                             platforms.push_back(PLATFORM_ZORLOK_SE);
                         }
+
                         numPlat = 0;
                         phase = 0;
                         hasTalk = 0;
                         platformToUse = 0;
                         actualPlatform = 0;
-                        sonicSpirals = 0;
                         exhaleTarget = 0;
+                        sonicRingCount = 0;
+                        sonicPulseCount = 0;
+                        ringOrientation = 0.0f;
+                        pulseOrientation = 0.0f;
+                        xr = 0.0f, yr = 0.0f, zr = 0.0f, orientation = 0.0f;
+                        xp = 0.0f, yp = 0.0f, zp = 0.0f, op = 0.0f;
                         clocksideRings = true;
                         inhaleDone = false;
+                        hasSummonedLastEcho = false;
                         RemoveWalls();
 
                         if (pInstance)
@@ -605,7 +803,7 @@ class boss_zorlok : public CreatureScript
                 return 0;
             }
 
-            void MovementInform(uint32 type, uint32 id)
+            void MovementInform(uint32 type, uint32 id) override
             {
                 if (isEcho || id == 0 || type != POINT_MOTION_TYPE)
                     return;
@@ -627,39 +825,36 @@ class boss_zorlok : public CreatureScript
                 if (id == 4)
                 {
                     me->CastSpell(me, SPELL_INHALE_PHEROMONES, true);
-                    me->MonsterTextEmote("Imperial Vizier Zor'lok inhales Pheromones of Zeal!", 0, true);
+                    std::ostringstream str;
+                    str << "Imperial Vizier Zor'lok inhales Pheromones of Zeal!";
+                    me->TextEmote(str.str().c_str(), 0, true);
                     pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_PHEROMONES_CLOUD);
+                    events.ScheduleEvent(EVENT_PULL_RAID, 7000);
                 }
             }
 
-            uint32 GetData(uint32 type)
+            uint32 GetData(uint32 type) const override
             {
                 if (type == TYPE_EXHALE_TARGET)
                     return exhaleTarget;
+                if (type == TYPE_PHASE_ZORLOK)
+                    return phase;
                 return 0;
             }
 
-            void SetData(uint32 type, uint32 value)
+            void SetData(uint32 type, uint32 value) override
             {
                 if (type == TYPE_EXHALE_TARGET)
                     exhaleTarget = value;
             }
 
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(const uint32 diff) override
             {
                 if (!isActive)
                     return;
 
-                // Temp Remove Flags
-                {
-                    me->SetReactState(REACT_DEFENSIVE);
-                    me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PACIFIED | UNIT_FLAG_DISABLE_MOVE | UNIT_FLAG_IMMUNE_TO_PC | UNIT_FLAG_STUNNED);
-                    me->RemoveFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_DISABLE_TURN);
-                    me->SetFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_ALLOW_ENEMY_INTERACT);
-                }
-
                 // On Wipe
-                if (pInstance)
+                if (pInstance && !isEcho)
                 {
                     if (pInstance->IsWipe())
                     {
@@ -670,25 +865,28 @@ class boss_zorlok : public CreatureScript
                 }
 
                 // Remove/Set auras on players
-                Map::PlayerList const &PlayerList = me->GetMap()->GetPlayers();
-                if (!PlayerList.isEmpty())
+                if (!isEcho)
                 {
-                    for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
+                    Map::PlayerList const &PlayerList = me->GetMap()->GetPlayers();
+                    if (!PlayerList.isEmpty())
                     {
-                        if (Player* playr = i->getSource())
+                        for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
                         {
-                            // Remove convert aura for players who have less than 50% remaining health
-                            if (playr->HasAura(SPELL_CONVERT) && playr->HealthBelowPct(51))
-                                playr->RemoveAurasDueToSpell(SPELL_CONVERT);
-                            // Pheromones of zeal - on phase 1 only
-                            if (phase == PHASE_ZORLOK1)
+                            if (Player* playr = i->GetSource())
                             {
-                                // Remove pheromones of zeal aura from players who aren't on the bottom floor
-                                if (playr->HasAura(SPELL_PHEROMONES_OF_ZEAL) && playr->GetPositionZ() >= 408.5f)
-                                    playr->RemoveAura(SPELL_PHEROMONES_OF_ZEAL);
-                                // Set pheromones of zeal aura on players who are on the bottom floor
-                                else if (!playr->HasAura(SPELL_PHEROMONES_OF_ZEAL) && playr->GetPositionZ() < 408.5f)
-                                    playr->AddAura(SPELL_PHEROMONES_OF_ZEAL, playr);
+                                // Remove convert aura for players who have less than 50% remaining health
+                                if (playr->HasAura(SPELL_CONVERT) && playr->HealthBelowPct(51))
+                                    playr->RemoveAurasDueToSpell(SPELL_CONVERT);
+                                // Pheromones of zeal - on phase 1 only
+                                if (phase == PHASE_ZORLOK1)
+                                {
+                                    // Remove pheromones of zeal aura from players who aren't on the bottom floor
+                                    if (playr->HasAura(SPELL_PHEROMONES_OF_ZEAL) && playr->GetPositionZ() >= 408.5f)
+                                        playr->RemoveAura(SPELL_PHEROMONES_OF_ZEAL);
+                                    // Set pheromones of zeal aura on players who are on the bottom floor
+                                    else if (!playr->HasAura(SPELL_PHEROMONES_OF_ZEAL) && playr->GetPositionZ() < 408.5f)
+                                        playr->AddAura(SPELL_PHEROMONES_OF_ZEAL, playr);
+                                }
                             }
                         }
                     }
@@ -697,17 +895,17 @@ class boss_zorlok : public CreatureScript
                 UpdateVictim();
                 events.Update(diff);
 
-                if (isFlying && platformToUse == actualPlatform && actualPlatform > 0 &&
+                if (isFlying && platformToUse == actualPlatform && !isEcho && actualPlatform > 0 &&
                     ((me->GetPositionZ() < 410.5f && phase == PHASE_ZORLOK1) ||
                      (me->GetPositionZ() < 407.0f && phase == PHASE_ZORLOK2)))
                 {
                     isFlying = false;
-                    me->HandleEmote(EMOTE_ONESHOT_LAND);
+                    me->HandleEmoteCommand(EMOTE_ONESHOT_LAND);
                     me->SetReactState(REACT_DEFENSIVE);
                 }
 
                 // Song of empress
-                Unit* target = me->getVictim();
+                Unit* target = me->GetVictim();
 
                 if (!isFlying && (!target || me->GetDistance(target) > 5.0f) && !me->HasUnitState(UNIT_STATE_CASTING))
                     me->CastSpell(me, SPELL_SONG_OF_THE_EMPRESS, true);
@@ -723,11 +921,13 @@ class boss_zorlok : public CreatureScript
                         else
                         {
                             // Inhale (Exhale is triggered when Zor'lok has 3-4 stacks of inhale)
-                            AuraPtr inhale = me->GetAura(SPELL_INHALE);
+                            Aura* inhale = me->GetAura(SPELL_INHALE);
                             if (!inhale || inhale->GetStackAmount() < 3 || !urand((inhale->GetStackAmount() < 4 ? 0 : 1), 1))
                             {
                                 Talk(TALK_INHALE);
-                                me->MonsterTextEmote("Imperial Vizier Zor'lok |cFFFF0000|Hspell:122852|h[Inhale]|h|r a big air breath!", 0, true);
+                                std::ostringstream str;
+                                str << "Imperial Vizier Zor'lok |cFFFF0000|Hspell:122852|h[Inhale]|h|r a big air breath!";
+                                me->TextEmote(str.str().c_str(), 0, true);
                                 me->CastSpell(me, SPELL_INHALE, false);
                             }
                             // Exhale
@@ -735,7 +935,7 @@ class boss_zorlok : public CreatureScript
                             {
                                 if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 60.0f, true))
                                 {
-                                    exhaleTarget = target->GetGUIDLow();
+                                    exhaleTarget = target->GetGUID().GetCounter();
                                     Talk(TALK_EXHALE);
                                     DoCast(target, SPELL_EXHALE, true);
                                 }
@@ -747,36 +947,30 @@ class boss_zorlok : public CreatureScript
                     // Attenuation platform
                     case EVENT_ATTENUATION:
                     {
-                        if (me->HasUnitState(UNIT_STATE_CASTING))
+                        if (!isEcho && me->HasUnitState(UNIT_STATE_CASTING))
                         {
                             events.RescheduleEvent(EVENT_ATTENUATION, 10000);
                             return;
                         }
                         me->CastSpell(me, SPELL_ATTENUATION, true);
-                        if (Unit* target = me->getVictim())
                         me->SetReactState(REACT_PASSIVE);
-                        me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PACIFIED|UNIT_FLAG_DISABLE_MOVE|UNIT_FLAG_IMMUNE_TO_PC|UNIT_FLAG_STUNNED);
-                        me->SetFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_DISABLE_TURN);
-                        me->RemoveFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_ALLOW_ENEMY_INTERACT);
+                        me->AddUnitFlag(UnitFlags(UNIT_FLAG_PACIFIED|UNIT_FLAG_REMOVE_CLIENT_CONTROL|UNIT_FLAG_IMMUNE_TO_PC|UNIT_FLAG_STUNNED));
+                        me->AddUnitFlag2(UNIT_FLAG2_DISABLE_TURN);
+                        me->RemoveUnitFlag2(UNIT_FLAG2_ALLOW_ENEMY_INTERACT);
 
-                        uint32 action = (phase == PHASE_ZORLOK1 ? EVENT_ATTENUATION : ChooseAction());
+                        uint32 action = ((phase == PHASE_ZORLOK1 || isEcho) ? EVENT_ATTENUATION : ChooseAction());
                         events.ScheduleEvent(action, 40000);
 
                         break;
                     }
-                    case EVENT_SUMMON_RINGS1:
-                    {
-                        DoAction(ACTION_SONIC_QUAD1);
-                        break;
-                    }
-                    case EVENT_SUMMON_RINGS2:
-                    {
-                        DoAction(ACTION_SONIC_QUAD2);
-                        break;
-                    }
                     case EVENT_SUMMON_RINGS:
                     {
-                        DoAction(ACTION_SONIC_CARD);
+                        DoAction(ACTION_SONIC_RING);
+                        break;
+                    }
+                    case EVENT_SONIC_PULSE:
+                    {
+                        DoAction(ACTION_SONIC_PULSE);
                         break;
                     }
                     // Convert platform
@@ -788,13 +982,15 @@ class boss_zorlok : public CreatureScript
                             return;
                         }
 
-                        me->MonsterTextEmote("Imperial Vizier Zor'lok is using is voice to |cFFFF0000|Hspell:122740|h[Convert]|h|r members of the raid and to call them by his side !", 0, true);
+                        std::ostringstream str;
+                        str << "Imperial Vizier Zor'lok is using is voice to |cFFFF0000|Hspell:122740|h[Convert]|h|r members of the raid and to call them by his side !";
+                        me->TextEmote(str.str().c_str(), 0, true);
 
                         // Creating target list
                         Talk(TALK_CONVERT);
                         DoCast(SPELL_CONVERT);
 
-                        uint32 action = (phase == PHASE_ZORLOK1 ? EVENT_CONVERT : ChooseAction());
+                        uint32 action = ((phase == PHASE_ZORLOK1 || isEcho) ? EVENT_CONVERT : ChooseAction());
                         events.ScheduleEvent(action, 40000);
 
                         break;
@@ -807,14 +1003,34 @@ class boss_zorlok : public CreatureScript
                             events.RescheduleEvent(EVENT_FORCE_AND_VERVE, 10000);
                             return;
                         }
-                        // Creating Noise Cancelling zones
-                        for (int i = 0; i < 3; ++i)
+                        // Creating Zor'lok's Noise Cancelling zones : 3 in normal mode, 4 in heroic
+                        if (!isEcho)
                         {
-                            float x = me->GetPositionX() + frand(-10.0f, 10.0f);
-                            float y = me->GetPositionY() + frand(-10.0f, 10.0f);
+                            for (int i = 0; i < (IsHeroic() ? 4 : 3); ++i)
+                            {
+                                float x = me->GetPositionX() + frand(-20.0f, 20.0f);
+                                float y = me->GetPositionY() + frand(-20.0f, 20.0f);
 
-                            me->CastSpell(x, y, me->GetPositionZ(), SPELL_MISSILE_NOISE_CANC, false);
+                                me->CastSpell(x, y, me->GetPositionZ(), SPELL_MISSILE_NOISE_CANC, false);
+                            }
                         }
+                        // Creating Echo of Attenuation's Noise Cancelling zones : 2 on Echo (me), 2 on Zor'lok
+                        else
+                        {
+                            Creature* caster;
+                            for (int i = 0; i < 2; ++i)
+                            {
+                                caster = (i == 0 ? me : GetZorlok());
+                                for (int j = 0; j < 2; ++j)
+                                {
+                                    float x = caster->GetPositionX() + frand(-20.0f, 20.0f);
+                                    float y = caster->GetPositionY() + frand(-20.0f, 20.0f);
+
+                                    caster->CastSpell(x, y, caster->GetPositionZ(), SPELL_MISSILE_NOISE_CANC, false);
+                                }
+                            }
+                        }
+
                         me->AddUnitState(UNIT_STATE_CASTING);
                         events.ScheduleEvent(EVENT_CAST_FANDV, 2000);
                         break;
@@ -822,36 +1038,59 @@ class boss_zorlok : public CreatureScript
                     case EVENT_CAST_FANDV:
                     {
                         me->SetReactState(REACT_PASSIVE);
-                        me->MonsterTextEmote("Imperial Vizier Zor'lok shouts with |cFFFF0000|Hspell:122713|h[Force et brio]|h|r!", 0, true);
+                        std::ostringstream text;
+                        text << (me->GetName()) << " shouts with |cFFFF0000|Hspell:122713|h[Force et brio]|h|r!";
+                        me->TextEmote(text.str().c_str(), 0, true);
                         me->CastSpell(me, SPELL_FORCE_AND_VERVE, true);
-                        uint32 action = (phase == PHASE_ZORLOK1 ? EVENT_FORCE_AND_VERVE : ChooseAction());
+                        uint32 action = ((phase == PHASE_ZORLOK1 || isEcho) ? EVENT_FORCE_AND_VERVE : ChooseAction());
+                        // On first Force and Verve during phase 2 in Heroic mode, Zor'lok summons the last echo at the end of spell (10 secs)
+                        if (!hasSummonedLastEcho && phase == PHASE_ZORLOK2)
+                        {
+                            hasSummonedLastEcho = true;
+                            events.ScheduleEvent(EVENT_SUMMON_LAST_ECHO, 10000);
+                        }
                         events.ScheduleEvent(action, 40000);
+                        break;
+                    }
+                    case EVENT_SUMMON_LAST_ECHO:
+                    {
+                        me->SummonCreature(NPC_ECHO_OF_ATTENUATION, me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), me->GetOrientation());
                         break;
                     }
                     case EVENT_BERSERK:
                     {
-                        me->CastSpell(me, SPELL_BERSERK, false);
+                        me->CastSpell(me, SPELL_ZORLOK_BERSERK, false);
                         break;
                     }
                     case EVENT_PULL_RAID:
                     {
+                        if (inhaleDone)
+                            break;
+
+                        // Removing pheromones cloud
+                        me->RemoveAreaTrigger(SPELL_PHEROMONES_CLOUD);
+                        pInstance->DoRemoveAurasDueToSpellOnPlayers(SPELL_PHEROMONES_OF_ZEAL);
+
+                        // Landing
+                        me->GetMotionMaster()->MoveLand(PHASE_ZORLOK2 + 10, oratiumCenter[1]);
+                        SetLanding(PHASE_ZORLOK2);
+
                         // Pulling far players
                         std::list<Player*> playerList;
                         GetPlayerListInGrid(playerList, me, 300.0f);
                         for (std::list<Player*>::iterator itr = playerList.begin(); itr != playerList.end(); ++itr)
+                        {
                             // The point is that if they're on a platform, they'll be blocked by walls, so they have to be pulled
                             if ((*itr)->GetPositionZ() > 408.5f)
-                                (*itr)->CastSpell(me, SPELL_SPRING_RABBIT_JUMP, false);
-
-                        // Creating Walls
-                        for (uint8 i = 0; i < 3; ++i)
-                        {
-                            // Arena walls
-                            me->SummonGameObject(GOB_ARENA_WALLS, finalPhaseWalls2[i].GetPositionX(), finalPhaseWalls2[i].GetPositionY(), finalPhaseWalls2[i].GetPositionZ(), finalPhaseWalls2[i].GetOrientation(), 0, 0, 0, 0, 7200);
-
-                            // Final phase Doors
-                            me->SummonGameObject(GOB_FINAL_PHASE_WALLS, finalPhaseWalls1[i].GetPositionX(), finalPhaseWalls1[i].GetPositionY(), finalPhaseWalls1[i].GetPositionZ(), finalPhaseWalls1[i].GetOrientation(), 0, 0, 0, 0, 7200);
+                                (*itr)->CastSpell(me, SPELL_MAGNETIC_PULSE, false);
                         }
+
+                        // Creating Walls for final phase
+                        for (uint8 i = 0; i < 3; ++i)
+                            me->SummonGameObject(GOB_FINAL_PHASE_WALLS, finalPhaseWalls1[i].GetPositionX(), finalPhaseWalls1[i].GetPositionY(), finalPhaseWalls1[i].GetPositionZ(), finalPhaseWalls1[i].GetOrientation(), QuaternionData(), 7200);
+
+                        inhaleDone = true;
+
                         break;
                     }
                     default:
@@ -862,13 +1101,13 @@ class boss_zorlok : public CreatureScript
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new boss_zorlokAI(creature);
         }
 };
 
-// Sonic Ring - 62689, 62694, 62696, 62716, 62717, 62718, 62719, 62726, 62727, 62743, 62744, 62746
+// Sonic Ring - 62689
 class mob_sonic_ring : public CreatureScript
 {
     public:
@@ -882,189 +1121,115 @@ class mob_sonic_ring : public CreatureScript
             }
 
             InstanceScript* pInstance;
-            float rateOri;
-            float orientation;
-            EventMap events;
+            EventMap m_Events;
+            Position m_TargetPos;
 
-            void Reset()
+            void Reset() override
             {
-                me->SetDisplayId(DISPLAYID_INVISIBLE);
-                me->CastSpell(me, SPELL_SONIC_RING_VISUAL, false);
+                me->AddAura(SPELL_SONIC_RING_VISUAL, me);
                 me->SetReactState(REACT_PASSIVE);
-                me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE);
+                me->AddUnitFlag(UnitFlags(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE));
+                // Low speed
+                me->SetSpeed(MOVE_WALK, 0.5f);
+                me->SetSpeed(MOVE_RUN,  0.5f);
 
-                events.ScheduleEvent(EVENT_SONIC_CHECK_POSITION, 10000);
+                float l_PosX = me->GetPositionX() + 50.0f * cos(me->GetOrientation());
+                float l_PosY = me->GetPositionY() + 50.0f * sin(me->GetOrientation());
+                m_TargetPos = { l_PosX, l_PosY, me->GetPositionZ(), me->GetOrientation() };
+                m_Events.ScheduleEvent(EVENT_SONIC_MOVE, 500);
 
-                if (Creature* zorlok = pInstance->instance->GetCreature(pInstance->GetData64(NPC_ZORLOK)))
-                {
-                    float zorOri = zorlok->GetOrientation();
-                    // How to move : depends on the entry !
-                    switch (me->GetEntry())
-                    {
-                        case NPC_SONIC_RING_FORWARD:
-                            orientation = zorOri;
-                            break;
-                        case NPC_SONIC_RING_30LEFT:
-                            orientation = zorOri + (M_PI / 6);
-                            break;
-                        case NPC_SONIC_RING_60LEFT:
-                            orientation = zorOri + (M_PI / 3);
-                            break;
-                        case NPC_SONIC_RING_90LEFT:
-                            orientation = zorOri + (M_PI / 2);
-                            break;
-                        case NPC_SONIC_RING_120LEFT:
-                            orientation = zorOri + (2 * M_PI / 3);
-                            break;
-                        case NPC_SONIC_RING_150LEFT:
-                            orientation = zorOri + (5 * M_PI / 6);
-                            break;
-                        case NPC_SONIC_RING_BACK:
-                            orientation = zorOri + M_PI;
-                            break;
-                        case NPC_SONIC_RING_150RIGHT:
-                            orientation = zorOri + (7 * M_PI / 6);
-                            break;
-                        case NPC_SONIC_RING_120RIGHT:
-                            orientation = zorOri + (4 * M_PI / 3);
-                            break;
-                        case NPC_SONIC_RING_90RIGHT:
-                            orientation = zorOri + (3 * M_PI / 2);
-                            break;
-                        case NPC_SONIC_RING_60RIGHT:
-                            orientation = zorOri + (5 * M_PI / 3);
-                            break;
-                        case NPC_SONIC_RING_30RIGHT:
-                            orientation = zorOri + (11 * M_PI / 6);
-                            break;
-                        default:
-                            break;
-                    }
-                    // If needed, reset orientation into valid range [0, M_PI * 2]
-                    orientation = (orientation > (M_PI * 2)) ? (orientation - (M_PI * 2)) : (orientation < 0.0f ? (orientation + (M_PI * 2)) : orientation);
-                    me->SetFacingTo(orientation);
-
-                    // Go to virtual destination
-                    Position reachPoint = GetTargetPoint(orientation, me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), (me->GetPositionZ() > 408.0f ? 1 : 2));
-                    me->SetWalk(true);
-                    me->GetMotionMaster()->MovePoint(1, reachPoint);
-                }
-                else
-                    me->DespawnOrUnsummon();
+                // In case the mob is unable to reach the target point
+                me->DespawnOrUnsummon(10000);
             }
 
-            void MovementInform(uint32 type, uint32 id)
+            void MovementInform(uint32 type, uint32 id) override
             {
+                if (type != POINT_MOTION_TYPE)
+                    return;
+
                 if (id == 1)
                     me->DespawnOrUnsummon();
             }
 
-            Position GetTargetPoint(float orientation, float posX, float posY, float posZ, uint8 phase)
+            void UpdateAI(uint32 const p_Diff) override
             {
-                /*
-                 * The main idea is : a circle has 4 quarters; the principle is to define a point at the limit of the area the sonic ring can move,
-                 * and use this point as a destination for MovePoint(). To calculate this point, we use the orientation to get a ratio between X and Y:
-                 * if orientation is 0, we make 100% on x-axis, if orientation is pi/2, we make 100% on y-axis, and if orientation is pi/4, we make
-                 * 50% on x-axis and 50% on y-axis.
-                 *
-                 * The range orientation from 0 to pi/2 represents a quarter circle where x and y will be both positives, and we use this quarter circle
-                 * to determine general ratio between x and y. Then, we just have to "rotate" to apply this to the right orientation. According to this
-                 * initial orientation, we may need to switch x and y ratio (when turned on left or right, moving forward is moving on y-axis, and not
-                 * on x-axis, for instance), and/or to apply negatives values (if orientation is pi, we're moving backwards, so the x-value decreases,
-                 * while if orientation is 0.0, we're moving forwards, and so, the x-value increases, but we're still on the same axis).
-                 */
-                
-                // Retrieving absolute orientation
-                float absOri = orientation;
-                uint8 turn = 0;
-                while (absOri > (M_PI / 2))
-                {
-                    absOri -= (M_PI / 2);
-                    turn = 1 - turn;
-                }
+                m_Events.Update(p_Diff);
 
-                // Looking for ratio between X and Y
-                float percentX = ((M_PI / 2) - absOri) / (M_PI / 2);
-                float percentY = 1.0f - percentX;
-
-                // Applying negatives directions according to orientation
-                if (orientation > (M_PI / 2))
-                {
-                    if (orientation > M_PI)
-                        percentY = -percentY;
-                    
-                    if (orientation > (M_PI / 2) && orientation < (1.5f * M_PI))
-                        percentX = -percentX;
-                }
-
-                // if turned, we need to switch X & Y
-                if (turn)
-                {
-                    float tmpVal = percentX;
-                    percentX = percentY;
-                    percentY = tmpVal;
-                }
-
-                // Calculating reaching point
-                float pointX = posX;
-                float pointY = posY;
-
-                if (phase == PHASE_ZORLOK1)
-                {
-                    while (((pointX + percentX) >= rangeAttenuation1[0][0]) 
-                        && ((pointX + percentX) <= rangeAttenuation1[0][1])
-                        && ((pointY + percentY) >= rangeAttenuation1[1][0])
-                        && ((pointY + percentY) <= rangeAttenuation1[1][1]))
-                    {
-                        pointX += percentX;
-                        pointY += percentY;
-                    }
-                }
-                else
-                {
-                    while (((pointX + percentX) >= rangeAttenuation2[0][0])
-                        && ((pointX + percentX) <= rangeAttenuation2[0][1])
-                        && ((pointY + percentY) >= rangeAttenuation2[1][0])
-                        && ((pointY + percentY) <= rangeAttenuation2[1][1]))
-                    {
-                        pointX += percentX;
-                        pointY += percentY;
-                    }
-                }
-
-                Position reachPoint = {pointX, pointY, posZ, orientation};
-                return reachPoint;
-            }
-
-            void UpdateAI(const uint32 diff)
-            {
-                events.Update(diff);
-
-                switch (events.ExecuteEvent())
-                {
-                    case EVENT_SONIC_CHECK_POSITION:
-                    {
-                        me->RemoveAura(SPELL_SONIC_RING_VISUAL);
-                        me->DespawnOrUnsummon(1000);
-                        break;
-                    }
-                    default:
-                        break;
-                }
+                if (m_Events.ExecuteEvent() == EVENT_SONIC_MOVE)
+                    me->GetMotionMaster()->MovePoint(1, m_TargetPos);
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new mob_sonic_ringAI(creature);
         }
 };
 
-// Inhale - 122852
-class spell_inhale : public SpellScriptLoader
+// Sonic Pulse (Heroic Mode) - 63837
+class mob_sonic_pulse : public CreatureScript
 {
     public:
-        spell_inhale() : SpellScriptLoader("spell_inhale") { }
+        mob_sonic_pulse() : CreatureScript("mob_sonic_pulse") { }
+
+        struct mob_sonic_pulseAI : public ScriptedAI
+        {
+            mob_sonic_pulseAI(Creature* creature) : ScriptedAI(creature)
+            {
+                pInstance = creature->GetInstanceScript();
+            }
+
+            EventMap m_Events;
+            InstanceScript* pInstance;
+            Position m_TargetPos;
+
+            void Reset() override
+            {
+                me->AddAura(SPELL_SONIC_PULSE_VISUAL, me);
+                me->SetReactState(REACT_PASSIVE);
+                me->AddUnitFlag(UnitFlags(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE));
+                // Low speed
+                me->SetSpeed(MOVE_WALK, 0.3f);
+                me->SetSpeed(MOVE_RUN,  0.3f);
+
+                float l_PosX = me->GetPositionX() + 50.0f * cos(me->GetOrientation());
+                float l_PosY = me->GetPositionY() + 50.0f * sin(me->GetOrientation());
+                m_TargetPos = { l_PosX, l_PosY, me->GetPositionZ(), me->GetOrientation() };
+                m_Events.ScheduleEvent(EVENT_SONIC_MOVE, 500);
+
+                // In case the mob is unable to reach the target point
+                me->DespawnOrUnsummon(10000);
+            }
+
+            void MovementInform(uint32 point, uint32 type) override
+            {
+                if (type != POINT_MOTION_TYPE)
+                    return;
+
+                if (point)
+                    me->DespawnOrUnsummon();
+            }
+
+            void UpdateAI(uint32 const p_Diff) override
+            {
+                m_Events.Update(p_Diff);
+
+                if (m_Events.ExecuteEvent() == EVENT_SONIC_MOVE)
+                    me->GetMotionMaster()->MovePoint(1, m_TargetPos);
+            }
+        };
+
+        CreatureAI* GetAI(Creature* creature) const override
+        {
+            return new mob_sonic_pulseAI(creature);
+        }
+};
+
+// Inhale - 122852
+class spell_inhale_zorlok : public SpellScriptLoader
+{
+    public:
+        spell_inhale_zorlok() : SpellScriptLoader("spell_inhale_zorlok") { }
 
         class spell_inhale_SpellScript : public SpellScript
         {
@@ -1073,16 +1238,16 @@ class spell_inhale : public SpellScriptLoader
             void HandleScriptEffect(SpellEffIndex effIndex)
             {
                 if (Unit* caster = GetCaster())
-                    caster->CastSpell(caster, GetSpellInfo()->Effects[effIndex].BasePoints, false);
+                    caster->CastSpell(caster, GetSpellInfo()->GetEffect(effIndex)->BasePoints, false);
             }
 
-            void Register()
+            void Register() override
             {
-                OnEffectLaunch += SpellEffectFn(spell_inhale_SpellScript::HandleScriptEffect, EFFECT_0, SPELL_EFFECT_SCRIPT_EFFECT);
+                OnEffectLaunch += SpellEffectFn(spell_inhale_SpellScript::HandleScriptEffect, EFFECT_0, SPELL_EFFECT_APPLY_AURA);
             }
         };
 
-        SpellScript* GetSpellScript() const
+        SpellScript* GetSpellScript() const override
         {
             return new spell_inhale_SpellScript();
         }
@@ -1101,16 +1266,22 @@ class spell_attenuation : public SpellScriptLoader
             void Apply()
             {
                 if (Creature* zorlok = GetCaster()->ToCreature())
-                    zorlok->AI()->DoAction(ACTION_SONIC_CARD);
+                {
+                    // Summoning Sonic Rings
+                    zorlok->AI()->DoAction(ACTION_SONIC_RING);
+                    // Summoning additional Sonic Pulses in Heroic mode
+                    if (zorlok->GetInstanceScript()->instance->IsHeroic())
+                        zorlok->AI()->DoAction(ACTION_SONIC_PULSE);
+                }
             }
 
-            void Register()
+            void Register() override
             {
                 AfterCast += SpellCastFn(spell_attenuation_SpellScript::Apply);
             }
         };
 
-        SpellScript* GetSpellScript() const
+        SpellScript* GetSpellScript() const override
         {
             return new spell_attenuation_SpellScript();
         }
@@ -1129,8 +1300,10 @@ class spell_force_verve : public SpellScriptLoader
             void ApplyEffect()
             {
                 if (Player* target = GetHitPlayer())
+                {
                     if (target->HasAura(SPELL_NOISE_CANCELLING))
                         SetHitDamage(GetHitDamage() * 0.25);
+                }
             }
 
             void SetReact()
@@ -1139,14 +1312,14 @@ class spell_force_verve : public SpellScriptLoader
                     caster->SetReactState(REACT_DEFENSIVE);
             }
 
-            void Register()
+            void Register() override
             {
                 OnHit += SpellHitFn(spell_force_verve_SpellScript::ApplyEffect);
                 AfterCast += SpellCastFn(spell_force_verve_SpellScript::SetReact);
             }
         };
 
-        SpellScript* GetSpellScript() const
+        SpellScript* GetSpellScript() const override
         {
             return new spell_force_verve_SpellScript();
         }
@@ -1158,23 +1331,6 @@ class spell_sonic_ring : public SpellScriptLoader
     public:
         spell_sonic_ring() : SpellScriptLoader("spell_sonic_ring") { }
 
-        class spell_sonic_ring_AuraScript : public AuraScript
-        {
-            PrepareAuraScript(spell_sonic_ring_AuraScript);
-
-            void ApplyAura(constAuraEffectPtr /*aurEff*/, AuraEffectHandleModes /*mode*/)
-            {
-                if (Unit* caster = GetCaster())
-                    caster->AddAura(SPELL_SONIC_RING_AURA, caster);
-            }
-
-            void Register()
-            {
-                OnEffectApply += AuraEffectApplyFn(spell_sonic_ring_AuraScript::ApplyAura, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
-                OnEffectApply += AuraEffectApplyFn(spell_sonic_ring_AuraScript::ApplyAura, EFFECT_1, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
-            }
-        };
-
         class spell_sonic_ring_SpellScript : public SpellScript
         {
             PrepareSpellScript(spell_sonic_ring_SpellScript);
@@ -1182,75 +1338,78 @@ class spell_sonic_ring : public SpellScriptLoader
             void Effect()
             {
                 if (Player* target = GetHitPlayer())
+                {
                     if (target->HasAura(SPELL_NOISE_CANCELLING))
                         SetHitDamage(GetHitDamage() * 0.4);
+                }
             }
 
-            void Register()
+            void Register() override
             {
                 OnHit += SpellHitFn(spell_sonic_ring_SpellScript::Effect);
             }
         };
 
-        AuraScript* GetAuraScript() const
-        {
-            return new spell_sonic_ring_AuraScript();
-        }
-
-        SpellScript* GetSpellScript() const
+        SpellScript* GetSpellScript() const override
         {
             return new spell_sonic_ring_SpellScript();
         }
 };
 
-// Pheromones of Zeal - 124018
-class spell_pheromones_of_zeal : public SpellScriptLoader
+// Sonic Pulse (Aura) - 124673
+class spell_sonic_pulse : public SpellScriptLoader
 {
     public:
-        spell_pheromones_of_zeal() : SpellScriptLoader("spell_pheromones_of_zeal") { }
-        
-        class spell_pheromones_of_zeal_AuraScript : public AuraScript
-        {
-            PrepareAuraScript(spell_pheromones_of_zeal_AuraScript);
+        spell_sonic_pulse() : SpellScriptLoader("spell_sonic_pulse") { }
 
-            void Apply(constAuraEffectPtr /*aurEff*/, AuraEffectHandleModes /*mode*/)
+        class spell_sonic_pulse_AuraScript : public AuraScript
+        {
+            PrepareAuraScript(spell_sonic_pulse_AuraScript);
+
+            void ApplyAura(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
             {
                 if (Unit* caster = GetCaster())
-                    caster->AddAura(SPELL_INHALE_PHEROMONES, caster);
+                    caster->AddAura(SPELL_SONIC_RING_AURA, caster);
             }
 
-            void Register()
+            void Register() override
             {
-                OnEffectApply += AuraEffectApplyFn(spell_pheromones_of_zeal_AuraScript::Apply, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+                OnEffectApply += AuraEffectApplyFn(spell_sonic_pulse_AuraScript::ApplyAura, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+                OnEffectApply += AuraEffectApplyFn(spell_sonic_pulse_AuraScript::ApplyAura, EFFECT_1, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
             }
         };
 
-        class spell_pheromones_of_zeal_SpellScript : public SpellScript
+        class spell_sonic_pulse_SpellScript : public SpellScript
         {
-            PrepareSpellScript(spell_pheromones_of_zeal_SpellScript);
+            PrepareSpellScript(spell_sonic_pulse_SpellScript);
 
             void Effect()
             {
-                if (Creature* caster = GetCaster()->ToCreature())
-                    caster->AI()->DoAction(ACTION_INHALE_PHEROMONES);
+                if (Unit* caster = GetCaster())
+                    caster->AddAura(SPELL_SONIC_RING_AURA, caster);
+
+                if (Player* target = GetHitPlayer())
+                {
+                    if (target->HasAura(SPELL_NOISE_CANCELLING))
+                        SetHitDamage(GetHitDamage() * 0.4);
+                }
             }
 
-            void Register()
+            void Register() override
             {
-                AfterHit += SpellHitFn(spell_pheromones_of_zeal_SpellScript::Effect);
+                OnHit += SpellHitFn(spell_sonic_pulse_SpellScript::Effect);
             }
         };
 
-        AuraScript* GetAuraScript() const
+        SpellScript* GetSpellScript() const override
         {
-            return new spell_pheromones_of_zeal_AuraScript();
+            return new spell_sonic_pulse_SpellScript();
         }
 
-        SpellScript* GetSpellScript() const
+        AuraScript* GetAuraScript() const override
         {
-            return new spell_pheromones_of_zeal_SpellScript();
+            return new spell_sonic_pulse_AuraScript();
         }
-
 };
 
 class ExhaleTargetFilter : public std::unary_function<Unit*, bool>
@@ -1261,7 +1420,7 @@ class ExhaleTargetFilter : public std::unary_function<Unit*, bool>
         bool operator()(WorldObject* object) const
         {
             uint32 exhaleLowId = CAST_AI(boss_zorlok::boss_zorlokAI, _caster->GetAI())->GetData(TYPE_EXHALE_TARGET);
-            Player* exhaleTarget = ObjectAccessor::FindPlayer(MAKE_NEW_GUID(exhaleLowId, 0, HIGHGUID_PLAYER));
+            Player* exhaleTarget = ObjectAccessor::FindPlayer(ObjectGuid::Create<HighGuid::Player>(exhaleLowId));
 
             if (!exhaleTarget)
                 return false;
@@ -1293,7 +1452,8 @@ class spell_zorlok_exhale : public SpellScriptLoader
                 if (!caster)
                     return;
 
-                Player* target = ObjectAccessor::FindPlayer(MAKE_NEW_GUID(TYPEID_PLAYER, 0, caster->GetAI()->GetData(TYPE_EXHALE_TARGET)));
+                //Player* target = ObjectAccessor::FindPlayer(MAKE_NEW_GUID(TYPEID_PLAYER, 0, caster->GetAI()->GetData(TYPE_EXHALE_TARGET)));
+                Player* target = ObjectAccessor::FindPlayer(ObjectGuid::Create<HighGuid::Player>(caster->GetAI()->GetData(TYPE_EXHALE_TARGET)));
 
                 // No target? Then we pick a random one
                 if (!target || !target->IsAlive())
@@ -1314,6 +1474,7 @@ class spell_zorlok_exhale : public SpellScriptLoader
                             target = *itr;
                             searching = false;
                         }
+
                         ++itr;
 
                         if (itr == playerList.end())
@@ -1331,14 +1492,16 @@ class spell_zorlok_exhale : public SpellScriptLoader
                     caster->RemoveAurasDueToSpell(SPELL_INHALE);
             }
 
-            void HandleScriptEffect(SpellEffIndex effIndex)
+            void HandleScriptEffect(SpellEffIndex /*effIndex*/)
             {
                 if (Unit* caster = GetCaster())
+                {
                     if (Player* target = GetHitPlayer())
                         caster->CastSpell(target, SPELL_EXHALE_DMG, true);
+                }
             }
 
-            void Register()
+            void Register() override
             {
                 OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_zorlok_exhale_SpellScript::FilterTargets, EFFECT_0, TARGET_UNIT_SRC_AREA_ENEMY);
                 OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_zorlok_exhale_SpellScript::FilterTargets, EFFECT_2, TARGET_UNIT_SRC_AREA_ENEMY);
@@ -1347,7 +1510,7 @@ class spell_zorlok_exhale : public SpellScriptLoader
             }
         };
 
-        SpellScript* GetSpellScript() const
+        SpellScript* GetSpellScript() const override
         {
             return new spell_zorlok_exhale_SpellScript();
         }
@@ -1367,60 +1530,58 @@ class spell_zorlok_exhale_damage : public SpellScriptLoader
             {
                 Unit* caster = GetCaster();
 
-                if (targets.empty() || !caster)
+                if (!caster || !caster->GetAI())
                     return;
 
-                Unit* currentTarget = ObjectAccessor::FindPlayer(MAKE_NEW_GUID(TYPEID_PLAYER, 0, caster->GetAI()->GetData(TYPE_EXHALE_TARGET)));
-                if (!currentTarget)
+                //Unit* currentTarget = ObjectAccessor::FindPlayer(MAKE_NEW_GUID(TYPEID_PLAYER, 0, caster->GetAI()->GetData(TYPE_EXHALE_TARGET)));
+                Unit* currentTarget = ObjectAccessor::FindPlayer(ObjectGuid::Create<HighGuid::Player>(caster->GetAI()->GetData(TYPE_EXHALE_TARGET)));
+
+                if (targets.empty() || !currentTarget)
                     return;
 
-                // Remove players not between Zorlok and his target.
-                std::list<WorldObject*>::iterator itr, next;
-                for (itr = targets.begin(); itr != targets.end(); itr = next)
+                targets.remove_if([caster, currentTarget](WorldObject* p_Object) -> bool
                 {
-                    next = itr;
-                    ++next;
+                    if (p_Object == currentTarget)
+                        return false;
 
-                    // Keeping current target
-                    if ((*itr) == currentTarget)
-                        continue;
+                    if (p_Object->GetTypeId() != TYPEID_PLAYER || !p_Object->IsInBetween(caster, currentTarget, 3.0f))
+                        return true;
 
-                    if ((*itr)->GetTypeId() != TYPEID_PLAYER || !(*itr)->IsInBetween(caster, currentTarget))
-                        targets.remove(*itr);
-                }
+                    return false;
+                });
 
                 // Two or more targets, means there's someone between Zor'lok and his target.
                 if (targets.size() > 1)
                 {
                     // Select first target between Zor'lok and the Exhale target.
-                    WorldObject* nearestTarget = 0;
+                    WorldObject* nearestTarget = nullptr;
                     float distance = 1000.0f;
 
-                    for (itr = targets.begin(); itr != targets.end(); ++itr)
+                    for (WorldObject* l_Object : targets)
                     {
-                        if (caster->GetDistance2d(*itr) < distance)
+                        if (caster->GetDistance2d(l_Object) < distance)
                         {
-                            nearestTarget = *itr;
-                            distance = caster->GetDistance2d(*itr);
+                            nearestTarget = l_Object;
+                            distance = caster->GetDistance2d(l_Object);
                         }
                     }
 
-                    if (nearestTarget != currentTarget)
+                    if (nearestTarget != nullptr && nearestTarget != currentTarget)
                     {
                         // Set Zor'lok's current Exhale target to that nearest player.
-                        uint32 targetLowGuid = nearestTarget->GetGUIDLow();
+                        uint32 targetLowGuid = nearestTarget->GetGUID().GetCounter();
                         caster->GetAI()->SetData(TYPE_EXHALE_TARGET, targetLowGuid);
                     }
                 }
             }
 
-            void Register()
+            void Register() override
             {
-                OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_zorlok_exhale_damage_SpellScript::FilterTargets, EFFECT_0, TARGET_UNIT_CONE_ENEMY_129);
+                OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_zorlok_exhale_damage_SpellScript::FilterTargets, EFFECT_0, TARGET_UNIT_CONE_ENTRY_129);
             }
         };
 
-        SpellScript* GetSpellScript() const
+        SpellScript* GetSpellScript() const override
         {
             return new spell_zorlok_exhale_damage_SpellScript();
         }
@@ -1474,36 +1635,70 @@ class spell_convert : public SpellScriptLoader
                                 targets.push_back(*itr);
                                 playerList.remove(*itr);
                             }
+
                             itr = ++next;
                             if (itr == playerList.end())
                                 itr = playerList.begin();
-                        }   
+                        }
                     }
                 }
             }
 
-            void Register()
+            void Register() override
             {
                 OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_convertSpellScript::SelectTargets, EFFECT_0, TARGET_UNIT_SRC_AREA_ENEMY);
             }
         };
 
-        SpellScript* GetSpellScript() const
+        SpellScript* GetSpellScript() const override
         {
             return new spell_convertSpellScript();
         }
 };
 
+/// Created by spell 122731
+class at_cancelling_noise : public AreaTriggerAI
+{
+public:
+    at_cancelling_noise(AreaTrigger* areaTrigger) : AreaTriggerAI(areaTrigger) { }
+
+    void OnUpdate(uint32 /*p_Time*/) override
+    {
+        std::list<Unit*> l_TargetList;
+        float l_Radius = 10.0f;
+        Unit* l_Caster = at->GetCaster();
+
+        if (!l_Caster)
+            return;
+
+        l_Caster->GetAttackableUnitListInRange(l_TargetList, l_Radius);
+
+        if (!l_TargetList.empty())
+        {
+            for (Unit* l_Target : l_TargetList)
+            {
+                // Periodic absorption for Imperial Vizier Zor'lok's Force and Verve and Sonic Rings
+                if (l_Target->GetDistance(at) > 2.0f && l_Target->HasAura(SPELL_NOISE_CANCELLING))
+                    l_Target->RemoveAura(SPELL_NOISE_CANCELLING);
+                else if (l_Target->GetDistance(at) <= 2.0f && !l_Target->HasAura(SPELL_NOISE_CANCELLING))
+                    l_Caster->AddAura(SPELL_NOISE_CANCELLING, l_Target);
+            }
+        }
+    }
+};
+
 void AddSC_boss_zorlok()
 {
-    new boss_zorlok();                  // 62980 - Imperial Vizier Zor'lok
-    //new mob_sonic_ring();               // 62687, 62746, 62744, 62743, 62698, 62699, 62700, 62702, 62703, 62704, 62714, 62715, 62727, 62726, 62719, 62718, 62720, 62721, 62722, 62723, 62724, 62725, 62717, 62716, 62728, 62729, 62696, 62694, 62689, 63340, 63341, 67163, 67164 - Sonic Ring
-    new spell_inhale();                 // 122852 - Inhale
-    new spell_attenuation();            // 122440 - Attenuation
-    new spell_force_verve();            // 122718 - Force and verve
-    //new spell_sonic_ring();             // 122336 - Sonic Ring
-    new spell_pheromones_of_zeal();     // 124018 - Pheromones of Zeal
-    new spell_zorlok_exhale();          // 122761 - Exhale
-    new spell_zorlok_exhale_damage();   // 122760 - Exhale (damage aura)
-    new spell_convert();                // 122740 - Convert
+    new boss_zorlok();                  ///< 62980 - Imperial Vizier Zor'lok
+    new mob_sonic_ring();               ///< 62689 - Sonic Ring
+    new mob_sonic_pulse();              ///< 63837 - Sonic Pulse
+    new spell_inhale_zorlok();          ///< 122852 - Inhale
+    new spell_attenuation();            ///< 122440 - Attenuation
+    new spell_force_verve();            ///< 122718 - Force and verve
+    new spell_sonic_ring();             ///< 122336 - Sonic Ring
+    new spell_sonic_pulse();            ///< 124673 - Sonic Pulse
+    new spell_zorlok_exhale();          ///< 122761 - Exhale
+    new spell_zorlok_exhale_damage();   ///< 122760 - Exhale (damage aura)
+    new spell_convert();                ///< 122740 - Convert
+    RegisterAreaTriggerAI(at_cancelling_noise);          ///< 122731 - Cancelling Noise AreaTrigger
 }
