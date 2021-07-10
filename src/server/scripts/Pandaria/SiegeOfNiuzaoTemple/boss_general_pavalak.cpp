@@ -1,545 +1,734 @@
-/*
- * Trinity Core and update by MoPCore Forums
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * Dungeon: Siege of Niuzao Temple.
- * Boss:    General Pa'valak.
- */
-
-#include "ObjectMgr.h"
 #include "ScriptMgr.h"
 #include "ScriptedCreature.h"
-#include "CreatureTextMgr.h"
-#include "InstanceScript.h"
-#include "SpellInfo.h"
-#include "SpellScript.h"
-#include "SpellAuraEffects.h"
-#include "SpellAuras.h"
-#include "Spell.h"
-#include "Map.h"
-#include "MapManager.h"
-#include "Cell.h"
-#include "CellImpl.h"
-#include "GridNotifiers.h"
-#include "GridNotifiersImpl.h"
-
-#include "siege_of_niuzao_temple.h"
-
-enum Yells
-{
-    // Boss
-    SAY_INTRO               = 0, // Niuzao's forces attack from the rear!
-    SAY_AGGRO,                   // The temple will fall! You cannot stop my forces!
-    SAY_GROUND_ASSAULT,          // 0 - My army will crush you! ; 1 - Stop them! Mantid attack! ; 2 - Put down your weapons or die!
-    SAY_KILL,                    // 0 - The empress demands it! ; 1 - The forces of Niuzao are weak!
-    SAY_DEATH                    // I have failed you, empress...
-};
-
-#define ANN_REINFORCEMENTS "General Pa'valak calls for reinforcements!"
 
 enum Spells
 {
-    // Boss
-    SPELL_BLADE_RUSH        = 124283, // Missile SPELL_BLADE_RUSH_DUMMY - eff 0, Disarm - eff 1.
-    SPELL_BLADE_RUSH_DUMMY  = 124291, // Dummy on eff 0 for SPELL_BLADE_RUSH_SUMMON.
-    SPELL_BLADE_RUSH_SUMMON = 124278, // Summons NPC_BLADE_RUSH.
-    SPELL_BLADE_RUSH_DAMAGE = 124290, // Damage for sword throw land.
-    SPELL_BLADE_RUSH_T_DMG  = 124317, // Damage for players between boss and sword.
-    SPELL_BLADE_RUSH_CHARGE = 124312, // Charge to sword.
-
-    SPELL_TEMPEST           = 119875,
-    SPELL_BULWARK           = 119476, // At 65 and 35%.
-
-    // Sik'thik Amber-Sapper
-    SPELL_SIEGE_EXPLOSION_M = 119376, // Missile (cast by adds). Summons NPC_SIEGE_EXPLOSIVES.
-    SPELL_SIEGE_EXPLOSIVE_P = 119388, // Player throw spell, triggers visual + target + Detonate on adds.
-
-    // Sik'thik Soldier
-    SPELL_SERRATED_BLADE    = 119840,
-
-    // Siege Explosive - 3 sec arm, 6 explode.
-    SPELL_EXPLOS_VISUAL     = 119380, // Visual.
-    SPELL_EXPLOS_DETONATE   = 119703
+    SPELL_BLADE_RUSH = 124283,
+    SPELL_BLADE_RUSH_CHARGE = 124312,
+    SPELL_BLADE_RUSH_SUMMON = 124277,
+    SPELL_BLADE_RUSH_DISARM = 124327,
+    SPELL_BLADE_RUSH_VISUAL = 124288,
+    SPELL_BLADE_RUSH_VISUAL_TWO = 124307,
+    SPELL_BLADE_RUSH_DUMMY = 124291,
+    SPELL_BLADE_RUSH_DAMAGE_EFFECT = 124290,
+    SPELL_BLADE_RUSH_FINAL_DAMAGE = 124317,
+    SPELL_BULWARK = 119476,
+    SPELL_AURA_PERIODIC_SUMMON_MANTID_SOLDIERS = 119781,
+    SPELL_CARRYING_SIEGE_EXPLOSIVE = 119388,
+    SPELL_ARMING_VISUAL = 88315,
+    SPELL_DETONATE_AFTER_ARM = 119703,
+    SPELL_SUMMON_SIEGE_EXPLOSIVE = 119377,
+    SPELL_TEMPEST = 119875,
 };
 
 enum Events
 {
-    // Boss
-    EVENT_BLADE_RUSH        = 1,
-    EVENT_BLADE_RUSH_CHARGE,
-    EVENT_BLADE_RUSH_CHARGE_DMG,
-    EVENT_TEMPEST,
-    EVENT_BULWARK,
-    EVENT_SUMMON_ADD_WAVE,
-
-    // Sik'thik Amber-Sapper
-    EVENT_SIEGE_EXPLOSIVE,
-
-    // Sik'thik Soldier
-    EVENT_SERRATED_BLADE,
-
-    // Siege Explosives
-    EVENT_EXPLOSIVE_VISUAL,
-    EVENT_EXPLOSIVE_DETONATE
+    EVENT_CAST_BLADE_RUSH = 1,
+    EVENT_CHARGE_AT_BLADE_RUSH_POS,
+    EVENT_DO_CHARGE_DAMAGE_EFFECT,
+    EVENT_START_ATTACKING_AGAIN,
+    EVENT_CALL_REINFORCEMENTS,
+    EVENT_STOP_BULWARK,
+    EVENT_ARM_BOMB,
+    EVENT_SIEGE_EXPLOSIVE_DETONATE,
+    EVENT_SUMMON_SIEGE_EXPLOSIVE,
+    EVENT_REPOSITION_EXPLOSIVE,
+    EVENT_CAST_TEMPEST,
 };
 
-// Adds summon position.
-Position const summonPos        = { 1741.77f, 5312.19f, 129.53f };
+enum Actions
+{
+    ACTION_DELAYED_CAST_BLADE_RUSH_AT_TRIGGER = 1,
+    ACTION_GENERAL_PAVALAK_BULWARK_REMOVED,
+};
 
-// General Pa'valak 61485.
+enum Points
+{
+    POINT_GENERAL_PAVALAK_CALL_IN_REINFORCEMENTS = 1,
+    POINT_SIKTHIK_MOVE_TO_FIGHTZONE,
+};
+
+enum Misc
+{
+    NPC_BLADE_RUSH = 63720,
+};
+
 class boss_general_pavalak : public CreatureScript
 {
-    public:
-        boss_general_pavalak() : CreatureScript("boss_general_pavalak") { }
+public:
+    boss_general_pavalak() : CreatureScript("boss_general_pavalak") { }
 
-        struct boss_general_pavalakAI : public BossAI
+    struct boss_general_pavalakAI : public BossAI
+    {
+        boss_general_pavalakAI(Creature* creature) : BossAI(creature, 0) { }
+
+        bool calledReinforcements65, calledReinforcements35, movingToReinforcementSpot;
+
+        void Reset()
         {
-            boss_general_pavalakAI(Creature* creature) : BossAI(creature, DATA_GENERAL_PAVALAK_EVENT), summons(me)
+            _Reset();
+            instance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me);
+
+            //me->GetMotionMaster()->MoveRandom(15.0f);
+
+            calledReinforcements65 = false;
+            calledReinforcements35 = false;
+            movingToReinforcementSpot = false;
+        }
+
+        void JustRespawned()
+        {
+            Reset();
+        }
+
+        void EnterCombat(Unit* who)
+        {
+            _EnterCombat();
+
+            Talk(0, who);
+
+            instance->SendEncounterUnit(ENCOUNTER_FRAME_ENGAGE, me);
+
+            events.ScheduleEvent(EVENT_CAST_BLADE_RUSH, urand(8000, 12000));
+            events.ScheduleEvent(EVENT_CAST_TEMPEST, urand(15000, 19000));
+
+        }
+
+        void JustDied(Unit* killer)
+        {
+            _JustDied();
+
+            Talk(5, killer);
+
+            instance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me);
+
+        }
+
+        void DamageTaken(Unit* attacker, uint32& damage)
+        {
+            if (!calledReinforcements65 && !HealthAbovePct(65))
             {
-                instance = creature->GetInstanceScript();
-                introDone = false;
+                me->ApplySpellImmune(0, IMMUNITY_STATE, SPELL_AURA_MOD_TAUNT, true);
+                calledReinforcements65 = true;
+                CallInReinforcements();
+            }
+            else if (!calledReinforcements35 && !HealthAbovePct(35))
+            {
+                me->ApplySpellImmune(0, IMMUNITY_STATE, SPELL_AURA_MOD_TAUNT, true);
+                calledReinforcements35 = true;
+                CallInReinforcements();
+            }
+        }
+
+        void CallInReinforcements()
+        {
+            Talk(3);
+            //me->SetReactState(REACT_PASSIVE);
+            me->CastStop();
+            movingToReinforcementSpot = true;
+            me->GetMotionMaster()->MovePoint(POINT_GENERAL_PAVALAK_CALL_IN_REINFORCEMENTS, 1712.538f, 5242.658f, 124.3957f);
+        }
+
+        void MovementInform(uint32 type, uint32 pointId)
+        {
+            if (type != POINT_MOTION_TYPE && type != EFFECT_MOTION_TYPE)
+                return;
+
+            if (pointId == POINT_GENERAL_PAVALAK_CALL_IN_REINFORCEMENTS)
+            {
+                me->ApplySpellImmune(0, IMMUNITY_STATE, SPELL_AURA_MOD_TAUNT, true);
+                movingToReinforcementSpot = false;
+                me->AddAura(SPELL_BULWARK, me);
+                //me->SetControlled(true, UNIT_STATE_STUNNED);
+                events.CancelEvent(EVENT_CAST_BLADE_RUSH);
+                events.CancelEvent(EVENT_CAST_TEMPEST);
+                events.ScheduleEvent(EVENT_CALL_REINFORCEMENTS, 500);
+            }
+            //! Charge
+            else if (pointId == 1003)
+            {
+                me->ApplySpellImmune(0, IMMUNITY_STATE, SPELL_AURA_MOD_TAUNT, false);
+                events.ScheduleEvent(EVENT_DO_CHARGE_DAMAGE_EFFECT, 250);
+            }
+        }
+
+        void JustReachedHome()
+        {
+            summons.DespawnAll();
+
+        }
+
+        void JustSummoned(Creature* summoned)
+        {
+            summons.Summon(summoned);
+        }
+
+        void DoAction(int32 action)
+        {
+            switch (action)
+            {
+            case ACTION_DELAYED_CAST_BLADE_RUSH_AT_TRIGGER:
+                //events.ScheduleEvent(EVENT_CHARGE_AT_BLADE_RUSH_POS, 750);
+                break;
+            case ACTION_GENERAL_PAVALAK_BULWARK_REMOVED:
+                StopBulwark();
+                break;
+            }
+        }
+
+        void UpdateAI(uint32 diff)
+        {
+            //FREAKZ_CheckBossOrder(me, diff);
+
+            if (!UpdateVictim() || !CheckInRoom())
+                return;
+
+            events.Update(diff);
+
+            if (me->HasUnitState(UNIT_STATE_CASTING) || movingToReinforcementSpot)// || me->HasAura(SPELL_BLADE_RUSH_DISARM))
+                return;
+
+            while (uint32 eventId = events.ExecuteEvent())
+            {
+                switch (eventId)
+                {
+                case EVENT_CAST_BLADE_RUSH:
+                    //me->SetReactState(REACT_PASSIVE);
+                    DoCast(me, SPELL_BLADE_RUSH_SUMMON);
+                    events.ScheduleEvent(EVENT_CAST_BLADE_RUSH, urand(9000, 19000) + 1250);
+                    events.ScheduleEvent(EVENT_CHARGE_AT_BLADE_RUSH_POS, 1250);
+                    break;
+                case EVENT_CAST_TEMPEST:
+                    me->CastSpell(me, SPELL_TEMPEST, false);
+                    events.ScheduleEvent(EVENT_CAST_TEMPEST, urand(15000, 19000));
+                    break;
+                case EVENT_CHARGE_AT_BLADE_RUSH_POS:
+                    if (Creature* bladerush = me->FindNearestCreature(NPC_BLADE_RUSH, 100.0f))
+                    {
+                        bladerush->AddAura(SPELL_BLADE_RUSH_VISUAL_TWO, bladerush);
+                        me->CastSpell(bladerush->GetPositionX(), bladerush->GetPositionY(), bladerush->GetPositionZ(), SPELL_BLADE_RUSH_CHARGE, false);
+                    }
+
+                    break;
+                case EVENT_DO_CHARGE_DAMAGE_EFFECT:
+                    if (Creature* bladerush = me->FindNearestCreature(NPC_BLADE_RUSH, 150.0f))
+                    {
+                        me->CastSpell(bladerush, SPELL_BLADE_RUSH_FINAL_DAMAGE, false);
+                        bladerush->DespawnOrUnsummon(500);
+                    }
+
+                    events.ScheduleEvent(EVENT_START_ATTACKING_AGAIN, 1000);
+                    break;
+                case EVENT_START_ATTACKING_AGAIN:
+                    AttackStart(me->GetVictim());
+                    me->SetReactState(REACT_AGGRESSIVE);
+                    me->RemoveAurasDueToSpell(SPELL_BLADE_RUSH_DISARM);
+                    break;
+                case EVENT_CALL_REINFORCEMENTS:
+                    Talk(4);
+                    events.ScheduleEvent(EVENT_SUMMON_SIEGE_EXPLOSIVE, 1500);
+                    events.ScheduleEvent(EVENT_STOP_BULWARK, 60500); //! From videos
+                    //events.ScheduleEvent(0, 0);
+                    break;
+                case EVENT_STOP_BULWARK:
+                    StopBulwark();
+                    break;
+                case EVENT_SUMMON_SIEGE_EXPLOSIVE:
+                    me->CastSpell(me, SPELL_SUMMON_SIEGE_EXPLOSIVE, false);
+                    events.ScheduleEvent(EVENT_SUMMON_SIEGE_EXPLOSIVE, urand(750, 2000));
+                    break;
+                }
             }
 
-            InstanceScript* instance;
-            SummonList summons;
-            EventMap events;
-            bool introDone, isBulwarked, isSecondBulwarked, hasBulwark, swordCharged;
+            if (!me->HasAura(SPELL_BULWARK))
+                DoMeleeAttackIfReady();
+        }
 
-            void Reset()
+        void StopBulwark()
+        {
+            me->SetReactState(REACT_AGGRESSIVE);
+            AttackStart(me->SelectNearestPlayer(150.0f));
+            me->GetMotionMaster()->MoveChase(me->GetVictim());
+            //me->SetControlled(false, UNIT_STATE_STUNNED);
+            me->RemoveAurasDueToSpell(SPELL_BULWARK);
+            events.CancelEvent(EVENT_STOP_BULWARK);
+            events.CancelEvent(EVENT_SUMMON_SIEGE_EXPLOSIVE);
+            events.ScheduleEvent(EVENT_CAST_BLADE_RUSH, urand(17000, 25000));
+            events.ScheduleEvent(EVENT_CAST_TEMPEST, urand(15000, 19000));
+        }
+
+        bool CheckInRoom()
+        {
+            if (me->GetDistance2d(me->GetHomePosition().GetPositionX(), me->GetHomePosition().GetPositionY()) > 150.0f)
             {
-                events.Reset();
+                EnterEvadeMode();
+                return false;
+            }
+
+            return true;
+        }
+    };
+
+    CreatureAI* GetAI(Creature* creature) const
+    {
+        return new boss_general_pavalakAI(creature);
+    }
+};
+
+class npc_general_pavalak_blade_rush : public CreatureScript
+{
+public:
+    npc_general_pavalak_blade_rush() : CreatureScript("npc_general_pavalak_blade_rush") { }
+
+    struct npc_general_pavalak_blade_rushAI : public ScriptedAI
+    {
+        npc_general_pavalak_blade_rushAI(Creature* creature) : ScriptedAI(creature) { }
+
+        void Reset()
+        {
+            me->SetReactState(REACT_PASSIVE);
+            me->AddAura(SPELL_BLADE_RUSH_VISUAL, me);
+            //me->AddAura(SPELL_BLADE_RUSH_VISUAL_TWO, me);
+
+            if (Creature* pavalak = me->FindNearestCreature(61485, 150.0f))
+                pavalak->AI()->DoAction(ACTION_DELAYED_CAST_BLADE_RUSH_AT_TRIGGER);
+
+            //me->DespawnOrUnsummon(2250);
+        }
+
+        void JustRespawned()
+        {
+            Reset();
+        }
+
+        void DamageTaken(Unit* attacker, uint32& damage)
+        {
+            damage = 0;
+        }
+
+        void SpellHit(Unit* caster, SpellInfo const* spell)
+        {
+            if (spell && spell->Id == SPELL_BLADE_RUSH_DUMMY)
+            {
+                me->AddAura(SPELL_BLADE_RUSH_VISUAL_TWO, me);
+                me->CastSpell(me, SPELL_BLADE_RUSH_DAMAGE_EFFECT, false);
+            }
+        }
+    };
+
+    CreatureAI* GetAI(Creature* creature) const
+    {
+        return new npc_general_pavalak_blade_rushAI(creature);
+    }
+};
+
+class npc_general_pavalak_reinforcement_summoner : public CreatureScript
+{
+public:
+    npc_general_pavalak_reinforcement_summoner() : CreatureScript("npc_general_pavalak_reinforcement_summoner") { }
+
+    struct npc_general_pavalak_reinforcement_summonerAI : public ScriptedAI
+    {
+        npc_general_pavalak_reinforcement_summonerAI(Creature* creature) : ScriptedAI(creature), summons(creature)
+        {
+            creature->setActive(true);
+        }
+
+        void Reset()
+        {
+            me->SetReactState(REACT_PASSIVE);
+        }
+
+        void JustRespawned()
+        {
+            Reset();
+        }
+
+        void DamageTaken(Unit* attacker, uint32& damage)
+        {
+            damage = 0;
+        }
+
+        void JustSummoned(Creature* summoned)
+        {
+            summons.Summon(summoned);
+        }
+
+        void DoAction(int32 action)
+        {
+            switch (action)
+            {
+            case SPECIAL:
+                me->AddAura(SPELL_AURA_PERIODIC_SUMMON_MANTID_SOLDIERS, me);
+                break;
+            case FAIL:
+            case DONE:
                 summons.DespawnAll();
-
-                isBulwarked       = false;
-                isSecondBulwarked = false;
-                hasBulwark        = false;
-                swordCharged      = false;
-
-                if (instance)
-                    instance->SetData(DATA_GENERAL_PAVALAK_EVENT, NOT_STARTED);
-
-                _Reset();
+                //! No break
+            case NOT_STARTED:
+            default:
+                me->RemoveAurasDueToSpell(SPELL_AURA_PERIODIC_SUMMON_MANTID_SOLDIERS);
+                break;
             }
+        }
 
-            void MoveInLineOfSight(Unit* who)
+    private:
+        SummonList summons;
+    };
+
+    CreatureAI* GetAI(Creature* creature) const
+    {
+        return new npc_general_pavalak_reinforcement_summonerAI(creature);
+    }
+};
+
+class npc_general_pavalak_siege_explosive : public CreatureScript
+{
+public:
+    npc_general_pavalak_siege_explosive() : CreatureScript("npc_general_pavalak_siege_explosive") { }
+
+    bool OnGossipHello(Player* player, Creature* creature)
+    {
+        player->CastSpell(player, SPELL_CARRYING_SIEGE_EXPLOSIVE, false);
+        //player->AddTemporarySpell();
+        creature->DespawnOrUnsummon();
+        return true;
+    }
+
+    struct npc_general_pavalak_siege_explosiveAI : public ScriptedAI
+    {
+        npc_general_pavalak_siege_explosiveAI(Creature* creature) : ScriptedAI(creature) { }
+
+        bool armed;
+
+        void Reset()
+        {
+            me->NearTeleportTo(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ() + 30.0f, me->GetOrientation());
+            events.ScheduleEvent(EVENT_REPOSITION_EXPLOSIVE, 500);
+            events.ScheduleEvent(EVENT_ARM_BOMB, 6000);
+            me->SetReactState(REACT_PASSIVE);
+        }
+
+        void JustRespawned()
+        {
+            Reset();
+        }
+
+        void DamageTaken(Unit* attacker, uint32& damage)
+        {
+            damage = 0;
+        }
+
+        void OnSpellClick(Unit* clicker, bool& result)
+        {
+            me->DespawnOrUnsummon();
+        }
+
+        void IsSummonedBy(Unit* /*summoner*/)
+        {
+            Reset();
+        }
+
+        void UpdateAI(uint32 diff)
+        {
+            events.Update(diff);
+
+            switch (events.ExecuteEvent())
             {
-                if (!introDone && me->IsWithinDistInMap(who, 40) && who->GetTypeId() == TYPEID_PLAYER)
-                {
-                    Talk(SAY_INTRO);
-                    introDone = true;
-                }
+            case EVENT_ARM_BOMB:
+                me->SetUnitFlags(UNIT_FLAG_NOT_SELECTABLE);
+                me->CastSpell(me, SPELL_ARMING_VISUAL, false);
+                events.ScheduleEvent(EVENT_SIEGE_EXPLOSIVE_DETONATE, 3000);
+                break;
+            case EVENT_SIEGE_EXPLOSIVE_DETONATE:
+                me->CastSpell(me, SPELL_DETONATE_AFTER_ARM, false);
+                me->DespawnOrUnsummon(500);
+                break;
+            case EVENT_REPOSITION_EXPLOSIVE:
+                me->SetCanFly(false);
+                float myZ = me->GetPositionZ();
+               // float mapZ = me->GetMap()->GetWaterOrGroundLevel(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), &myZ);
+                me->GetMotionMaster()->MovePoint(0, me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), false);
+                break;
             }
+        }
 
-            void EnterCombat(Unit* /*who*/)
+    private:
+        EventMap events;
+    };
+
+    CreatureAI* GetAI(Creature* creature) const
+    {
+        return new npc_general_pavalak_siege_explosiveAI(creature);
+    }
+};
+
+class npc_general_pavalak_sikthik_soldier : public CreatureScript
+{
+public:
+    npc_general_pavalak_sikthik_soldier() : CreatureScript("npc_general_pavalak_sikthik_soldier") { }
+
+    struct npc_general_pavalak_sikthik_soldierAI : public ScriptedAI
+    {
+        npc_general_pavalak_sikthik_soldierAI(Creature* creature) : ScriptedAI(creature)
+        {
+            creature->setActive(true);
+        }
+
+        void Reset()
+        {
+            //me->SetReactState(REACT_PASSIVE);
+        }
+
+        void JustRespawned()
+        {
+            //me->SetReactState(REACT_PASSIVE);
+        }
+
+        void IsSummonedBy(Unit* /*summoner*/)
+        {
+            //me->SetReactState(REACT_PASSIVE);
+            me->SetInCombatWithZone();
+            me->GetMotionMaster()->MovePoint(POINT_SIKTHIK_MOVE_TO_FIGHTZONE, 1713.696f, 5252.163f, 124.6241f);
+        }
+
+        void MovementInform(uint32 type, uint32 pointId)
+        {
+            if (type != POINT_MOTION_TYPE && type != EFFECT_MOTION_TYPE)
+                return;
+
+            if (pointId == POINT_SIKTHIK_MOVE_TO_FIGHTZONE)
             {
-                Talk(SAY_AGGRO);
-
-                events.ScheduleEvent(EVENT_BLADE_RUSH, urand(12000, 20000));
-                events.ScheduleEvent(EVENT_TEMPEST, urand(38000, 43000));
-
-                if (instance)
-                {
-                    instance->SetData(DATA_GENERAL_PAVALAK_EVENT, IN_PROGRESS);
-                    instance->SendEncounterUnit(ENCOUNTER_FRAME_ENGAGE, me); // Add
-                }
-
-                _EnterCombat();
+                //me->SetReactState(REACT_AGGRESSIVE);
+                //AttackStart(me->SelectNearestPlayer(100.0f));
             }
+        }
 
-            void KilledUnit(Unit* victim)
-            {
-                if (victim->GetTypeId() == TYPEID_PLAYER)
-                    Talk(SAY_KILL);
-            }
+        void UpdateAI(uint32 diff)
+        {
+            events.Update(diff);
 
-            void EnterEvadeMode()
-            {
-                me->AddUnitState(UNIT_STATE_EVADE);
+            //switch (events.ExecuteEvent())
+            //{
+            //}
 
-                me->RemoveAllAuras();
-                Reset();
-                me->DeleteThreatList();
-                me->CombatStop(true);
-                me->GetMotionMaster()->MoveTargetedHome();
-
-                if (instance)
-                {
-                    instance->SetData(DATA_GENERAL_PAVALAK_EVENT, FAIL);
-                    instance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me); // Remove
-                }
-
-                _EnterEvadeMode();
-            }
-
-            void JustReachedHome()
-            {
-                me->ClearUnitState(UNIT_STATE_EVADE);
-
-                _JustReachedHome();
-            }
-
-            void JustDied(Unit* /*killer*/)
-            {
-                Talk(SAY_DEATH);
-                summons.DespawnAll();
-
-                if (instance)
-                {
-                    instance->SetData(DATA_GENERAL_PAVALAK_EVENT, DONE);
-                    instance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me); // Remove
-                }
-
-                _JustDied();
-            }
-
-            void JustSummoned(Creature* summon)
-            {
-                summons.Summon(summon);
-                summon->setActive(true);
-
-		        if (me->isInCombat() && summon->GetEntry() != NPC_SIEGE_EXPLOSIVES)
-                    summon->AI()->DoZoneInCombat(summon, 150.0f);
-            }
-
-            void SpellHit(Unit* caster, SpellInfo const* spell)
-            {
-                if (!instance)
-                    return;
-
-                if (instance->GetData(DATA_GENERAL_PAVALAK_EVENT) == DONE)
-                    return;
-
-                // Handle checking Bulwark aura.
-                if (spell->Id == SPELL_BULWARK)
-                    hasBulwark = true;
-            }
-
-            void UpdateAI(uint32 const diff)
-            {
-                if (!UpdateVictim() || me->HasUnitState(UNIT_STATE_CASTING) && !me->GetCurrentSpell(CURRENT_CHANNELED_SPELL))
-                    return;
-
-                events.Update(diff);
-
-                // Handle Bulwark phase entrance.
-                if (!isBulwarked && me->HealthBelowPct(66) || isBulwarked && !isSecondBulwarked && me->HealthBelowPct(36))
-                {
-                    if (!isBulwarked)       // First entrance.
-                        isBulwarked = true;
-                    else                    // Second entrance.
-                        isSecondBulwarked = true;
-
-                    Talk(SAY_GROUND_ASSAULT);
-                    me->MonsterTextEmote(ANN_REINFORCEMENTS, NULL, true);
-
-                    events.CancelEvent(EVENT_BLADE_RUSH);
-                    events.CancelEvent(EVENT_TEMPEST);
-                    events.ScheduleEvent(EVENT_BULWARK, 500);
-                    events.ScheduleEvent(EVENT_SUMMON_ADD_WAVE, urand(3000, 5000));
-                }
-
-                // Handle Blade Rush damage check.
-                if (swordCharged && me->FindNearestCreature(NPC_BLADE_RUSH, 6.0f, true))
-                {
-                    events.ScheduleEvent(EVENT_BLADE_RUSH_CHARGE_DMG, 10);
-                    swordCharged = false;
-                }
-
-                // Handle Bulwark phase exit (aura removal).
-                if (hasBulwark && !me->HasAura(SPELL_BULWARK))
-                {
-                    events.CancelEvent(EVENT_SUMMON_ADD_WAVE);
-                    events.ScheduleEvent(EVENT_BLADE_RUSH, urand(2000, 7000));
-                    events.ScheduleEvent(EVENT_TEMPEST, urand(18000, 23000));
-                    hasBulwark  = false;
-                }
-
-                while (uint32 eventId = events.ExecuteEvent())
-                {
-                    switch (eventId)
-                    {
-                        case EVENT_BLADE_RUSH:
-                            DoCast(me, SPELL_BLADE_RUSH);
-                            events.ScheduleEvent(EVENT_BLADE_RUSH_CHARGE, 1500);
-                            events.ScheduleEvent(EVENT_BLADE_RUSH, urand(22000, 32000));
-                            break;
-
-                        case EVENT_BLADE_RUSH_CHARGE:
-                            if (Creature* sword = me->FindNearestCreature(NPC_BLADE_RUSH, 100.0f, true))
-                                DoCast(sword, SPELL_BLADE_RUSH_CHARGE);
-                            swordCharged = true;
-                            break;
-
-                        case EVENT_BLADE_RUSH_CHARGE_DMG:
-                            DoCast(me, SPELL_BLADE_RUSH_T_DMG);
-                            if (Creature* sword = me->FindNearestCreature(NPC_BLADE_RUSH, 100.0f, true))
-                                sword->DespawnOrUnsummon(200);
-                            break;
-
-                        case EVENT_TEMPEST:
-                            DoCast(me, SPELL_TEMPEST);
-                            events.ScheduleEvent(EVENT_TEMPEST, urand(40000, 45000));
-                            break;
-
-                        case EVENT_BULWARK:
-                            DoCast(me, SPELL_BULWARK);
-                            break;
-
-                        case EVENT_SUMMON_ADD_WAVE:
-                            for (uint8 i = 0; i < 7; i++)
-                                me->SummonCreature(NPC_SIKTHIK_SOLDIER, summonPos, TEMPSUMMON_CORPSE_DESPAWN, 1000);
-                            for (uint8 i = 0; i < 3; i++)
-                                me->SummonCreature(NPC_SIKTHIK_AMBER_SAPPER, summonPos, TEMPSUMMON_CORPSE_DESPAWN, 1000);
-                            break;
-
-                        default: break;
-                    }
-                }
-
+            if (UpdateVictim())
                 DoMeleeAttackIfReady();
-            }
-        };
-
-        CreatureAI* GetAI(Creature* creature) const
-        {
-            return new boss_general_pavalakAI(creature);
         }
+
+    private:
+        EventMap events;
+    };
+
+    CreatureAI* GetAI(Creature* creature) const
+    {
+        return new npc_general_pavalak_sikthik_soldierAI(creature);
+    }
 };
 
-// Sik'thik Amber Sapper 61484.
-class npc_sikthik_amber_sapper_pavalak : public CreatureScript
+class BladeRushTargetSelector
 {
-    public:
-        npc_sikthik_amber_sapper_pavalak() : CreatureScript("npc_sikthik_amber_sapper_pavalak") { }
+public:
+    BladeRushTargetSelector() { }
 
-        struct npc_sikthik_amber_sapper_pavalakAI : public ScriptedAI
-        {
-            npc_sikthik_amber_sapper_pavalakAI(Creature* creature) : ScriptedAI(creature)
-            {
-                instance = creature->GetInstanceScript();
-            }
-
-            InstanceScript* instance;
-            EventMap events;
-
-            void EnterCombat(Unit* /*who*/)
-            {
-                events.Reset();
-                events.ScheduleEvent(EVENT_SIEGE_EXPLOSIVE, urand(5000, 10000));
-            }
-
-            void UpdateAI(uint32 const diff)
-            {
-                if (!UpdateVictim() || me->HasUnitState(UNIT_STATE_CASTING))
-                    return;
-
-                events.Update(diff);
-
-                while (uint32 eventId = events.ExecuteEvent())
-                {
-                    switch (eventId)
-                    {
-                        case EVENT_SIEGE_EXPLOSIVE:
-                            if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 100.0f, true))
-                                DoCast(target, SPELL_SIEGE_EXPLOSION_M);
-                            events.ScheduleEvent(EVENT_SIEGE_EXPLOSIVE, urand(6000, 10000));
-                            break;
-
-                        default: break;
-                    }
-                }
-
-                DoMeleeAttackIfReady();
-            }
-        };
-
-        CreatureAI* GetAI(Creature* creature) const
-        {
-            return new npc_sikthik_amber_sapper_pavalakAI(creature);
-        }
+    bool operator()(WorldObject* object)
+    {
+        return !object || object->GetTypeId() != TYPEID_PLAYER;
+    }
 };
 
-// Sik'thik Soldier 62348.
-class npc_sikthik_soldier_pavalak : public CreatureScript
+class spell_general_pavalak_blade_rush_target_selector : public SpellScriptLoader
 {
-    public:
-        npc_sikthik_soldier_pavalak() : CreatureScript("npc_sikthik_soldier_pavalak") { }
+public:
+    spell_general_pavalak_blade_rush_target_selector() : SpellScriptLoader("spell_general_pavalak_blade_rush_target_selector") { }
 
-        struct npc_sikthik_soldier_pavalakAI : public ScriptedAI
+    class spell_general_pavalak_blade_rush_target_selector_SpellScript : public SpellScript
+    {
+        PrepareSpellScript(spell_general_pavalak_blade_rush_target_selector_SpellScript);
+
+        void FilterTargets(std::list<WorldObject*>& targets)
         {
-            npc_sikthik_soldier_pavalakAI(Creature* creature) : ScriptedAI(creature)
-            {
-                instance = creature->GetInstanceScript();
-            }
-
-            InstanceScript* instance;
-            EventMap events;
-
-            void EnterCombat(Unit* /*who*/)
-            {
-                events.Reset();
-                events.ScheduleEvent(EVENT_SERRATED_BLADE, urand(2000, 5000));
-            }
-
-            void UpdateAI(uint32 const diff)
-            {
-                if (!UpdateVictim() || me->HasUnitState(UNIT_STATE_CASTING))
-                    return;
-
-                events.Update(diff);
-
-                while (uint32 eventId = events.ExecuteEvent())
-                {
-                    switch (eventId)
-                    {
-                        case EVENT_SERRATED_BLADE:
-                            DoCastVictim(SPELL_SERRATED_BLADE);
-                            events.ScheduleEvent(EVENT_SERRATED_BLADE, urand(9100, 11500));
-                            break;
-
-                        default: break;
-                    }
-                }
-
-                DoMeleeAttackIfReady();
-            }
-        };
-
-        CreatureAI* GetAI(Creature* creature) const
-        {
-            return new npc_sikthik_soldier_pavalakAI(creature);
+            targets.remove_if(BladeRushTargetSelector());
+            Trinity::Containers::RandomResize(targets, 1);
         }
+
+        void Register()
+        {
+            OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_general_pavalak_blade_rush_target_selector_SpellScript::FilterTargets, EFFECT_0, TARGET_UNIT_SRC_AREA_ENEMY);
+        }
+    };
+
+    SpellScript* GetSpellScript() const
+    {
+        return new spell_general_pavalak_blade_rush_target_selector_SpellScript();
+    }
 };
 
-// Siege Explosives 61452.
-class npc_siege_explosives_pavalak : public CreatureScript
+class spell_general_pavalak_blade_rush_summon_effect : public SpellScriptLoader
 {
-    public:
-        npc_siege_explosives_pavalak() : CreatureScript("npc_siege_explosives_pavalak") { }
+public:
+    spell_general_pavalak_blade_rush_summon_effect() : SpellScriptLoader("spell_general_pavalak_blade_rush_summon_effect") { }
 
-        struct npc_siege_explosives_pavalakAI : public ScriptedAI
+    class spell_general_pavalak_blade_rush_summon_effect_SpellScript : public SpellScript
+    {
+        PrepareSpellScript(spell_general_pavalak_blade_rush_summon_effect_SpellScript);
+
+        void HandleSummon(SpellEffIndex /*effIndex*/)
         {
-            npc_siege_explosives_pavalakAI(Creature* creature) : ScriptedAI(creature)
-            {
-                instance = creature->GetInstanceScript();
-            }
+            WorldLocation const* loc = GetExplTargetDest();
 
-            InstanceScript* instance;
-            EventMap events;
-
-            void IsSummonedBy(Unit* summoner)
-            {
-                Reset();
-                me->setFaction(35);
-                me->SetFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_SPELLCLICK);
-
-                events.ScheduleEvent(EVENT_EXPLOSIVE_VISUAL, 3000);
-                events.ScheduleEvent(EVENT_EXPLOSIVE_DETONATE, 6000);
-            }
-
-            void Reset()
-            {
-                events.Reset();
-                DoCast(me, SPELL_EXPLOS_VISUAL);
-            }
-
-            void OnSpellClick(Unit* clicker)
-            {
-                // Handle Player pickup.
-                events.CancelEvent(EVENT_EXPLOSIVE_VISUAL);
-                events.CancelEvent(EVENT_EXPLOSIVE_DETONATE);
-                clicker->CastSpell(clicker, SPELL_SIEGE_EXPLOSIVE_P, true);
-                me->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_SPELLCLICK);
-                me->DespawnOrUnsummon();
-            }
-
-            void UpdateAI(uint32 const diff)
-            {
-                events.Update(diff);
-
-                while (uint32 eventId = events.ExecuteEvent())
-                {
-                    switch (eventId)
-                    {
-                        case EVENT_EXPLOSIVE_VISUAL:
-                            me->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_SPELLCLICK);
-                            me->setFaction(16);
-                            me->SetInCombatWithZone();
-                            me->SetReactState(REACT_PASSIVE);
-                            break;
-
-                        case EVENT_EXPLOSIVE_DETONATE:
-                            DoCast(me, SPELL_EXPLOS_DETONATE, true);
-                            me->DespawnOrUnsummon(200);
-                            break;
-
-                        default: break;
-                    }
-                }
-
-                // No melee.
-            }
-        };
-
-        CreatureAI* GetAI(Creature* creature) const
-        {
-            return new npc_siege_explosives_pavalakAI(creature);
+            if (Unit* caster = GetCaster())
+                if (Creature* pavalak = caster->FindNearestCreature(61485, 150.0f))
+                    pavalak->CastSpell(loc->GetPositionX(), loc->GetPositionY(), loc->GetPositionZ(), SPELL_BLADE_RUSH, false);
         }
+
+        void Register()
+        {
+            OnEffectLaunch += SpellEffectFn(spell_general_pavalak_blade_rush_summon_effect_SpellScript::HandleSummon, EFFECT_0, SPELL_EFFECT_SUMMON);
+        }
+    };
+
+    SpellScript* GetSpellScript() const
+    {
+        return new spell_general_pavalak_blade_rush_summon_effect_SpellScript();
+    }
 };
 
-// Blade Rush 124291.
-class spell_pavalak_blade_rush : public SpellScriptLoader
+class spell_general_pavalak_blade_rush_charge_effect : public SpellScriptLoader
 {
-    public:
-        spell_pavalak_blade_rush() : SpellScriptLoader("spell_pavalak_blade_rush") { }
+public:
+    spell_general_pavalak_blade_rush_charge_effect() : SpellScriptLoader("spell_general_pavalak_blade_rush_charge_effect") { }
 
-        class spell_pavalak_blade_rush_SpellScript : public SpellScript
+    class spell_general_pavalak_blade_rush_charge_effect_SpellScript : public SpellScript
+    {
+        PrepareSpellScript(spell_general_pavalak_blade_rush_charge_effect_SpellScript);
+
+        void HandleCharge(SpellEffIndex effIndex)
         {
-            PrepareSpellScript(spell_pavalak_blade_rush_SpellScript);
+            PreventHitDefaultEffect(effIndex);
 
-            void HandleDummy(SpellEffIndex /*effIndex*/)
+            WorldLocation const* loc = GetExplTargetDest();
+
+            if (Unit* caster = GetCaster())
             {
-                Unit* caster = GetCaster();
-
-                if (!caster)
-                    return;
-
-                if (!caster->ToCreature())
-                    return;
-
-                if (Unit* target = caster->ToCreature()->AI()->SelectTarget(SELECT_TARGET_FARTHEST, 0, 50.0f, true))
-                    target->CastSpell(target, SPELL_BLADE_RUSH_SUMMON, false);
+                //if (Creature* bladerush = caster->FindNearestCreature(NPC_BLADE_RUSH, 150.0f))
+                //    caster->CastSpell(bladerush, SPELL_BLADE_RUSH_FINAL_DAMAGE, false);
+                float dist = 3.0f;
+                float x = loc->GetPositionX() + (dist * cos(caster->GetOrientation()));
+                float y = loc->GetPositionY() + (dist * sin(caster->GetOrientation()));
+                caster->GetMotionMaster()->MoveCharge(x, y, loc->GetPositionZ());
             }
-
-            void Register()
-            {
-                OnEffectHitTarget += SpellEffectFn(spell_pavalak_blade_rush_SpellScript::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
-            }
-        };
-
-        SpellScript* GetSpellScript() const
-        {
-            return new spell_pavalak_blade_rush_SpellScript();
         }
+
+        void Register()
+        {
+            OnEffectLaunch += SpellEffectFn(spell_general_pavalak_blade_rush_charge_effect_SpellScript::HandleCharge, EFFECT_0, SPELL_EFFECT_CHARGE_DEST);
+        }
+    };
+
+    SpellScript* GetSpellScript() const
+    {
+        return new spell_general_pavalak_blade_rush_charge_effect_SpellScript();
+    }
+};
+
+class spell_general_pavalak_siege_explosive_summon_effect : public SpellScriptLoader
+{
+public:
+    spell_general_pavalak_siege_explosive_summon_effect() : SpellScriptLoader("spell_general_pavalak_siege_explosive_summon_effect") { }
+
+    class spell_general_pavalak_siege_explosive_summon_effect_SpellScript : public SpellScript
+    {
+        PrepareSpellScript(spell_general_pavalak_siege_explosive_summon_effect_SpellScript);
+
+        void HandleSummon(SpellEffIndex /*effIndex*/)
+        {
+            Position offset = { 0.0f, 0.0f, 30.0f, 0.0f };
+            const_cast<WorldLocation*>(GetExplTargetDest())->RelocateOffset(offset);
+            GetHitDest()->RelocateOffset(offset);
+        }
+
+        void Register()
+        {
+            OnEffectLaunch += SpellEffectFn(spell_general_pavalak_siege_explosive_summon_effect_SpellScript::HandleSummon, EFFECT_0, SPELL_EFFECT_SUMMON);
+        }
+    };
+
+    SpellScript* GetSpellScript() const
+    {
+        return new spell_general_pavalak_siege_explosive_summon_effect_SpellScript();
+    }
+};
+
+class spell_general_pavalak_siege_explosive_trigger_effect : public SpellScriptLoader
+{
+public:
+    spell_general_pavalak_siege_explosive_trigger_effect() : SpellScriptLoader("spell_general_pavalak_siege_explosive_trigger_effect") { }
+
+    class spell_general_pavalak_siege_explosive_trigger_effect_SpellScript : public SpellScript
+    {
+        PrepareSpellScript(spell_general_pavalak_siege_explosive_trigger_effect_SpellScript);
+
+        void CheckTarget(SpellEffIndex effIndex)
+        {
+            if (Unit* caster = GetCaster())
+                caster->RemoveAurasDueToSpell(119393);
+        }
+
+        void Register()
+        {
+            OnEffectHit += SpellEffectFn(spell_general_pavalak_siege_explosive_trigger_effect_SpellScript::CheckTarget, EFFECT_0, SPELL_EFFECT_TRIGGER_MISSILE);
+        }
+    };
+
+    SpellScript* GetSpellScript() const
+    {
+        return new spell_general_pavalak_siege_explosive_trigger_effect_SpellScript();
+    }
+};
+
+
+class spell_general_pavalak_bulwark : public SpellScriptLoader     // 63120
+{
+public:
+    spell_general_pavalak_bulwark() : SpellScriptLoader("spell_general_pavalak_bulwark") { }
+
+    class spell_general_pavalak_bulwark_AuraScript : public AuraScript
+    {
+        PrepareAuraScript(spell_general_pavalak_bulwark_AuraScript);
+
+        void OnRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+        {
+            if (Unit* caster = GetCaster())
+                if (caster->ToCreature() && caster->ToCreature()->AI())
+                    caster->ToCreature()->AI()->DoAction(ACTION_GENERAL_PAVALAK_BULWARK_REMOVED);
+        }
+
+        void Register()
+        {
+            AfterEffectRemove += AuraEffectRemoveFn(spell_general_pavalak_bulwark_AuraScript::OnRemove, EFFECT_0, SPELL_AURA_AOE_CHARM, AURA_EFFECT_HANDLE_REAL);
+        }
+    };
+
+    AuraScript* GetAuraScript() const
+    {
+        return new spell_general_pavalak_bulwark_AuraScript();
+    }
 };
 
 void AddSC_boss_general_pavalak()
 {
     new boss_general_pavalak();
-    new npc_sikthik_amber_sapper_pavalak();
-    new npc_sikthik_soldier_pavalak();
-    new npc_siege_explosives_pavalak();
-    new spell_pavalak_blade_rush();
+
+    new npc_general_pavalak_blade_rush();
+    new npc_general_pavalak_reinforcement_summoner();
+    new npc_general_pavalak_siege_explosive();
+    new npc_general_pavalak_sikthik_soldier();
+
+    new spell_general_pavalak_blade_rush_target_selector();
+    new spell_general_pavalak_blade_rush_summon_effect();
+    new spell_general_pavalak_blade_rush_charge_effect();
+    new spell_general_pavalak_siege_explosive_summon_effect();
+    new spell_general_pavalak_siege_explosive_trigger_effect();
+    new spell_general_pavalak_bulwark();
 }

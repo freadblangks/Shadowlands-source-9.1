@@ -1,476 +1,579 @@
-/*
- * Trinity Core and update by MoPCore Forums
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * Dungeon: Siege of Niuzao Temple.
- * Boss:    Wing Leader Ner'onok.
- */
-
-#include "ObjectMgr.h"
 #include "ScriptMgr.h"
 #include "ScriptedCreature.h"
-#include "CreatureTextMgr.h"
-#include "InstanceScript.h"
-#include "SpellInfo.h"
-#include "SpellScript.h"
+#include "SpellAuraDefines.h"
 #include "SpellAuraEffects.h"
-#include "SpellAuras.h"
-#include "Spell.h"
-#include "Map.h"
-#include "MapManager.h"
-#include "Cell.h"
-#include "CellImpl.h"
-#include "GridNotifiers.h"
-#include "GridNotifiersImpl.h"
 
-#include "siege_of_niuzao_temple.h"
-
-enum Yells
+enum GeneralSpells
 {
-    // Boss
-    SAY_AGGRO                = 0, // You may have come this far. You may carved a path through my army, but I...will kill you, and I will build the bridge.
-    SAY_TREACHEROUS_WINDS,        // I will do what Pa'valak could not!
-    SAY_KILL,                     // Out of my way!
-    SAY_WIPE,                     // Get back to work! I want this bridge finished by first light!
-    SAY_DEATH                     // The...bridge...
+    SPELL_HURL_BRICK = 121762,
+    SPELL_CAUSTIC_PITCH_SELECTOR = 121440,
+    SPELL_QUICK_DRY_RESIN = 121447,
 };
 
-#define ANN_GUSTING_WINDS "Wing Leader Ner'onok lifts off and flies to the other end of the bridge!"
-
-enum Spells
+enum GeneralEvents
 {
-    // Boss
-    SPELL_HURL_BRICK         = 121762,
-
-    SPELL_CAUSTIC_PITCH      = 121442, // Missile for SPELL_CAUSTIC_PITCH_POOL.
-    SPELL_CAUSTIC_PITCH_POOL = 121443,
-
-    SPELL_QUICK_DRY_RESIN    = 121447,
-    SPELL_QUICK_DRY_RESIN_SE = 122063, // Screen effect.
-    SPELL_INVIGORATED        = 121449, // If player jumps and breaks out of resin.
-    SPELL_ENCASED_IN_RESIN   = 121448, // If 100 power reached - 6 sec. stun.
-
-    SPELL_GUSTING_WINDS      = 121284, // From him.
-    SPELL_GUSTING_WINDS_AURA = 121282, // Towards him.
-    SPELL_KNOCKBACK          = 70966   // Usable with Gusting Winds.
+    EVEMNT_FLY_TO_OPPOSITE_SIDE_OF_BRIDGE = 1,
+    EVENT_CHECK_IF_REACHED_WP,
+    EVENT_CAST_GUSTING_WINDS_1,
+    EVENT_CAST_GUSTING_WINDS_2,
+    EVENT_CAST_GUSTING_WINDS_3,
+    EVENT_CAST_HURL_BRICK,
+    EVENT_CAST_CAUSTIC_PITCH,
+    EVENT_CAST_QUICK_DRY_RESIN,
 };
 
-enum Events
+enum GeneralPoints
 {
-    // Boss
-    EVENT_HURL_BRICK         = 1,
-    EVENT_CAUSTIC_PITCH,
-    EVENT_QUICK_DRY_RESIN,
-    EVENT_GUSTING_WINDS,
-    EVENT_GUSTING_WINDS_KNOCKBACK,     // Player knockback.
+    POINT_MOVE_UP = 1,
 
-    EVENT_MOVE_SOUTH_UP,
-    EVENT_MOVE_SOUTH_DOWN,
-    EVENT_MOVE_NORTH_UP,
-    EVENT_MOVE_NORTH_DOWN
+    POINT_MAIN_SIDE_GROUND,
+    POINT_MAIN_SIDE_AIR_FROM_GROUND,
+    POINT_MAIN_SIDE_AIR_FROM_OTHER_SIDE,
+
+    POINT_OTHER_SIDE_GROUND,
+    POINT_OTHER_SIDE_AIR_FROM_GROUND,
+    POINT_OTHER_SIDE_AIR_FROM_MAIN_SIDE,
 };
 
-enum MovePoints
-{
-    // Boss
-    POINT_FIRST_WINDS_UP            = 1, // Southern end.
-    POINT_FIRST_WINDS_DOWN,
+//struct BridgePositionMoveStruct
+//{
+//    uint32 pointId;
+//    Position pos;
+//};
 
-    POINT_SECOND_WINDS_UP,               // Northern end.
-    POINT_SECOND_WINDS_DOWN
+Position BridgeSidePositions[4] =
+{
+    { 1887.084f, 5178.723f, 131.1692f, 0.0f }, //! Ground 1
+    { 1877.906f, 5187.085f, 142.7834f, 0.0f }, //! Air 1
+
+    { 1810.470f, 5249.528f, 131.1700f, 0.0f }, //! Ground 2
+    { 1818.120f, 5242.493f, 142.5388f, 0.0f }, //! Air 2
 };
 
-// Bridge positions.
-Position const bridgePos[4] = 
-{
-    { 1805.47f, 5250.33f, 145.17f },     // Southern end.
-    { 1805.47f, 5250.33f, 131.17f },     // O: 5.54f.
-
-    { 1885.54f, 5180.00f, 145.17f },     // Northern end.
-    { 1885.54f, 5180.00f, 131.17f },     // O: 2.47f.
-};
-
-// Bridge ends orientations.
-float bridgeOrientations[2] =
-{
-    5.54f,
-    2.47f
-};
-
-// Wind Leader Ner'onok 62205.
 class boss_wing_leader_neronok : public CreatureScript
 {
-    public:
-        boss_wing_leader_neronok() : CreatureScript("boss_wing_leader_neronok") { }
+public:
+    boss_wing_leader_neronok() : CreatureScript("boss_wing_leader_neronok") { }
 
-        struct boss_wing_leader_neronokAI : public BossAI
+    struct boss_wing_leader_neronokAI : public BossAI
+    {
+        boss_wing_leader_neronokAI(Creature* creature) : BossAI(creature, 0) { }
+
+        bool isOnOtherSideOfBridge, isFlyingToOppositeSide, performedFirstFly;
+
+        uint32 lastPointId;
+
+        uint8 castedGustingWindsCounter;
+
+        void Reset()
         {
-            boss_wing_leader_neronokAI(Creature* creature) : BossAI(creature, DATA_WING_LEADER_NERONOK_EVENT), summons(me)
-            {
-                instance = creature->GetInstanceScript();
-            }
-
-            InstanceScript* instance;
-            SummonList summons;
-            EventMap events;
-			bool windsCasted, windsCasted2, shouldWinds;
-            uint8 knockbacksCount;
-
-            // Particular functions for taking off / landing.
-            void SetFlight()
-            {
-                me->SetReactState(REACT_PASSIVE);
-                me->HandleEmote(EMOTE_ONESHOT_LIFTOFF);
-                me->SetDisableGravity(true);
-                me->SetByteFlag(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_HOVER);
-                me->AddUnitMovementFlag(MOVEMENTFLAG_CAN_FLY | MOVEMENTFLAG_FLYING);
-            }
-
-            void SetLand()
-            {
-                me->HandleEmote(EMOTE_ONESHOT_LAND);
-                me->SetDisableGravity(false);
-                me->RemoveByteFlag(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_HOVER);
-                me->RemoveUnitMovementFlag(MOVEMENTFLAG_CAN_FLY | MOVEMENTFLAG_FLYING);
-                me->SetReactState(REACT_DEFENSIVE);
-            }
-
-            void Reset()
-            {
-                events.Reset();
-                summons.DespawnAll();
-
-                windsCasted   = false;
-                windsCasted2  = false;
-                shouldWinds   = false;
-
-                if (instance)
-                    instance->SetData(DATA_WING_LEADER_NERONOK_EVENT, NOT_STARTED);
-
-                _Reset();
-            }
-
-            void EnterCombat(Unit* /*who*/)
-            {
-                Talk(SAY_AGGRO);
-
-                events.ScheduleEvent(EVENT_HURL_BRICK, urand(3000, 5000));
-                events.ScheduleEvent(EVENT_CAUSTIC_PITCH, urand(12000, 15000));
-                events.ScheduleEvent(EVENT_QUICK_DRY_RESIN, urand(7000, 9000));
-
-                if (instance)
-                {
-                    instance->SetData(DATA_WING_LEADER_NERONOK_EVENT, IN_PROGRESS);
-                    instance->SendEncounterUnit(ENCOUNTER_FRAME_ENGAGE, me); // Add
-                }
-
-                _EnterCombat();
-            }
-
-            void KilledUnit(Unit* victim)
-            {
-                if (victim->GetTypeId() == TYPEID_PLAYER)
-                    Talk(SAY_KILL);
-            }
-
-            void EnterEvadeMode()
-            {
-                Talk(SAY_WIPE);
-                me->AddUnitState(UNIT_STATE_EVADE);
-
-                me->RemoveAllAuras();
-                Reset();
-                me->DeleteThreatList();
-                me->CombatStop(true);
-                me->GetMotionMaster()->MoveTargetedHome();
-
-                if (instance)
-                {
-                    instance->SetData(DATA_WING_LEADER_NERONOK_EVENT, FAIL);
-                    instance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me); // Remove
-                }
-
-                _EnterEvadeMode();
-            }
-
-            void JustReachedHome()
-            {
-                me->ClearUnitState(UNIT_STATE_EVADE);
-
-                _JustReachedHome();
-            }
-
-            void JustDied(Unit* /*killer*/)
-            {
-                Talk(SAY_DEATH);
-                summons.DespawnAll();
-
-                if (instance)
-                {
-                    instance->SetData(DATA_WING_LEADER_NERONOK_EVENT, DONE);
-                    instance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me); // Remove
-                }
-
-                _JustDied();
-            }
-
-            void JustSummoned(Creature* summon)
-            {
-                summons.Summon(summon);
-                summon->setActive(true);
-
-		        if (me->isInCombat())
-                    summon->AI()->DoZoneInCombat(summon, 150.0f);
-            }
-
-            void MovementInform(uint32 type, uint32 pointId)
-            {
-                if (!me->IsAlive() || type != POINT_MOTION_TYPE)
-                    return;
-            
-                switch (pointId)
-                {
-                    case POINT_FIRST_WINDS_UP:
-						events.ScheduleEvent(EVENT_MOVE_SOUTH_DOWN, 10);
-                        break;
-
-                    case POINT_FIRST_WINDS_DOWN:
-                        SetLand();
-                        me->GetMotionMaster()->MovementExpired();
-                        me->SetFacingTo(bridgeOrientations[0]);
-						events.ScheduleEvent(EVENT_GUSTING_WINDS, 1500);
-                        break;
-
-                    case POINT_SECOND_WINDS_UP:
-						events.ScheduleEvent(EVENT_MOVE_NORTH_DOWN, 10);
-                        break;
-
-                    case POINT_SECOND_WINDS_DOWN:
-                        SetLand();
-                        me->GetMotionMaster()->MovementExpired();
-                        me->SetFacingTo(bridgeOrientations[1]);
-						events.ScheduleEvent(EVENT_GUSTING_WINDS, 1500);
-                        break;
-
-                    default: break;
-                }
-            }
-
-            void SpellHit(Unit* caster, SpellInfo const* spell)
-            {
-                // Handle Gusting Winds mechanics.
-                if (spell->Id == SPELL_GUSTING_WINDS)
-                {
-                    shouldWinds = true;
-                    me->AddAura(SPELL_GUSTING_WINDS_AURA, me);
-                    events.ScheduleEvent(EVENT_GUSTING_WINDS_KNOCKBACK, 10);
-                    events.ScheduleEvent(EVENT_GUSTING_WINDS, 6000);
-                }
-            }
-
-            void DamageTaken(Unit* who, uint32& damage)
-            {
-                // Handle Gusting Winds phase end on taking melee damage.
-                if (shouldWinds && who->GetDistance(me) <= 6.0f)
-                {
-                    shouldWinds = false;
-                    events.CancelEvent(EVENT_GUSTING_WINDS);
-                    events.CancelEvent(EVENT_GUSTING_WINDS_KNOCKBACK);
-                    knockbacksCount = 0;
-                    me->RemoveAurasDueToSpell(SPELL_GUSTING_WINDS);
-                    me->RemoveAurasDueToSpell(SPELL_GUSTING_WINDS_AURA);
-                    me->GetMotionMaster()->MovementExpired();
-                    me->SetReactState(REACT_AGGRESSIVE);
-				    me->GetMotionMaster()->MoveChase(me->getVictim());
-
-                    events.ScheduleEvent(EVENT_HURL_BRICK, urand(3000, 5000));
-                    events.ScheduleEvent(EVENT_CAUSTIC_PITCH, urand(12000, 15000));
-                    events.ScheduleEvent(EVENT_QUICK_DRY_RESIN, urand(7000, 9000));
-                }
-            }
-
-            void UpdateAI(uint32 const diff)
-            {
-                if (!UpdateVictim() || me->HasUnitState(UNIT_STATE_CASTING) && !me->GetCurrentSpell(CURRENT_CHANNELED_SPELL))
-                    return;
-
-                events.Update(diff);
-
-                // Handle Gusting Winds phase entrance.
-                if (!windsCasted && me->HealthBelowPct(67) || windsCasted && !windsCasted2 && me->HealthBelowPct(34))
-                {
-                    // Schedule correct Phase events.
-                    events.CancelEvent(EVENT_HURL_BRICK);
-                    events.CancelEvent(EVENT_CAUSTIC_PITCH);
-                    events.CancelEvent(EVENT_QUICK_DRY_RESIN);
-
-                    me->MonsterTextEmote(ANN_GUSTING_WINDS, NULL, true);
-                    events.ScheduleEvent(windsCasted ? EVENT_MOVE_NORTH_UP : EVENT_MOVE_SOUTH_UP, 500);
-
-                    if (!windsCasted)        // First Gusting Winds.
-                        windsCasted = true;
-                    else
-                        windsCasted2 = true; // Second Gusting Winds.
-                }
-
-                while (uint32 eventId = events.ExecuteEvent())
-                {
-                    switch (eventId)
-                    {
-                        case EVENT_HURL_BRICK:
-                            if (!me->IsWithinDistInMap(me->getVictim(), me->GetAttackDistance(me->getVictim())))
-                                if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 100.0f, true))
-                                    DoCast(target, SPELL_HURL_BRICK);
-                            events.ScheduleEvent(EVENT_HURL_BRICK, 2000);
-                            break;
-
-                        case EVENT_CAUSTIC_PITCH:
-                            if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 100.0f, true))
-                                DoCast(target, SPELL_CAUSTIC_PITCH_POOL);
-                            events.ScheduleEvent(EVENT_CAUSTIC_PITCH, urand(30000, 35000));
-                            break;
-
-                        case EVENT_QUICK_DRY_RESIN:
-                            DoCast(me, SPELL_QUICK_DRY_RESIN);
-                            events.ScheduleEvent(EVENT_QUICK_DRY_RESIN, urand(20000, 25000));
-                            break;
-
-                        case EVENT_MOVE_SOUTH_UP:
-                            Talk(SAY_TREACHEROUS_WINDS);
-                            SetFlight();
-							me->GetMotionMaster()->MovePoint(POINT_FIRST_WINDS_UP, bridgePos[0]);
-                            break;
-
-                        case EVENT_MOVE_SOUTH_DOWN:
-							me->GetMotionMaster()->MovePoint(POINT_FIRST_WINDS_DOWN, bridgePos[1]);
-                            break;
-
-                        case EVENT_MOVE_NORTH_UP:
-                            Talk(SAY_TREACHEROUS_WINDS);
-                            SetFlight();
-							me->GetMotionMaster()->MovePoint(POINT_SECOND_WINDS_UP, bridgePos[2]);
-                            break;
-
-                        case EVENT_MOVE_NORTH_DOWN:
-							me->GetMotionMaster()->MovePoint(POINT_SECOND_WINDS_DOWN, bridgePos[3]);
-                            break;
-
-                        case EVENT_GUSTING_WINDS:
-                            DoCast(me, SPELL_GUSTING_WINDS);
-                            break;
-
-                        case EVENT_GUSTING_WINDS_KNOCKBACK:
-                            if (me->HasAura(SPELL_GUSTING_WINDS) && knockbacksCount < 4)
-                            {
-                                knockbacksCount++;
-                                DoCast(me, SPELL_KNOCKBACK, true);
-                                events.ScheduleEvent (EVENT_GUSTING_WINDS_KNOCKBACK, 900);
-                            }
-                            else knockbacksCount = 0;
-                            break;
-
-                        default: break;
-                    }
-                }
-
-                DoMeleeAttackIfReady();
-            }
-        };
-
-        CreatureAI* GetAI(Creature* creature) const
-        {
-            return new boss_wing_leader_neronokAI(creature);
+            _Reset();
+            lastPointId = 0;
+            castedGustingWindsCounter = 0;
+            isFlyingToOppositeSide = false;
+            isOnOtherSideOfBridge = false;
+            performedFirstFly = false;
+            SetCombatMovement(false);
+            instance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me);
+            RemoveAuraFromPlayers(SPELL_QUICK_DRY_RESIN);
         }
+
+        void JustRespawned()
+        {
+            Reset();
+        }
+
+        void AttackStart(Unit* who)
+        {
+            AttackStartNoMove(who);
+        }
+
+        void EnterCombat(Unit* who)
+        {
+            _EnterCombat();
+
+            Talk(0, who);
+
+            instance->SendEncounterUnit(ENCOUNTER_FRAME_ENGAGE, me);
+
+            events.ScheduleEvent(EVEMNT_FLY_TO_OPPOSITE_SIDE_OF_BRIDGE, urand(20000, 25000));
+            events.ScheduleEvent(EVENT_CAST_HURL_BRICK, 1000);
+            events.ScheduleEvent(EVENT_CAST_CAUSTIC_PITCH, urand(3000, 5000));
+            events.ScheduleEvent(EVENT_CAST_QUICK_DRY_RESIN, urand(19000, 25000));
+
+        }
+
+        void JustDied(Unit* killer)
+        {
+            _JustDied();
+
+            RemoveAuraFromPlayers(SPELL_QUICK_DRY_RESIN);
+
+            Talk(3, killer);
+
+            instance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me);
+        }
+
+        void KilledUnit(Unit* victim)
+        {
+            //if (victim->GetTypeId() == TYPEID_PLAYER)
+            //    Talk(3, victim);
+        }
+
+        void DamageTaken(Unit* attacker, uint32& damage)
+        {
+        }
+
+        void JustReachedHome()
+        {
+            summons.DespawnAll();
+        }
+
+        void JustSummoned(Creature* summoned)
+        {
+            summons.Summon(summoned);
+        }
+
+        void MovementInform(uint32 type, uint32 pointId)
+        {
+            if (type != POINT_MOTION_TYPE && type != EFFECT_MOTION_TYPE)
+                return;
+
+            /*
+            POINT_MAIN_SIDE_GROUND,
+            POINT_MAIN_SIDE_AIR_FROM_GROUND,
+            POINT_MAIN_SIDE_AIR_FROM_OTHER_SIDE,
+
+            POINT_OTHER_SIDE_GROUND,
+            POINT_OTHER_SIDE_AIR_FROM_GROUND,
+            POINT_OTHER_SIDE_AIR_FROM_MAIN_SIDE,
+            */
+        }
+
+        void HandleReachedPointId(uint32 pointId)
+        {
+            switch (pointId)
+            {
+            case POINT_MAIN_SIDE_GROUND:
+                isOnOtherSideOfBridge = false;
+                isFlyingToOppositeSide = false;
+                me->SetReactState(REACT_AGGRESSIVE);
+                AttackStartNoMove(me->SelectNearestPlayer(100.0f));
+                events.CancelEvent(EVENT_CHECK_IF_REACHED_WP);
+                //events.ScheduleEvent(EVENT_CAST_GUSTING_WINDS_1, 1000);
+                //events.ScheduleEvent(EVENT_CAST_GUSTING_WINDS_2, 1000 + 4000 + 5000);
+                //events.ScheduleEvent(EVENT_CAST_GUSTING_WINDS_3, 1000 + 4000 + 5000 + 4000 + 5000);
+                //castedGustingWindsCounter = 0;
+                break;
+            case POINT_OTHER_SIDE_GROUND:
+                isOnOtherSideOfBridge = true;
+                isFlyingToOppositeSide = false;
+                me->SetReactState(REACT_AGGRESSIVE);
+                AttackStartNoMove(me->SelectNearestPlayer(100.0f));
+                events.CancelEvent(EVENT_CHECK_IF_REACHED_WP);
+                //events.ScheduleEvent(EVENT_CAST_GUSTING_WINDS_1, 1000);
+                //events.ScheduleEvent(EVENT_CAST_GUSTING_WINDS_2, 1000 + 4000 + 5000);
+                //events.ScheduleEvent(EVENT_CAST_GUSTING_WINDS_3, 1000 + 4000 + 5000 + 4000 + 5000);
+                //castedGustingWindsCounter = 0;
+                break;
+            case POINT_MAIN_SIDE_AIR_FROM_GROUND:
+                PrepareForFly();
+                MoveToPoint(POINT_OTHER_SIDE_AIR_FROM_MAIN_SIDE, BridgeSidePositions[3]);
+                break;
+            case POINT_OTHER_SIDE_AIR_FROM_MAIN_SIDE:
+                PrepareForFly();
+                MoveToPoint(POINT_OTHER_SIDE_GROUND, BridgeSidePositions[2]);
+                break;
+            case POINT_OTHER_SIDE_AIR_FROM_GROUND:
+                PrepareForFly();
+                MoveToPoint(POINT_MAIN_SIDE_AIR_FROM_OTHER_SIDE, BridgeSidePositions[1]);
+                break;
+            case POINT_MAIN_SIDE_AIR_FROM_OTHER_SIDE:
+                PrepareForFly();
+                MoveToPoint(POINT_MAIN_SIDE_GROUND, BridgeSidePositions[0]);
+                break;
+            }
+        }
+
+        void PrepareForFly()
+        {
+            //events.CancelEvent(EVENT_CAST_GUSTING_WINDS_1);
+            //events.CancelEvent(EVENT_CAST_GUSTING_WINDS_2);
+            //events.CancelEvent(EVENT_CAST_GUSTING_WINDS_3);
+            isFlyingToOppositeSide = true;
+            ReSetSpeed();
+            DoStopAttack();
+            me->SetCanFly(true);
+            me->SetReactState(REACT_PASSIVE);
+        }
+
+        void ReSetSpeed()
+        {
+            //! First set 2.4, then 2.5 to force client update (creds to shocker)
+            me->SetSpeed(MOVE_FLIGHT, 2.4f);
+            me->SetSpeed(MOVE_RUN, 2.4f);
+            me->SetSpeed(MOVE_FLIGHT, 2.5f);
+            me->SetSpeed(MOVE_RUN, 2.5f);
+        }
+        void MoveToPoint(uint32 pointId, Position loc)
+        {
+            lastPointId = pointId;
+            me->GetMotionMaster()->MovePoint(pointId, loc, false);
+        }
+
+        Position GetPositionForPointId(uint32 pointId)
+        {
+            switch (lastPointId)
+            {
+            case POINT_MAIN_SIDE_GROUND:
+                return BridgeSidePositions[0];
+            case POINT_OTHER_SIDE_GROUND:
+                return BridgeSidePositions[2];
+                break;
+            case POINT_MAIN_SIDE_AIR_FROM_GROUND:
+            case POINT_MAIN_SIDE_AIR_FROM_OTHER_SIDE:
+                return BridgeSidePositions[1];
+                break;
+            case POINT_OTHER_SIDE_AIR_FROM_MAIN_SIDE:
+            case POINT_OTHER_SIDE_AIR_FROM_GROUND:
+                return BridgeSidePositions[3];
+                break;
+            }
+
+            return BridgeSidePositions[0];
+        }
+
+        void UpdateAI(uint32 diff)
+        {
+            //if (isFlyingToOppositeSide)
+            //{
+            //    me->SetSpeed(MOVE_WALK, 2.5f, true);
+            //    me->SetSpeed(MOVE_FLIGHT, 2.5f, true);
+            //    me->SetSpeed(MOVE_RUN, 2.5f, true);
+            //}
+
+            if (!UpdateVictim() || !CheckInRoom())
+                return;
+
+            events.Update(diff);
+
+            if (me->HasUnitState(UNIT_STATE_CASTING))// || isFlyingToOppositeSide)
+                return;
+
+            switch (events.ExecuteEvent())
+            {
+            case EVEMNT_FLY_TO_OPPOSITE_SIDE_OF_BRIDGE:
+                PrepareForFly();
+                Talk(1);
+                Talk(2);
+
+                if (!isOnOtherSideOfBridge)
+                {
+                    performedFirstFly = true;
+                    MoveToPoint(POINT_MAIN_SIDE_AIR_FROM_GROUND, BridgeSidePositions[1]);
+                    events.ScheduleEvent(EVEMNT_FLY_TO_OPPOSITE_SIDE_OF_BRIDGE, 30000 + urand(16000, 21000));
+                }
+                else
+                    MoveToPoint(POINT_OTHER_SIDE_AIR_FROM_GROUND, BridgeSidePositions[3]);
+
+                events.ScheduleEvent(EVENT_CHECK_IF_REACHED_WP, 500);
+                events.ScheduleEvent(EVENT_CAST_GUSTING_WINDS_1, 8000 + 1000);
+                events.ScheduleEvent(EVENT_CAST_GUSTING_WINDS_2, 8000 + 1000 + 4000 + 5000);
+                events.ScheduleEvent(EVENT_CAST_GUSTING_WINDS_3, 8000 + 1000 + 4000 + 5000 + 4000 + 5000);
+                break;
+            case EVENT_CHECK_IF_REACHED_WP:
+                if (me->GetDistance(GetPositionForPointId(lastPointId)) < 2.5f)
+                    HandleReachedPointId(lastPointId);
+
+                events.ScheduleEvent(EVENT_CHECK_IF_REACHED_WP, 500);
+                break;
+            case EVENT_CAST_GUSTING_WINDS_1:
+            case EVENT_CAST_GUSTING_WINDS_2:
+            case EVENT_CAST_GUSTING_WINDS_3:
+                //DoCast(isOnOtherSideOfBridge ? 121284 : 121282);
+
+                if (isOnOtherSideOfBridge)
+                    me->CastSpell(me, 121284, false);
+                else
+                    me->CastSpell(me, 121282, false);
+
+                break;
+            case EVENT_CAST_HURL_BRICK:
+                me->CastSpell(me->GetVictim(), SPELL_HURL_BRICK, false);
+                events.ScheduleEvent(EVENT_CAST_HURL_BRICK, urand(2000, 4000));
+                break;
+            case EVENT_CAST_CAUSTIC_PITCH:
+                me->CastSpell(me, SPELL_CAUSTIC_PITCH_SELECTOR, false);
+                events.ScheduleEvent(EVENT_CAST_CAUSTIC_PITCH, urand(8000, 14000));
+                break;
+            case EVENT_CAST_QUICK_DRY_RESIN:
+                if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 0, true))
+                    me->AddAura(SPELL_QUICK_DRY_RESIN, target);
+
+                events.ScheduleEvent(EVENT_CAST_QUICK_DRY_RESIN, urand(19000, 25000));
+                break;
+            }
+
+            DoMeleeAttackIfReady();
+        }
+
+        bool CheckInRoom()
+        {
+            if (me->GetDistance2d(me->GetHomePosition().GetPositionX(), me->GetHomePosition().GetPositionY()) > 200.0f)
+            {
+                EnterEvadeMode();
+                return false;
+            }
+
+            return true;
+        }
+
+        void RemoveAuraFromPlayers(uint32 spell)
+        {
+            Map::PlayerList const& players = me->GetMap()->GetPlayers();
+
+            if (!players.isEmpty())
+                for (Map::PlayerList::const_iterator i = players.begin(); i != players.end(); ++i)
+                    if (Player* player = i->GetSource())
+                        player->RemoveAurasDueToSpell(spell);
+        }
+
+        /*void ForcePlayersMoveByGustingWinds(Player* player)
+        {
+            ObjectGuid plrGuid = player->GetGUID();
+            WorldPacket data(SMSG_CLIENT_MOVE_APPLY_MOVEMENT_FORCE);
+            float xOffset = -5.4f, yOffset = 5.8f, zOffset = 0.0f;
+
+            data.WriteBit(plrGuid[2]);
+            data.WriteBit(plrGuid[3]);
+            data.WriteBits(0, 2);
+            data.WriteBit(plrGuid[7]);
+            data.WriteBit(plrGuid[5]);
+            data.WriteBit(plrGuid[0]);
+            data.WriteBit(plrGuid[1]);
+            data.WriteBit(plrGuid[6]);
+            data.WriteBit(plrGuid[4]);
+            data.FlushBits();
+            data.WriteByteSeq(plrGuid[6]);
+            data << float(yOffset); // Y offset
+            data.WriteByteSeq(plrGuid[4]);
+            data << float(zOffset); // Z offset
+            data << int32(0);
+            data << int32(0x10001000); // movement ID ?
+            data.WriteByteSeq(plrGuid[5]);
+            data << float(8.0f); // magnitude
+            data.WriteByteSeq(plrGuid[0]);
+            data.WriteByteSeq(plrGuid[7]);
+            data.WriteByteSeq(plrGuid[1]);
+            data.WriteByteSeq(plrGuid[3]);
+            data.WriteByteSeq(plrGuid[2]);
+            data << int32(0);
+            data << float(xOffset); // X offset
+            player->SendDirectMessage(&data);
+        }
+
+        void ForcePlayersMoveStopByGustingWinds(Player* player)
+        {
+            ObjectGuid plrGuid = player->GetGUID();
+            WorldPacket data(SMSG_CLIENT_MOVE_REMOVE_MOVEMENT_FORCE);
+
+            data.WriteBit(plrGuid[1]);
+            data.WriteBit(plrGuid[2]);
+            data.WriteBit(plrGuid[4]);
+            data.WriteBit(plrGuid[7]);
+            data.WriteBit(plrGuid[6]);
+            data.WriteBit(plrGuid[0]);
+            data.WriteBit(plrGuid[5]);
+            data.WriteBit(plrGuid[3]);
+            data.WriteByteSeq(plrGuid[4]);
+            data.WriteByteSeq(plrGuid[7]);
+            data.WriteByteSeq(plrGuid[0]);
+            data << int32(0);
+            data.WriteByteSeq(plrGuid[1]);
+            data.WriteByteSeq(plrGuid[3]);
+            data.WriteByteSeq(plrGuid[5]);
+            data << int32(0x10001000); // movement ID ?
+            data.WriteByteSeq(plrGuid[6]);
+            data.WriteByteSeq(plrGuid[2]);
+            player->SendDirectMessage(&data);
+        }*/
+    };
+
+    CreatureAI* GetAI(Creature* creature) const
+    {
+        return new boss_wing_leader_neronokAI(creature);
+    }
 };
 
-// Quick - Dry Resin 121447
-class spell_neronok_quick_dry_resin : public SpellScriptLoader
+class npc_wing_leader_neronok_sticky_resin : public CreatureScript
 {
-    public:
-        spell_neronok_quick_dry_resin() : SpellScriptLoader("spell_neronok_quick_dry_resin") { }
+public:
+    npc_wing_leader_neronok_sticky_resin() : CreatureScript("npc_wing_leader_neronok_sticky_resin") { }
 
-        class spell_neronok_quick_dry_resin_AuraScript : public AuraScript
+    struct npc_wing_leader_neronok_sticky_resinAI : public ScriptedAI
+    {
+        npc_wing_leader_neronok_sticky_resinAI(Creature* creature) : ScriptedAI(creature) { }
+
+        void Reset()
         {
-            PrepareAuraScript(spell_neronok_quick_dry_resin_AuraScript)
-
-            void OnApply(constAuraEffectPtr /*aurEff*/, AuraEffectHandleModes /*mode*/)
-            {
-                Unit* caster = GetCaster();
-                Unit* target = GetTarget();
-                if (!caster || !target)
-                    return;
-
-                target->AddAura(SPELL_QUICK_DRY_RESIN_SE, target);
-            }
-
-            void OnRemove(constAuraEffectPtr /*aurEff*/, AuraEffectHandleModes /*mode*/)
-            {
-                Unit* caster = GetCaster();
-                Unit* target = GetTarget();
-                if (!caster || !target)
-                    return;
-
-                target->RemoveAurasDueToSpell(SPELL_QUICK_DRY_RESIN_SE);
-            }
-
-            void OnTick(constAuraEffectPtr aurEff)
-            {
-                Unit* caster = GetCaster();
-                Unit* target = GetTarget();
-
-                if (!caster || !target)
-                    return;
-
-                int32 resinPower = target->GetPower(POWER_ALTERNATE_POWER);
-
-                // Add or remove power depending on player jumping or not. Handle margins.
-                if (resinPower > 0 && resinPower < 100)
-                {
-                    if (target->HasUnitMovementFlag(MOVEMENTFLAG_FALLING) || target->GetPositionZ() > GetCaster()->GetPositionZ() + 0.1f)
-                        target->SetPower(POWER_ALTERNATE_POWER, target->GetPower(POWER_ALTERNATE_POWER) - 10);
-                    else
-                        target->SetPower(POWER_ALTERNATE_POWER, target->GetPower(POWER_ALTERNATE_POWER) + 10);
-                }
-                else if (resinPower == 0)
-                {
-                    caster->AddAura(SPELL_INVIGORATED, target);
-                    target->RemoveAurasDueToSpell(SPELL_QUICK_DRY_RESIN);
-                }
-                else // 100 resinPower.
-                {
-                    caster->AddAura(SPELL_ENCASED_IN_RESIN, target);
-                    target->RemoveAurasDueToSpell(SPELL_QUICK_DRY_RESIN);
-                }
-            }
-
-            void Register()
-            {
-                OnEffectApply += AuraEffectApplyFn(spell_neronok_quick_dry_resin_AuraScript::OnApply, EFFECT_0, SPELL_AURA_PERIODIC_DAMAGE, AURA_EFFECT_HANDLE_REAL);
-                OnEffectRemove += AuraEffectRemoveFn(spell_neronok_quick_dry_resin_AuraScript::OnRemove, EFFECT_0, SPELL_AURA_PERIODIC_DAMAGE, AURA_EFFECT_HANDLE_REAL);
-                OnEffectPeriodic += AuraEffectPeriodicFn(spell_neronok_quick_dry_resin_AuraScript::OnTick, EFFECT_0, SPELL_AURA_PERIODIC_DAMAGE);
-            }
-        };
-
-        AuraScript* GetAuraScript() const
-        {
-            return new spell_neronok_quick_dry_resin_AuraScript();
+            me->CastSpell(me, 121443, false);
+            me->SetReactState(REACT_PASSIVE);
         }
+
+        void JustRespawned()
+        {
+            Reset();
+        }
+
+        void DamageTaken(Unit* attacker, uint32& damage)
+        {
+            damage = 0;
+        }
+    };
+
+    CreatureAI* GetAI(Creature* creature) const
+    {
+        return new npc_wing_leader_neronok_sticky_resinAI(creature);
+    }
+};
+
+class CausticPitchTargetSelector
+{
+public:
+    CausticPitchTargetSelector() { }
+
+    bool operator()(WorldObject* object)
+    {
+        return !object || object->GetTypeId() != TYPEID_PLAYER;
+    }
+};
+
+class spell_wing_leader_neronok_caustic_pitch_target_selector : public SpellScriptLoader
+{
+public:
+    spell_wing_leader_neronok_caustic_pitch_target_selector() : SpellScriptLoader("spell_wing_leader_neronok_caustic_pitch_target_selector") { }
+
+    class spell_wing_leader_neronok_caustic_pitch_target_selector_SpellScript : public SpellScript
+    {
+        PrepareSpellScript(spell_wing_leader_neronok_caustic_pitch_target_selector_SpellScript);
+
+        void FilterTargets(std::list<WorldObject*>& targets)
+        {
+            targets.remove_if(CausticPitchTargetSelector());
+            Trinity::Containers::RandomResize(targets, 1);
+        }
+
+        void HandleScript(SpellEffIndex effIndex)
+        {
+            if (Unit* caster = GetCaster())
+            {
+                if (Unit* target = GetHitUnit())
+                {
+                    Position pos;
+                    target->GetPosition();
+                    caster->MovePosition(pos, 9.5f * (float)rand_norm(), (float)rand_norm() * static_cast<float>(2 * M_PI));
+                    caster->CastSpell(pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), GetSpellInfo()->GetEffect(EFFECT_0)->BasePoints, true);
+                }
+            }
+        }
+
+        void Register()
+        {
+            OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_wing_leader_neronok_caustic_pitch_target_selector_SpellScript::FilterTargets, EFFECT_0, TARGET_UNIT_SRC_AREA_ENEMY);
+            OnEffectHitTarget += SpellEffectFn(spell_wing_leader_neronok_caustic_pitch_target_selector_SpellScript::HandleScript, EFFECT_0, SPELL_EFFECT_DUMMY);
+        }
+    };
+
+    SpellScript* GetSpellScript() const
+    {
+        return new spell_wing_leader_neronok_caustic_pitch_target_selector_SpellScript();
+    }
+};
+
+class LowerAlternatePowerEvent : public BasicEvent
+{
+public:
+    LowerAlternatePowerEvent(Player& target) : BasicEvent(), _target(target) { }
+
+    bool Execute(uint64 /*eventTime*/, uint32 /*diff*/)
+    {
+        _target.SetPower(POWER_ALTERNATE_POWER, _target.GetPower(POWER_ALTERNATE_POWER) - urand(1, 30));
+        return true;
+    }
+
+private:
+    Player& _target;
+};
+
+class spell_wing_leader_neronok_quick_dry_resin_aura : public SpellScriptLoader
+{
+public:
+    spell_wing_leader_neronok_quick_dry_resin_aura() : SpellScriptLoader("spell_wing_leader_neronok_quick_dry_resin_aura") { }
+
+    class spell_wing_leader_neronok_quick_dry_resin_aura_AuraScript : public AuraScript
+    {
+        PrepareAuraScript(spell_wing_leader_neronok_quick_dry_resin_aura_AuraScript);
+
+        void OnPeriodic(AuraEffect const* /*aurEff*/)
+        {
+            if (Unit* targetUnit = GetTarget())
+            {
+                if (Player* target = targetUnit->ToPlayer())
+                {
+                    //if (target->m_movementInfo.jump.fallTime)
+                    //{
+                    //    //target->SetPower(POWER_ALTERNATE_POWER, target->GetPower(POWER_ALTERNATE_POWER) - urand(3, 5));
+                    //    //for (int i = 0; i < 2; ++i)
+                    //        target->m_Events.AddEvent(new LowerAlternatePowerEvent(*target), target->m_Events.CalculateTime((0 + 1) * 100));
+                    //}
+                    //else
+
+                    if (target->m_movementInfo.jump.fallTime)
+                    {
+                        uint32 number = urand(1, 2);
+                        //std::stringstream ss;
+                        //ss << "Power: " << target->GetPower(POWER_ALTERNATE_POWER) << ". Taking out: " << number;
+                        //target->MonsterSay(ss.str().c_str(), LANG_UNIVERSAL, target);
+                        target->SetPower(POWER_ALTERNATE_POWER, target->GetPower(POWER_ALTERNATE_POWER) - number);
+                    }
+                    else
+                        if (urand(0, 2) == 0)
+                            target->SetPower(POWER_ALTERNATE_POWER, target->GetPower(POWER_ALTERNATE_POWER) + urand(1, 2));
+
+                    if (target->GetPower(POWER_ALTERNATE_POWER) >= 100)
+                    {
+                        target->RemoveAurasDueToSpell(SPELL_QUICK_DRY_RESIN);
+                        //target->CastSpell(target, 122063, false); //! Screen effect
+                        target->CastSpell(target, 121448, false); //! Encased in Resin
+                    }
+                    else if (target->GetPower(POWER_ALTERNATE_POWER) <= 1)
+                    {
+                        target->RemoveAurasDueToSpell(SPELL_QUICK_DRY_RESIN);
+                        target->CastSpell(target, 121449, false); //! Invigorated
+                    }
+                }
+            }
+        }
+
+        void Register()
+        {
+            OnEffectPeriodic += AuraEffectPeriodicFn(spell_wing_leader_neronok_quick_dry_resin_aura_AuraScript::OnPeriodic, EFFECT_2, SPELL_AURA_PERIODIC_DUMMY);
+        }
+    };
+
+    AuraScript* GetAuraScript() const
+    {
+        return new spell_wing_leader_neronok_quick_dry_resin_aura_AuraScript();
+    }
 };
 
 void AddSC_boss_wing_leader_neronok()
 {
     new boss_wing_leader_neronok();
-    new spell_neronok_quick_dry_resin();
+
+    new npc_wing_leader_neronok_sticky_resin();
+
+    new spell_wing_leader_neronok_caustic_pitch_target_selector();
+    new spell_wing_leader_neronok_quick_dry_resin_aura();
+    //new spell_wing_leader_neronok_gusting_winds();
 }
