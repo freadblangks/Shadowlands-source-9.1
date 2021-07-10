@@ -10,6 +10,15 @@
 
 #define SPELL_GUARDIAN_GRUNT 85667
 
+enum Effect
+{
+    EFFECT_0,
+    EFFECT_1,
+    EFFECT_2,
+    EFFECT_3,
+};
+
+
 enum eBosses
 {
     BOSS_MING_THE_CUNNING,
