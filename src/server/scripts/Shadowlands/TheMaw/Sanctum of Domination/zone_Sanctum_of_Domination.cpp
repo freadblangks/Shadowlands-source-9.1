@@ -32,3 +32,9 @@ Script Data End */
 #include "TaskScheduler.h"
 #include "TemporarySummon.h"
 #include "GameObjectAI.h"
+#include "zone_zone_Sanctum_of_Domination.h"
+
+struct zone_zone_Sanctum_of_Domination : public InstanceScript
+{
+    zone_zone_Sanctum_of_Domination(InstanceMap* map) : InstanceScript(map) { }
+};
