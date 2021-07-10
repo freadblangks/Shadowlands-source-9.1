@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Thordekk
+ * Copyright 2021 FuzionCore Project
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -14,6 +14,13 @@
  * You should have received a copy of the GNU General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+
+/* Script Data Start
+SDName: 
+SDAuthor: Frozen
+SD%Complete: %
+SDComment: still working on structure.
+Script Data End */
 
 #include "ScriptMgr.h"
 #include "GameObject.h"
