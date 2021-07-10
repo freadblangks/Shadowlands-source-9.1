@@ -175,7 +175,7 @@ public:
         	switch (action)
         	{
         		case 1:
-        			player->CastSpell(player, 144387, true); // knockback in the air
+        			player->CastSpell(player* player, 144387, true); // knockback in the air
         			playerGUID = player->GetGUID();
         			used = true;
         			WingsTimer = 6000;
