@@ -44,6 +44,14 @@ enum eSpells
     SPELL_NIUZAO_OXEN_FORTITUDE_ACTIVE = 144607
 };
 
+enum eEffects
+{
+    EFFECT_0,
+    EFFECT_1,
+    EFFECT_2,
+    EFFECT_3,
+};
+
 enum eEvents
 {
     EVENT_NIUZAO_OXEN_FORTITUDE = 1,
