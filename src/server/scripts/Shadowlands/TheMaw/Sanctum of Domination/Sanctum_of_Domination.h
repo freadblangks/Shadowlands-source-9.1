@@ -21,3 +21,12 @@ SDAuthor: Frozen
 SD%Complete: %
 SDComment: still working on structure.
 Script Data End */
+
+#include "ScriptMgr.h"
+#include "Player.h"
+#include "AreaTrigger.h"
+#include "AreaTriggerAI.h"
+#include "InstanceScript.h"
+#include "GameObject.h"
+#include "GameObjectAI.h"
+#include "Sanctum_of_Domination.cpp"
