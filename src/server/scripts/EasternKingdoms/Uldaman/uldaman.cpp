@@ -1,169 +1,285 @@
-/*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+/* Copyright (C) 2006 - 2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
 /* ScriptData
 SDName: Uldaman
 SD%Complete: 100
-SDComment: Quest support: 2240, 2278 + 1 trash mob.
+SDComment: Quest support: 2278 + 1 trash mob.
 SDCategory: Uldaman
 EndScriptData */
 
 /* ContentData
-npc_jadespine_basilisk
-go_keystone_chamber
-at_map_chamber
+mob_jadespine_basilisk
 EndContentData */
 
-#include "ScriptMgr.h"
-#include "GameObject.h"
-#include "GameObjectAI.h"
-#include "InstanceScript.h"
-#include "Player.h"
-#include "ScriptedCreature.h"
+#include "scriptPCH.h"
 #include "uldaman.h"
 
 /*######
-## npc_jadespine_basilisk
-######*/
+ ## go_keystone_chamber
+ ######*/
 
-enum Spells
+bool GOHello_go_keystone_chamber(Player* pPlayer, GameObject* pGo)
 {
-    SPELL_CRYSTALLINE_SLUMBER   = 3636,
+    ScriptedInstance* pInstance = (ScriptedInstance*)pGo->GetInstanceData();
+
+    if (!pInstance)
+        return false;
+
+    if (pPlayer)
+        pInstance->SetData64(0, pPlayer->GetGUID()); // Ironaya first victim
+
+    if (pGo)
+        pGo->SetUInt32Value(GAMEOBJECT_FLAGS, GO_FLAG_INTERACT_COND);
+
+    // save state
+    pInstance->SetData(ULDAMAN_ENCOUNTER_IRONAYA_DOOR, DONE);
+
+    return false;
+}
+
+// Return true to avoid db script attempt
+bool ProcessEventId_event_awaken_stone_keeper(uint32 eventId, Object* source, Object* target, bool isStart)
+{
+    if (!source || source->GetTypeId() != TYPEID_PLAYER)
+        return true;
+
+    if (!target)
+        return true;
+
+    if (ScriptedInstance* instance = dynamic_cast<ScriptedInstance*>(((Player*)source)->GetInstanceData()))
+        instance->SetData(ULDAMAN_ENCOUNTER_STONE_KEEPERS, IN_PROGRESS);
+
+    return true;
+}
+
+struct mob_stone_keeperAI : public ScriptedAI
+{
+    mob_stone_keeperAI(Creature* pCreature) : ScriptedAI(pCreature)
+    {
+        instance = (ScriptedInstance*)pCreature->GetInstanceData();
+        Reset();
+    }
+    
+    ScriptedInstance* instance;
+    
+    uint32 m_uiTrample_Timer;
+
+    void Reset() override
+    {
+        m_uiTrample_Timer = urand(4000, 9000);
+    }
+
+    void EnterEvadeMode() override
+    {
+        if (Unit* target = me->SelectNearestHostileUnitInAggroRange(true))
+        {
+            AttackStart(target);
+            return;
+        }
+        Reset();
+        if (instance)
+            instance->SetData(ULDAMAN_ENCOUNTER_STONE_KEEPERS, FAIL);
+    }
+
+    void JustDied(Unit* pWho) override
+    {
+        if (instance)
+            instance->SetData(ULDAMAN_ENCOUNTER_STONE_KEEPERS, IN_PROGRESS);
+    }
+
+    void UpdateAI(uint32 const diff) override
+    {
+        if (!m_creature->SelectHostileTarget() || !m_creature->GetVictim())
+        {
+            return;
+        }
+        if (m_uiTrample_Timer < diff)
+        {
+            if (DoCastSpellIfCan(m_creature->GetVictim(), SPELL_TRAMPLE) == CAST_OK)
+            {
+                m_uiTrample_Timer = urand(4000, 10000);
+            }
+        }
+        else m_uiTrample_Timer -= diff;
+
+        DoMeleeAttackIfReady();
+    }
 };
 
-class npc_jadespine_basilisk : public CreatureScript
+CreatureAI* GetAI_mob_stone_keeper(Creature* pCreature)
 {
-    public:
+    return new mob_stone_keeperAI(pCreature);
+}
 
-        npc_jadespine_basilisk()
-            : CreatureScript("npc_jadespine_basilisk")
+
+/*######
+## mob_jadespine_basilisk
+######*/
+
+struct mob_jadespine_basiliskAI : public ScriptedAI
+{
+    mob_jadespine_basiliskAI(Creature* pCreature) : ScriptedAI(pCreature)
+    {
+        Reset();
+    }
+
+    uint32 Cslumber_Timer;
+
+    void Reset() override
+    {
+        Cslumber_Timer = 2000;
+    }
+
+    void UpdateAI(uint32 const diff) override
+    {
+        //Return since we have no target
+        if (!m_creature->SelectHostileTarget() || !m_creature->GetVictim())
         {
+            return;
         }
 
-        struct npc_jadespine_basiliskAI : public ScriptedAI
+        //Cslumber_Timer
+        if (Cslumber_Timer < diff)
         {
-            npc_jadespine_basiliskAI(Creature* creature) : ScriptedAI(creature)
+            //Cast
+            // DoCastSpellIfCan(m_creature->GetVictim(),SPELL_CRYSTALLINE_SLUMBER);
+            m_creature->CastSpell(m_creature->GetVictim(), SPELL_CRYSTALLINE_SLUMBER, false);
+
+            //Stop attacking target thast asleep and pick new target
+            Cslumber_Timer = 28000;
+
+            Unit* Target = m_creature->SelectAttackingTarget(ATTACKING_TARGET_TOPAGGRO, 0);
+
+            if (!Target || Target == m_creature->GetVictim())
             {
-                Initialize();
+                Target = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0);
             }
 
-            void Initialize()
+            if (Target)
             {
-                uiCslumberTimer = 2000;
+                m_creature->TauntApply(Target);
             }
+        }
+        else Cslumber_Timer -= diff;
 
-            uint32 uiCslumberTimer;
+        DoMeleeAttackIfReady();
+    }
+};
 
-            void Reset() override
+CreatureAI* GetAI_mob_jadespine_basilisk(Creature* pCreature)
+{
+    return new mob_jadespine_basiliskAI(pCreature);
+}
+
+struct AnnoraAI : public ScriptedAI
+{
+    AnnoraAI(Creature* pCreature) : ScriptedAI(pCreature)
+    {
+        m_creature->SetVisibility(VISIBILITY_OFF);
+        m_creature->SetFactionTemplateId(FACTION_STONED);
+        m_uiNbScorpion = 0;
+        isSpawned = false;
+        Reset();
+    }
+
+    uint32 m_uiNbScorpion;
+    bool isSpawned;
+
+    void Reset() override
+    {
+    }
+
+    void Aggro(Unit* pWho) override
+    {
+    }
+
+    void UpdateAI(uint32 const uiDiff) override
+    {
+        if (!isSpawned)
+        {
+            std::list<Creature*> m_EscortList;
+            m_uiNbScorpion = 0;
+
+            GetCreatureListWithEntryInGrid(m_EscortList, m_creature, 7078, 30.0f);
+            for (const auto& it : m_EscortList)
             {
-                Initialize();
-            }
-
-            void JustEngagedWith(Unit* /*who*/) override
-            {
-            }
-
-            void UpdateAI(uint32 uiDiff) override
-            {
-                //Return since we have no target
-                if (!UpdateVictim())
-                    return;
-
-                //uiCslumberTimer
-                if (uiCslumberTimer <= uiDiff)
+                if (it->IsAlive())
                 {
-                    //Cast
-                    DoCastVictim(SPELL_CRYSTALLINE_SLUMBER, true);
-
-                    //Stop attacking target thast asleep and pick new target
-                    uiCslumberTimer = 28000;
-
-                    me->GetThreatManager().ResetThreat(me->GetVictim());
-
-                } else uiCslumberTimer -= uiDiff;
-
-                DoMeleeAttackIfReady();
+                    m_uiNbScorpion++;
+                }
             }
-        };
+            m_EscortList.clear();
 
-        CreatureAI* GetAI(Creature* creature) const override
-        {
-            return GetUldamanAI<npc_jadespine_basiliskAI>(creature);
-        }
-};
-
-/*######
-## go_keystone_chamber
-######*/
-
-class go_keystone_chamber : public GameObjectScript
-{
-    public:
-        go_keystone_chamber() : GameObjectScript("go_keystone_chamber") { }
-
-        struct go_keystone_chamberAI : public GameObjectAI
-        {
-            go_keystone_chamberAI(GameObject* go) : GameObjectAI(go), instance(go->GetInstanceScript()) { }
-
-            InstanceScript* instance;
-
-            bool GossipHello(Player* /*player*/) override
+            if (m_uiNbScorpion == 0)
             {
-                instance->SetData(DATA_IRONAYA_SEAL, IN_PROGRESS); //door animation and save state.
-                return false;
+                m_creature->SetVisibility(VISIBILITY_ON);
+                m_creature->GetMotionMaster()->MovePoint(1, -164.3657f, 210.7687f, -49.572f);
+                isSpawned = true;
             }
-        };
-
-        GameObjectAI* GetAI(GameObject* go) const override
-        {
-            return GetUldamanAI<go_keystone_chamberAI>(go);
         }
+
+        if (!m_creature->SelectHostileTarget() || !m_creature->GetVictim())
+        {
+            return;
+        }
+
+        DoMeleeAttackIfReady();
+    }
 };
 
-/*######
-## at_map_chamber
-######*/
-
-enum MapChamber
+CreatureAI* GetAI_annora(Creature* pCreature)
 {
-    QUEST_HIDDEN_CHAMBER = 2240
-};
+    return new AnnoraAI(pCreature);
+}
 
-class AreaTrigger_at_map_chamber : public AreaTriggerScript
+enum
 {
-    public:
+    SPELL_FIRE_SHIELD       =   2602,
+    SPELL_FLAME_BUFFET      =   10452,
 
-        AreaTrigger_at_map_chamber()
-            : AreaTriggerScript("at_map_chamber")
-        {
-        }
-
-        bool OnTrigger(Player* player, AreaTriggerEntry const* /*areaTrigger*/, bool /*entered*/) override
-        {
-            if (player->GetQuestStatus(QUEST_HIDDEN_CHAMBER) == QUEST_STATUS_INCOMPLETE)
-                player->AreaExploredOrEventHappens(QUEST_HIDDEN_CHAMBER);
-
-            return true;
-        }
 };
 
 void AddSC_uldaman()
 {
-    new npc_jadespine_basilisk();
-    new go_keystone_chamber();
-    new AreaTrigger_at_map_chamber();
+    Script* newscript;
+
+    newscript = new Script;
+    newscript->Name = "mob_annora";
+    newscript->GetAI = &GetAI_annora;
+    newscript->RegisterSelf();
+
+    newscript = new Script;
+    newscript->Name = "mob_jadespine_basilisk";
+    newscript->GetAI = &GetAI_mob_jadespine_basilisk;
+    newscript->RegisterSelf();
+
+
+    newscript = new Script;
+    newscript->Name = "mob_stone_keeper";
+    newscript->GetAI = &GetAI_mob_stone_keeper;
+    newscript->RegisterSelf();
+
+    newscript = new Script;
+    newscript->Name = "go_keystone_chamber";
+    newscript->pGOHello = &GOHello_go_keystone_chamber;
+    newscript->RegisterSelf();
+
+    newscript = new Script;
+    newscript->Name = "event_awaken_stone_keeper";
+    newscript->pProcessEventId = &ProcessEventId_event_awaken_stone_keeper;
+    newscript->RegisterSelf();
 }
