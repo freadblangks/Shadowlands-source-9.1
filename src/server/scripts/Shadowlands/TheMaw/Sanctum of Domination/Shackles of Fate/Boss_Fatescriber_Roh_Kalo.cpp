@@ -36,6 +36,8 @@ Script Data End */
 #include "zone_Sanctum_of_Domination.h"
 #include "Sanctum_of_Domination.h"
 
+
+
 enum Spells
 {
     SPELL_ = 319619,
