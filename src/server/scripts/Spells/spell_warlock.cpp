@@ -35,7 +35,6 @@
 
 enum WarlockSpells
 {
-    SPELL_INFERNO_AURA                              = 270545,
     SPELL_WARLOCK_CREATE_HEALTHSTONE                = 23517,
     SPELL_WARLOCK_DEMONIC_CIRCLE_ALLOW_CAST         = 62388,
     SPELL_WARLOCK_DEMONIC_CIRCLE_SUMMON             = 48018,
@@ -50,10 +49,9 @@ enum WarlockSpells
     SPELL_WARLOCK_IMPROVED_HEALTH_FUNNEL_R2         = 18704,
     SPELL_WARLOCK_RAIN_OF_FIRE                      = 5740,
     SPELL_WARLOCK_RAIN_OF_FIRE_DAMAGE               = 42223,
-    SPELL_RAIN_OF_FIRE_ENERGIZE                     = 270548,
     SPELL_WARLOCK_SEED_OF_CORRUPTION_DAMAGE         = 27285,
     SPELL_WARLOCK_SEED_OF_CORRUPTION_GENERIC        = 32865,
-    SPELL_WARLOCK_SOULSHATTER                       = 32835,
+    SPELL_WARLOCK_SOULSHATTER_EFFECT                = 32835,
     SPELL_WARLOCK_SOUL_SWAP_CD_MARKER               = 94229,
     SPELL_WARLOCK_SOUL_SWAP_OVERRIDE                = 86211,
     SPELL_WARLOCK_SOUL_SWAP_MOD_COST                = 92794,
@@ -513,6 +511,15 @@ class spell_warl_seed_of_corruption_dummy : public SpellScriptLoader
                 return ValidateSpellInfo({ SPELL_WARLOCK_SEED_OF_CORRUPTION_DAMAGE });
             }
 
+            void CalculateBuffer(AuraEffect const* /*aurEff*/, int32& amount, bool& /*canBeRecalculated*/)
+            {
+                Unit* caster = GetCaster();
+                if (!caster)
+                    return;
+
+                amount = caster->SpellBaseDamageBonusDone(GetSpellInfo()->GetSchoolMask()) * ASSERT_NOTNULL(GetSpellInfo()->GetEffect(EFFECT_0))->CalcValue(caster) / 100;
+            }
+
             void HandleProc(AuraEffect* aurEff, ProcEventInfo& eventInfo)
             {
                 PreventDefaultAction();
@@ -539,7 +546,8 @@ class spell_warl_seed_of_corruption_dummy : public SpellScriptLoader
 
             void Register() override
             {
-                OnEffectProc += AuraEffectProcFn(spell_warl_seed_of_corruption_dummy_AuraScript::HandleProc, EFFECT_1, SPELL_AURA_DUMMY);
+                DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_warl_seed_of_corruption_dummy_AuraScript::CalculateBuffer, EFFECT_2, SPELL_AURA_DUMMY);
+                OnEffectProc += AuraEffectProcFn(spell_warl_seed_of_corruption_dummy_AuraScript::HandleProc, EFFECT_2, SPELL_AURA_DUMMY);
             }
         };
 
@@ -817,15 +825,15 @@ class spell_warl_soulshatter : public SpellScriptLoader
 
             bool Validate(SpellInfo const* /*spellInfo*/) override
             {
-                return ValidateSpellInfo({ SPELL_WARLOCK_SOULSHATTER });
+                return ValidateSpellInfo({ SPELL_WARLOCK_SOULSHATTER_EFFECT });
             }
 
             void HandleDummy(SpellEffIndex /*effIndex*/)
             {
                 Unit* caster = GetCaster();
                 if (Unit* target = GetHitUnit())
-                    if (target->CanHaveThreatList() && target->GetThreatManager().IsThreatenedBy(caster, true))
-                        caster->CastSpell(target, SPELL_WARLOCK_SOULSHATTER, true);
+                    if (target->GetThreatManager().IsThreatenedBy(caster, true))
+                        caster->CastSpell(target, SPELL_WARLOCK_SOULSHATTER_EFFECT, true);
             }
 
             void Register() override
@@ -896,13 +904,20 @@ class spell_warl_unstable_affliction : public SpellScriptLoader
             void HandleDispel(DispelInfo* dispelInfo)
             {
                 if (Unit* caster = GetCaster())
+                {
                     if (AuraEffect const* aurEff = GetEffect(EFFECT_1))
                     {
+                        Unit* target = dispelInfo->GetDispeller();
+                        int32 bp = aurEff->GetAmount();
+                        bp = target->SpellDamageBonusTaken(caster, aurEff->GetSpellInfo(), bp, DOT);
+                        bp *= 9;
+
                         // backfire damage and silence
                         CastSpellExtraArgs args(aurEff);
-                        args.AddSpellBP0(aurEff->GetAmount() * 9);
-                        caster->CastSpell(dispelInfo->GetDispeller(), SPELL_WARLOCK_UNSTABLE_AFFLICTION_DISPEL, args);
+                        args.AddSpellBP0(bp);
+                        caster->CastSpell(target, SPELL_WARLOCK_UNSTABLE_AFFLICTION_DISPEL, args);
                     }
+                }
             }
 
             void Register() override
@@ -957,38 +972,6 @@ public:
     }
 };
 
-// 42223 - Rain of fire damage
-class spell_warlock_rain_of_fire_damage : public SpellScriptLoader
-{
-public:
-    spell_warlock_rain_of_fire_damage() : SpellScriptLoader("spell_warlock_rain_of_fire_damage") { }
-
-    class spell_warlock_rain_of_fire_damage_SpellScript : public SpellScript
-    {
-        PrepareSpellScript(spell_warlock_rain_of_fire_damage_SpellScript);
-
-        void HandleHit(SpellEffIndex /*effIndex*/)
-        {
-            Unit* caster = GetCaster();
-            if (!caster)
-                return;
-
-            if (caster->HasAura(SPELL_INFERNO_AURA) && roll_chance_i(sSpellMgr->GetSpellInfo(SPELL_INFERNO_AURA, DIFFICULTY_NONE)->GetEffect(EFFECT_0)->BasePoints))
-                caster->CastSpell(caster, SPELL_RAIN_OF_FIRE_ENERGIZE, true);
-        }
-
-        void Register() override
-        {
-            OnEffectHit += SpellEffectFn(spell_warlock_rain_of_fire_damage_SpellScript::HandleHit, EFFECT_0, SPELL_EFFECT_SCHOOL_DAMAGE);
-        }
-    };
-
-    SpellScript* GetSpellScript() const override
-    {
-        return new spell_warlock_rain_of_fire_damage_SpellScript();
-    }
-};
-
 void AddSC_warlock_spell_scripts()
 {
     new spell_warl_banish();
@@ -1013,5 +996,4 @@ void AddSC_warlock_spell_scripts()
     new spell_warl_t4_2p_bonus<SPELL_WARLOCK_SHADOWFLAME>("spell_warl_t4_2p_bonus_fire");
     new spell_warl_unstable_affliction();
     new spell_warl_rain_of_fire();
-    new spell_warlock_rain_of_fire_damage();
 }

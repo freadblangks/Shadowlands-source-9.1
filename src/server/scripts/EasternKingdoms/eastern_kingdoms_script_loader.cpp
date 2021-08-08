@@ -191,6 +191,7 @@ void AddSC_dun_morogh_area_coldridge_valley();
 void AddSC_duskwood();
 //void AddSC_eastern_plaguelands();
 void AddSC_ghostlands();
+void AddSC_goldshire();
 void AddSC_hinterlands();
 void AddSC_redridge_mountains();
 void AddSC_silverpine_forest();
@@ -201,8 +202,7 @@ void AddSC_tol_barad();
 void AddSC_undercity();
 void AddSC_western_plaguelands();
 void AddSC_wetlands();
-void AddSC_zone_gilneas();
-void AddSC_zone_westfall();
+
 // The name of this function should match:
 // void Add${NameOfDirectory}Scripts()
 void AddEasternKingdomsScripts()
@@ -383,6 +383,7 @@ void AddEasternKingdomsScripts()
     AddSC_duskwood();
     //AddSC_eastern_plaguelands();
     AddSC_ghostlands();
+    AddSC_goldshire();
     AddSC_hinterlands();
     AddSC_redridge_mountains();
     AddSC_silverpine_forest();
@@ -392,7 +393,5 @@ void AddEasternKingdomsScripts()
     AddSC_tol_barad();
     AddSC_undercity();
     AddSC_western_plaguelands();
-    AddSC_zone_westfall();    // westfall
     AddSC_wetlands();
-    AddSC_zone_gilneas();    // gilneas
 }

@@ -152,6 +152,7 @@ public:
             {
                 Madrigosa->Respawn();
                 Madrigosa->setActive(true);
+                Madrigosa->SetFarVisible(true);
                 IsIntro = true;
                 Madrigosa->SetMaxHealth(me->GetMaxHealth());
                 Madrigosa->SetHealth(me->GetMaxHealth());
@@ -233,7 +234,7 @@ public:
                     ++IntroPhase;
                     break;
                 case 7:
-                    me->Kill(Madrigosa);
+                    Unit::Kill(me, Madrigosa);
                     Madrigosa->AI()->Talk(YELL_MADR_DEATH);
                     me->SetFullHealth();
                     me->AttackStop();

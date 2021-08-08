@@ -51,6 +51,7 @@ enum RogueSpells
     SPELL_ROGUE_STEALTH_STEALTH_AURA                = 158185,
     SPELL_ROGUE_STEALTH_SHAPESHIFT_AURA             = 158188,
     SPELL_ROGUE_VANISH_AURA                         = 11327,
+    SPELL_ROGUE_TRICKS_OF_THE_TRADE                 = 57934,
     SPELL_ROGUE_TRICKS_OF_THE_TRADE_PROC            = 59628,
     SPELL_ROGUE_HONOR_AMONG_THIEVES_ENERGIZE        = 51699,
     SPELL_ROGUE_T5_2P_SET_BONUS                     = 37169
@@ -84,7 +85,7 @@ class spell_rog_blade_flurry : public SpellScriptLoader
                 if (DamageInfo* damageInfo = eventInfo.GetDamageInfo())
                 {
                     CastSpellExtraArgs args(aurEff);
-                    args.SpellValueOverrides.AddBP0(damageInfo->GetDamage());
+                    args.AddSpellBP0(damageInfo->GetDamage());
                     GetTarget()->CastSpell(_procTarget, SPELL_ROGUE_BLADE_FLURRY_EXTRA_ATTACK, args);
                 }
             }
@@ -430,159 +431,132 @@ class spell_rog_stealth : public SpellScriptLoader
 };
 
 // 1856 - Vanish
-class spell_rog_vanish : public SpellScriptLoader
+class spell_rog_vanish : public SpellScript
 {
-    public:
-        spell_rog_vanish() : SpellScriptLoader("spell_rog_vanish") { }
+    PrepareSpellScript(spell_rog_vanish);
 
-        class spell_rog_vanish_SpellScript : public SpellScript
-        {
-            PrepareSpellScript(spell_rog_vanish_SpellScript);
+    bool Validate(SpellInfo const* /*spellInfo*/) override
+    {
+        return ValidateSpellInfo({ SPELL_ROGUE_VANISH_AURA, SPELL_ROGUE_STEALTH_SHAPESHIFT_AURA });
+    }
 
-            bool Validate(SpellInfo const* /*spellInfo*/) override
-            {
-                return ValidateSpellInfo({ SPELL_ROGUE_VANISH_AURA, SPELL_ROGUE_STEALTH_SHAPESHIFT_AURA });
-            }
+    void OnLaunchTarget(SpellEffIndex effIndex)
+    {
+        PreventHitDefaultEffect(effIndex);
 
-            void OnLaunchTarget(SpellEffIndex effIndex)
-            {
-                PreventHitDefaultEffect(effIndex);
+        Unit* target = GetHitUnit();
 
-                Unit* target = GetHitUnit();
+        target->RemoveAurasByType(SPELL_AURA_MOD_STALKED);
+        if (target->GetTypeId() != TYPEID_PLAYER)
+            return;
 
-                target->RemoveMovementImpairingAuras(true);
-                target->RemoveAurasByType(SPELL_AURA_MOD_STALKED);
-                if (target->GetTypeId() != TYPEID_PLAYER)
-                    return;
+        if (target->HasAura(SPELL_ROGUE_VANISH_AURA))
+            return;
 
-                if (target->HasAura(SPELL_ROGUE_VANISH_AURA))
-                    return;
+        target->CastSpell(target, SPELL_ROGUE_VANISH_AURA, TRIGGERED_FULL_MASK);
+        target->CastSpell(target, SPELL_ROGUE_STEALTH_SHAPESHIFT_AURA, TRIGGERED_FULL_MASK);
+    }
 
-                target->CastSpell(target, SPELL_ROGUE_VANISH_AURA, TRIGGERED_FULL_MASK);
-                target->CastSpell(target, SPELL_ROGUE_STEALTH_SHAPESHIFT_AURA, TRIGGERED_FULL_MASK);
-            }
-
-            void Register() override
-            {
-                OnEffectLaunchTarget += SpellEffectFn(spell_rog_vanish_SpellScript::OnLaunchTarget, EFFECT_1, SPELL_EFFECT_TRIGGER_SPELL);
-            }
-        };
-
-        SpellScript* GetSpellScript() const override
-        {
-            return new spell_rog_vanish_SpellScript();
-        }
+    void Register() override
+    {
+        OnEffectLaunchTarget += SpellEffectFn(spell_rog_vanish::OnLaunchTarget, EFFECT_1, SPELL_EFFECT_TRIGGER_SPELL);
+    }
 };
 
 // 11327 - Vanish
-class spell_rog_vanish_aura : public SpellScriptLoader
+class spell_rog_vanish_aura : public AuraScript
 {
-    public:
-        spell_rog_vanish_aura() : SpellScriptLoader("spell_rog_vanish_aura") { }
+    PrepareAuraScript(spell_rog_vanish_aura);
 
-        class spell_rog_vanish_aura_AuraScript : public AuraScript
-        {
-            PrepareAuraScript(spell_rog_vanish_aura_AuraScript);
+    bool Validate(SpellInfo const* /*spellInfo*/) override
+    {
+        return ValidateSpellInfo({ SPELL_ROGUE_STEALTH });
+    }
 
-            bool Validate(SpellInfo const* /*spellInfo*/) override
-            {
-                return ValidateSpellInfo({ SPELL_ROGUE_STEALTH });
-            }
+    void HandleEffectRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+    {
+        GetTarget()->CastSpell(GetTarget(), SPELL_ROGUE_STEALTH, TRIGGERED_FULL_MASK);
+    }
 
-            void HandleEffectRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
-            {
-                GetTarget()->CastSpell(GetTarget(), SPELL_ROGUE_STEALTH, TRIGGERED_FULL_MASK);
-            }
-
-            void Register() override
-            {
-                AfterEffectRemove += AuraEffectRemoveFn(spell_rog_vanish_aura_AuraScript::HandleEffectRemove, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
-            }
-        };
-
-        AuraScript* GetAuraScript() const override
-        {
-            return new spell_rog_vanish_aura_AuraScript();
-        }
+    void Register() override
+    {
+        AfterEffectRemove += AuraEffectRemoveFn(spell_rog_vanish_aura::HandleEffectRemove, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+    }
 };
 
 // 57934 - Tricks of the Trade
-class spell_rog_tricks_of_the_trade : public SpellScriptLoader
+class spell_rog_tricks_of_the_trade_aura : public AuraScript
 {
-    public:
-        spell_rog_tricks_of_the_trade() : SpellScriptLoader("spell_rog_tricks_of_the_trade") { }
+    PrepareAuraScript(spell_rog_tricks_of_the_trade_aura);
 
-        class spell_rog_tricks_of_the_trade_AuraScript : public AuraScript
-        {
-            PrepareAuraScript(spell_rog_tricks_of_the_trade_AuraScript);
+    bool Validate(SpellInfo const* /*spellInfo*/) override
+    {
+        return ValidateSpellInfo({ SPELL_ROGUE_TRICKS_OF_THE_TRADE_PROC });
+    }
 
-            bool Validate(SpellInfo const* /*spellInfo*/) override
+    void OnRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+    {
+        if (GetTargetApplication()->GetRemoveMode() != AURA_REMOVE_BY_DEFAULT || !GetTarget()->HasAura(SPELL_ROGUE_TRICKS_OF_THE_TRADE_PROC))
+            GetTarget()->GetThreatManager().UnregisterRedirectThreat(SPELL_ROGUE_TRICKS_OF_THE_TRADE);
+    }
+
+    void HandleProc(AuraEffect* aurEff, ProcEventInfo& /*eventInfo*/)
+    {
+        PreventDefaultAction();
+
+        Unit* rogue = GetTarget();
+        if (ObjectAccessor::GetUnit(*rogue, _redirectTarget))
+            rogue->CastSpell(rogue, SPELL_ROGUE_TRICKS_OF_THE_TRADE_PROC, aurEff);
+        Remove(AURA_REMOVE_BY_DEFAULT);
+    }
+
+    void Register() override
+    {
+        AfterEffectRemove += AuraEffectRemoveFn(spell_rog_tricks_of_the_trade_aura::OnRemove, EFFECT_1, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+        OnEffectProc += AuraEffectProcFn(spell_rog_tricks_of_the_trade_aura::HandleProc, EFFECT_1, SPELL_AURA_DUMMY);
+    }
+
+    ObjectGuid _redirectTarget;
+public:
+    void SetRedirectTarget(ObjectGuid guid) { _redirectTarget = guid; }
+};
+
+class spell_rog_tricks_of_the_trade : public SpellScript
+{
+    PrepareSpellScript(spell_rog_tricks_of_the_trade);
+
+    void DoAfterHit()
+    {
+        if (Aura* aura = GetHitAura())
+            if (auto* script = aura->GetScript<spell_rog_tricks_of_the_trade_aura>("spell_rog_tricks_of_the_trade"))
             {
-                return ValidateSpellInfo({ SPELL_ROGUE_TRICKS_OF_THE_TRADE_PROC });
+                if (Unit* explTarget = GetExplTargetUnit())
+                    script->SetRedirectTarget(explTarget->GetGUID());
+                else
+                    script->SetRedirectTarget(ObjectGuid::Empty);
             }
+    }
 
-            void OnRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
-            {
-                if (GetTargetApplication()->GetRemoveMode() != AURA_REMOVE_BY_DEFAULT)
-                    GetTarget()->ResetRedirectThreat();
-            }
-
-            bool CheckProc(ProcEventInfo& /*eventInfo*/)
-            {
-                _redirectTarget = GetTarget()->GetRedirectThreatTarget();
-                return _redirectTarget != nullptr;
-            }
-
-            void HandleProc(AuraEffect* /*aurEff*/, ProcEventInfo& /*eventInfo*/)
-            {
-                PreventDefaultAction();
-
-                Unit* target = GetTarget();
-                target->CastSpell(target, SPELL_ROGUE_TRICKS_OF_THE_TRADE_PROC, true);
-                Remove(AURA_REMOVE_BY_DEFAULT); // maybe handle by proc charges
-            }
-
-            void Register() override
-            {
-                AfterEffectRemove += AuraEffectRemoveFn(spell_rog_tricks_of_the_trade_AuraScript::OnRemove, EFFECT_1, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
-                DoCheckProc += AuraCheckProcFn(spell_rog_tricks_of_the_trade_AuraScript::CheckProc);
-                OnEffectProc += AuraEffectProcFn(spell_rog_tricks_of_the_trade_AuraScript::HandleProc, EFFECT_1, SPELL_AURA_DUMMY);
-            }
-
-            Unit* _redirectTarget = nullptr;
-        };
-
-        AuraScript* GetAuraScript() const override
-        {
-            return new spell_rog_tricks_of_the_trade_AuraScript();
-        }
+    void Register() override
+    {
+        AfterHit += SpellHitFn(spell_rog_tricks_of_the_trade::DoAfterHit);
+    }
 };
 
 // 59628 - Tricks of the Trade (Proc)
-class spell_rog_tricks_of_the_trade_proc : public SpellScriptLoader
+class spell_rog_tricks_of_the_trade_proc : public AuraScript
 {
-    public:
-        spell_rog_tricks_of_the_trade_proc() : SpellScriptLoader("spell_rog_tricks_of_the_trade_proc") { }
+    PrepareAuraScript(spell_rog_tricks_of_the_trade_proc);
 
-        class spell_rog_tricks_of_the_trade_proc_AuraScript : public AuraScript
-        {
-            PrepareAuraScript(spell_rog_tricks_of_the_trade_proc_AuraScript);
+    void HandleRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+    {
+        GetTarget()->GetThreatManager().UnregisterRedirectThreat(SPELL_ROGUE_TRICKS_OF_THE_TRADE);
+    }
 
-            void HandleRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
-            {
-                GetTarget()->ResetRedirectThreat();
-            }
-
-            void Register() override
-            {
-                AfterEffectRemove += AuraEffectRemoveFn(spell_rog_tricks_of_the_trade_proc_AuraScript::HandleRemove, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
-            }
-        };
-
-        AuraScript* GetAuraScript() const override
-        {
-            return new spell_rog_tricks_of_the_trade_proc_AuraScript();
-        }
+    void Register() override
+    {
+        AfterEffectRemove += AuraEffectRemoveFn(spell_rog_tricks_of_the_trade_proc::HandleRemove, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+    }
 };
 
 // 198031 - Honor Among Thieves
@@ -702,10 +676,10 @@ void AddSC_rogue_spell_scripts()
     new spell_rog_killing_spree();
     new spell_rog_rupture();
     new spell_rog_stealth();
-    new spell_rog_vanish();
-    new spell_rog_vanish_aura();
-    new spell_rog_tricks_of_the_trade();
-    new spell_rog_tricks_of_the_trade_proc();
+    RegisterSpellScript(spell_rog_vanish);
+    RegisterAuraScript(spell_rog_vanish_aura);
+    RegisterSpellAndAuraScriptPair(spell_rog_tricks_of_the_trade, spell_rog_tricks_of_the_trade_aura);
+    RegisterAuraScript(spell_rog_tricks_of_the_trade_proc);
     new spell_rog_honor_among_thieves();
     new spell_rog_eviscerate();
     new spell_rog_envenom();

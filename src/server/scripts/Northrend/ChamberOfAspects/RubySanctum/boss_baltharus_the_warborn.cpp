@@ -91,6 +91,7 @@ class boss_baltharus_the_warborn : public CreatureScript
                 {
                     case ACTION_INTRO_BALTHARUS:
                         me->setActive(true);
+                        me->SetFarVisible(true);
                         events.ScheduleEvent(EVENT_INTRO_TALK, Seconds(7), 0, PHASE_INTRO);
                         break;
                     case ACTION_CLONE:
@@ -183,10 +184,10 @@ class boss_baltharus_the_warborn : public CreatureScript
                 if (!events.IsInPhase(PHASE_INTRO))
                     me->SetHealth(instance->GetData(DATA_BALTHARUS_SHARED_HEALTH));
 
+                events.Update(diff);
+
                 if (!events.IsInPhase(PHASE_INTRO) && me->HasUnitState(UNIT_STATE_CASTING))
                     return;
-
-                events.Update(diff);
 
                 while (uint32 eventId = events.ExecuteEvent())
                 {
@@ -273,7 +274,7 @@ class npc_baltharus_the_warborn_clone : public CreatureScript
             {
                 // This is here because DamageTaken wont trigger if the damage is deadly.
                 if (Creature* baltharus = instance->GetCreature(DATA_BALTHARUS_THE_WARBORN))
-                    killer->Kill(baltharus);
+                    Unit::Kill(killer, baltharus);
             }
 
             void UpdateAI(uint32 diff) override

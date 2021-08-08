@@ -30,6 +30,7 @@
 #include "Conversation.h"
 #include "Creature.h"
 #include "CreatureAI.h"
+#include "CreatureTextMgr.h"
 #include "DatabaseEnv.h"
 #include "DB2Stores.h"
 #include "DuelPackets.h"
@@ -363,6 +364,8 @@ NonDefaultConstructible<pEffect> SpellEffects[TOTAL_SPELL_EFFECTS] =
     &Spell::EffectNULL,                                     //281 SPELL_EFFECT_LEARN_SOULBIND_CONDUIT
     &Spell::EffectNULL,                                     //282 SPELL_EFFECT_CONVERT_ITEMS_TO_CURRENCY
     &Spell::EffectNULL,                                     //283 SPELL_EFFECT_COMPLETE_CAMPAIGN
+    &Spell::EffectSendChatMessage,                          //284 SPELL_EFFECT_SEND_CHAT_MESSAGE
+    &Spell::EffectNULL,                                     //285 SPELL_EFFECT_MODIFY_KEYSTONE_2
 };
 
 void Spell::EffectNULL(SpellEffIndex /*effIndex*/)
@@ -3925,7 +3928,6 @@ void Spell::EffectLeap(SpellEffIndex /*effIndex*/)
         return;
 
     Position pos = destTarget->GetPosition();
-    pos = unitTarget->GetFirstCollisionPosition(unitTarget->GetDistance(pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ()), 0.0f);
     unitTarget->NearTeleportTo(pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), pos.GetOrientation(), unitTarget == m_caster);
 }
 
@@ -5850,4 +5852,17 @@ void Spell::EffectCreatePrivateConversation(SpellEffIndex /*effIndex*/)
         return;
 
     Conversation::CreateConversation(effectInfo->MiscValue, GetCaster(), unitTarget->GetPosition(), { unitTarget->GetGUID() }, GetSpellInfo());
+}
+
+void Spell::EffectSendChatMessage(SpellEffIndex /*effIndex*/)
+{
+    if (effectHandleMode != SPELL_EFFECT_HANDLE_HIT)
+        return;
+
+    uint32 broadcastTextId = effectInfo->MiscValue;
+    if (!sBroadcastTextStore.LookupEntry(broadcastTextId))
+        return;
+
+    ChatMsg chatType = ChatMsg(effectInfo->MiscValueB);
+    m_caster->Talk(broadcastTextId, chatType, CreatureTextMgr::GetRangeForChatType(chatType), unitTarget);
 }

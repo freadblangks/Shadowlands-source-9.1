@@ -144,42 +144,7 @@ public:
 
 };
 
-/*######
-## npc_rathis_tomber
-######*/
-
-class npc_rathis_tomber : public CreatureScript
-{
-public:
-    npc_rathis_tomber() : CreatureScript("npc_rathis_tomber") {}
-
-    bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action) override
-    {
-        player->PlayerTalkClass->ClearMenus();
-        if (action == GOSSIP_ACTION_TRADE)
-            player->GetSession()->SendListInventory(creature->GetGUID());
-        return true;
-    }
-
-    bool OnGossipHello(Player* player, Creature* creature) override
-    {
-        if (creature->IsQuestGiver())
-            player->PrepareQuestMenu(creature->GetGUID());
-
-        if (creature->IsVendor() && player->GetQuestRewardStatus(9152))
-        {
-            AddGossipItemFor(player, GOSSIP_ICON_VENDOR, GOSSIP_TEXT_BROWSE_GOODS, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_TRADE);
-            SendGossipMenuFor(player, player->GetGossipTextId(creature), creature->GetGUID());
-        }
-        else
-            SendGossipMenuFor(player, player->GetGossipTextId(creature), creature->GetGUID());
-
-        return true;
-    }
-};
-
 void AddSC_ghostlands()
 {
     new npc_ranger_lilatha();
-    new npc_rathis_tomber();
 }

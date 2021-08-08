@@ -153,7 +153,7 @@ public:
             _JustDied();
 
             // start achievement timer (kill Maexna within 20 min)
-            instance->DoStartCriteriaTimer(CRITERIA_TIMED_TYPE_EVENT, ACHIEV_TIMED_START_EVENT);
+            instance->DoStartCriteriaTimer(CriteriaStartEvent::SendEvent, ACHIEV_TIMED_START_EVENT);
         }
 
         void JustEngagedWith(Unit* /*who*/) override
@@ -238,12 +238,12 @@ public:
 
 };
 
-class at_anubrekhan_entrance : public AreaTriggerScript
+class at_anubrekhan_entrance : public OnlyOnceAreaTriggerScript
 {
     public:
-        at_anubrekhan_entrance() : AreaTriggerScript("at_anubrekhan_entrance") { }
+        at_anubrekhan_entrance() : OnlyOnceAreaTriggerScript("at_anubrekhan_entrance") { }
 
-        bool OnTrigger(Player* player, AreaTriggerEntry const* /*areaTrigger*/, bool /*entered*/) override
+        bool _OnTrigger(Player* player, AreaTriggerEntry const* /*areaTrigger*/, bool /*entered*/) override
         {
             InstanceScript* instance = player->GetInstanceScript();
             if (!instance || instance->GetBossState(BOSS_ANUBREKHAN) != NOT_STARTED)

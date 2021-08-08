@@ -130,7 +130,7 @@ class boss_faerlina : public CreatureScript
                 {
                     ++_frenzyDispels;
                     Talk(EMOTE_WIDOW_EMBRACE, caster);
-                    me->Kill(caster);
+                    Unit::Kill(me, caster);
                 }
             }
 
@@ -260,12 +260,12 @@ class achievement_momma_said_knock_you_out : public AchievementCriteriaScript
         }
 };
 
-class at_faerlina_entrance : public AreaTriggerScript
+class at_faerlina_entrance : public OnlyOnceAreaTriggerScript
 {
     public:
-        at_faerlina_entrance() : AreaTriggerScript("at_faerlina_entrance") { }
+        at_faerlina_entrance() : OnlyOnceAreaTriggerScript("at_faerlina_entrance") { }
 
-        bool OnTrigger(Player* player, AreaTriggerEntry const* /*areaTrigger*/, bool /*entered*/) override
+        bool _OnTrigger(Player* player, AreaTriggerEntry const* /*areaTrigger*/, bool /*entered*/) override
         {
             InstanceScript* instance = player->GetInstanceScript();
             if (!instance || instance->GetBossState(BOSS_FAERLINA) != NOT_STARTED)

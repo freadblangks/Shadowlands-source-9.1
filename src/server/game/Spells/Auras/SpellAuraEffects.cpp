@@ -571,6 +571,8 @@ NonDefaultConstructible<pAuraEffectHandler> AuraEffectHandler[TOTAL_AURAS]=
     &AuraEffect::HandleNULL,                                      //501 SPELL_AURA_MOD_CRITICAL_DAMAGE_TAKEN_FROM_CASTER
     &AuraEffect::HandleNULL,                                      //502 SPELL_AURA_MOD_VERSATILITY_DAMAGE_DONE_BENEFIT
     &AuraEffect::HandleNULL,                                      //503 SPELL_AURA_MOD_VERSATILITY_HEALING_DONE_BENEFIT
+    &AuraEffect::HandleNoImmediateEffect,                         //504 SPELL_AURA_MOD_HEALING_TAKEN_FROM_CASTER implemented in Unit::SpellHealingBonusTaken
+    &AuraEffect::HandleNULL,                                      //503 SPELL_AURA_MOD_PLAYER_CHOICE_REROLLS
 };
 
 AuraEffect::AuraEffect(Aura* base, SpellEffectInfo const* spellEfffectInfo, int32 *baseAmount, Unit* caster) :
@@ -669,7 +671,7 @@ int32 AuraEffect::CalculateAmount(Unit* caster)
     if (!GetSpellEffectInfo()->EffectAttributes.HasFlag(SpellEffectAttributes::NoScaleWithStack))
         amount *= GetBase()->GetStackAmount();
 
-    if (caster)
+    if (caster && GetBase()->GetType() == UNIT_AURA_TYPE)
     {
         uint32 stackAmountForBonuses = !GetSpellEffectInfo()->EffectAttributes.HasFlag(SpellEffectAttributes::NoScaleWithStack) ? GetBase()->GetStackAmount() : 1;
 
@@ -1574,7 +1576,6 @@ void AuraEffect::HandleAuraGhost(AuraApplication const* aurApp, uint8 mode, bool
         return;
 
     Player* target = aurApp->GetTarget()->ToPlayer();
-
     if (!target)
         return;
 
@@ -5531,14 +5532,13 @@ void AuraEffect::HandlePeriodicManaLeechAuraTick(Unit* target, Unit* caster) con
         target->GetThreatManager().AddThreat(caster, float(gainedAmount) * 0.5f, GetSpellInfo(), true);
     }
 
-    // Drain Mana
-    if (m_spellInfo->SpellFamilyName == SPELLFAMILY_WARLOCK
-        && m_spellInfo->SpellFamilyFlags[0] & 0x00000010)
+    // Drain Mana - Mana Feed effect
+    if (caster->GetGuardianPet() && m_spellInfo->SpellFamilyName == SPELLFAMILY_WARLOCK && m_spellInfo->SpellFamilyFlags[0] & 0x00000010)
     {
         int32 manaFeedVal = 0;
-        if (AuraEffect const* aurEff = GetBase()->GetEffect(1))
+        if (AuraEffect const* aurEff = GetBase()->GetEffect(EFFECT_1))
             manaFeedVal = aurEff->GetAmount();
-        // Mana Feed - Drain Mana
+
         if (manaFeedVal > 0)
         {
             int32 feedAmount = CalculatePct(gainedAmount, manaFeedVal);

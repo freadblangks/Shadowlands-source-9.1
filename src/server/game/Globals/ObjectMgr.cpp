@@ -358,9 +358,11 @@ void ObjectMgr::LoadCreatureTemplates()
     //                                       "spell1, spell2, spell3, spell4, spell5, spell6, spell7, spell8, VehicleId, mingold, maxgold, AIName, MovementType, "
     //                                        60           61           62              63                   64            65                 66             67              68
     //                                       "InhabitType, HoverHeight, HealthModifier, HealthModifierExtra, ManaModifier, ManaModifierExtra, ArmorModifier, DamageModifier, ExperienceModifier, "
-    //                                        69            70          71           72                        73           74                    75                        76
-    //                                       "RacialLeader, movementId, WidgetSetID, WidgetSetUnitConditionID, RegenHealth, mechanic_immune_mask, spell_school_immune_mask, flags_extra, "
-    //                                        77
+    //                                        69            70          71                    72           73                        74
+    //                                       "RacialLeader, movementId, CreatureDifficultyID, WidgetSetID, WidgetSetUnitConditionID, RegenHealth, "
+    //                                        75                    76                        77
+    //                                       "mechanic_immune_mask, spell_school_immune_mask, flags_extra, "
+    //                                        78
     //                                       "ScriptName FROM creature_template WHERE entry = ? OR 1 = ?");
 
     WorldDatabasePreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_SEL_CREATURE_TEMPLATE);
@@ -462,13 +464,14 @@ void ObjectMgr::LoadCreatureTemplate(Field* fields)
     creatureTemplate.ModExperience          = fields[68].GetFloat();
     creatureTemplate.RacialLeader           = fields[69].GetBool();
     creatureTemplate.movementId             = fields[70].GetUInt32();
-    creatureTemplate.WidgetSetID            = fields[71].GetInt32();
-    creatureTemplate.WidgetSetUnitConditionID = fields[72].GetInt32();
-    creatureTemplate.RegenHealth            = fields[73].GetBool();
-    creatureTemplate.MechanicImmuneMask     = fields[74].GetUInt32();
-    creatureTemplate.SpellSchoolImmuneMask  = fields[75].GetUInt32();
-    creatureTemplate.flags_extra            = fields[76].GetUInt32();
-    creatureTemplate.ScriptID               = GetScriptId(fields[77].GetString());
+    creatureTemplate.CreatureDifficultyID   = fields[71].GetInt32();
+    creatureTemplate.WidgetSetID            = fields[72].GetInt32();
+    creatureTemplate.WidgetSetUnitConditionID = fields[73].GetInt32();
+    creatureTemplate.RegenHealth            = fields[74].GetBool();
+    creatureTemplate.MechanicImmuneMask     = fields[75].GetUInt32();
+    creatureTemplate.SpellSchoolImmuneMask  = fields[76].GetUInt32();
+    creatureTemplate.flags_extra            = fields[77].GetUInt32();
+    creatureTemplate.ScriptID               = GetScriptId(fields[78].GetString());
 }
 
 void ObjectMgr::LoadCreatureTemplateModels()
@@ -638,8 +641,8 @@ void ObjectMgr::LoadCreatureScalingData()
 {
     uint32 oldMSTime = getMSTime();
 
-    //                                                 0          1              2                 3                  4                     5                  6
-    QueryResult result = WorldDatabase.Query("SELECT Entry, DifficultyID, LevelScalingMin, LevelScalingMax, LevelScalingDeltaMin, LevelScalingDeltaMax, ContentTuningID FROM creature_template_scaling ORDER BY Entry");
+    //                                                 0          1                 2                     3                  4
+    QueryResult result = WorldDatabase.Query("SELECT Entry, DifficultyID, LevelScalingDeltaMin, LevelScalingDeltaMax, ContentTuningID FROM creature_template_scaling ORDER BY Entry");
 
     if (!result)
     {
@@ -663,11 +666,9 @@ void ObjectMgr::LoadCreatureScalingData()
         }
 
         CreatureLevelScaling creatureLevelScaling;
-        creatureLevelScaling.MinLevel              = fields[2].GetUInt16();
-        creatureLevelScaling.MaxLevel              = fields[3].GetUInt16();
-        creatureLevelScaling.DeltaLevelMin         = fields[4].GetInt16();
-        creatureLevelScaling.DeltaLevelMax         = fields[5].GetInt16();
-        creatureLevelScaling.ContentTuningID       = fields[6].GetInt32();
+        creatureLevelScaling.DeltaLevelMin         = fields[2].GetInt16();
+        creatureLevelScaling.DeltaLevelMax         = fields[3].GetInt16();
+        creatureLevelScaling.ContentTuningID       = fields[4].GetInt32();
 
         itr->second.scalingStore[difficulty] = creatureLevelScaling;
 
@@ -3068,14 +3069,10 @@ void ObjectMgr::LoadItemTemplates()
     }
 
     // Load item effects (spells)
-    for (ItemEffectEntry const* effectEntry : sItemEffectStore)
-    {
-        auto itemItr = _itemTemplateStore.find(effectEntry->ParentItemID);
-        if (itemItr == _itemTemplateStore.end())
-            continue;
-
-        itemItr->second.Effects.push_back(effectEntry);
-    }
+    for (ItemXItemEffectEntry const* effectEntry : sItemXItemEffectStore)
+        if (ItemTemplate* item = Trinity::Containers::MapGetValuePtr(_itemTemplateStore, effectEntry->ItemID))
+            if (ItemEffectEntry const* effect = sItemEffectStore.LookupEntry(effectEntry->ItemEffectID))
+                item->Effects.push_back(effect);
 
     TC_LOG_INFO("server.loading", ">> Loaded " SZFMTD " item templates in %u ms", _itemTemplateStore.size(), GetMSTimeDiffToNow(oldMSTime));
 }
@@ -4127,19 +4124,21 @@ void ObjectMgr::LoadQuests()
         "RewardChoiceItemID3, RewardChoiceItemQuantity3, RewardChoiceItemDisplayID3, RewardChoiceItemID4, RewardChoiceItemQuantity4, RewardChoiceItemDisplayID4, "
         //52                  53                         54                          55                   56                         57
         "RewardChoiceItemID5, RewardChoiceItemQuantity5, RewardChoiceItemDisplayID5, RewardChoiceItemID6, RewardChoiceItemQuantity6, RewardChoiceItemDisplayID6, "
-        //58           59    60    61           62           63                 64                 65                 66             67                  68
-        "POIContinent, POIx, POIy, POIPriority, RewardTitle, RewardArenaPoints, RewardSkillLineID, RewardNumSkillUps, PortraitGiver, PortraitGiverMount, PortraitTurnIn, "
-        //69               70                   71                      72                   73                74                   75                      76
+        //58           59    60    61           62           63                 64                 65
+        "POIContinent, POIx, POIy, POIPriority, RewardTitle, RewardArenaPoints, RewardSkillLineID, RewardNumSkillUps, "
+        //66            67                  68                         69
+        "PortraitGiver, PortraitGiverMount, PortraitGiverModelSceneID, PortraitTurnIn, "
+        //70               71                   72                      73                   74                75                   76                      77
         "RewardFactionID1, RewardFactionValue1, RewardFactionOverride1, RewardFactionCapIn1, RewardFactionID2, RewardFactionValue2, RewardFactionOverride2, RewardFactionCapIn2, "
-        //77               78                   79                      80                   81                82                   83                      84
+        //78               79                   80                      81                   82                83                   84                      85
         "RewardFactionID3, RewardFactionValue3, RewardFactionOverride3, RewardFactionCapIn3, RewardFactionID4, RewardFactionValue4, RewardFactionOverride4, RewardFactionCapIn4, "
-        //85               86                   87                      88                   89
+        //86               87                   88                      89                   90
         "RewardFactionID5, RewardFactionValue5, RewardFactionOverride5, RewardFactionCapIn5, RewardFactionFlags, "
-        //90                91                  92                 93                  94                 95                  96                 97
+        //91                92                  93                 94                  95                 96                  97                 98
         "RewardCurrencyID1, RewardCurrencyQty1, RewardCurrencyID2, RewardCurrencyQty2, RewardCurrencyID3, RewardCurrencyQty3, RewardCurrencyID4, RewardCurrencyQty4, "
-        //98                 99                  100          101          102             103               104        105                  106
+        //99                 100                 101          102          103             104               105        106                  107
         "AcceptedSoundKitID, CompleteSoundKitID, AreaGroupID, TimeAllowed, AllowableRaces, TreasurePickerID, Expansion, ManagedWorldStateID, QuestSessionBonus, "
-        //107      108             109               110              111                112                113                 114                 115
+        //108      109             110               111              112                113                114                 115                 116
         "LogTitle, LogDescription, QuestDescription, AreaDescription, PortraitGiverText, PortraitGiverName, PortraitTurnInText, PortraitTurnInName, QuestCompletionLog"
         " FROM quest_template");
     if (!result)
@@ -7433,18 +7432,18 @@ void ObjectMgr::LoadGameObjectTemplateAddons()
         }
 
         GameObjectTemplateAddon& gameObjectAddon = _gameObjectTemplateAddonStore[entry];
-        gameObjectAddon.faction       = uint32(fields[1].GetUInt16());
-        gameObjectAddon.flags         = fields[2].GetUInt32();
-        gameObjectAddon.mingold       = fields[3].GetUInt32();
-        gameObjectAddon.maxgold       = fields[4].GetUInt32();
+        gameObjectAddon.Faction       = uint32(fields[1].GetUInt16());
+        gameObjectAddon.Flags         = fields[2].GetUInt32();
+        gameObjectAddon.Mingold       = fields[3].GetUInt32();
+        gameObjectAddon.Maxgold       = fields[4].GetUInt32();
         gameObjectAddon.WorldEffectID = fields[5].GetUInt32();
         gameObjectAddon.AIAnimKitID   = fields[6].GetUInt32();
 
         // checks
-        if (gameObjectAddon.faction && !sFactionTemplateStore.LookupEntry(gameObjectAddon.faction))
-            TC_LOG_ERROR("sql.sql", "GameObject (Entry: %u) has invalid faction (%u) defined in `gameobject_template_addon`.", entry, gameObjectAddon.faction);
+        if (gameObjectAddon.Faction && !sFactionTemplateStore.LookupEntry(gameObjectAddon.Faction))
+            TC_LOG_ERROR("sql.sql", "GameObject (Entry: %u) has invalid faction (%u) defined in `gameobject_template_addon`.", entry, gameObjectAddon.Faction);
 
-        if (gameObjectAddon.maxgold > 0)
+        if (gameObjectAddon.Maxgold > 0)
         {
             switch (got->type)
             {
@@ -7474,6 +7473,44 @@ void ObjectMgr::LoadGameObjectTemplateAddons()
     while (result->NextRow());
 
     TC_LOG_INFO("server.loading", ">> Loaded %u game object template addons in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
+}
+
+void ObjectMgr::LoadGameObjectOverrides()
+{
+    uint32 oldMSTime = getMSTime();
+
+    //                                                     0        1      2
+    QueryResult result = WorldDatabase.Query("SELECT spawnId, faction, flags FROM gameobject_overrides");
+    if (!result)
+    {
+        TC_LOG_INFO("server.loading", ">> Loaded 0 gameobject faction and flags overrides. DB table `gameobject_overrides` is empty.");
+        return;
+    }
+
+    uint32 count = 0;
+    do
+    {
+        Field* fields = result->Fetch();
+
+        ObjectGuid::LowType spawnId = fields[0].GetUInt64();
+        GameObjectData const* goData = GetGameObjectData(spawnId);
+        if (!goData)
+        {
+            TC_LOG_ERROR("sql.sql", "GameObject (SpawnId: " UI64FMTD ") does not exist but has a record in `gameobject_overrides`", spawnId);
+            continue;
+        }
+
+        GameObjectOverride& gameObjectOverride = _gameObjectOverrideStore[spawnId];
+        gameObjectOverride.Faction = fields[1].GetUInt16();
+        gameObjectOverride.Flags = fields[2].GetUInt32();
+
+        if (gameObjectOverride.Faction && !sFactionTemplateStore.LookupEntry(gameObjectOverride.Faction))
+            TC_LOG_ERROR("sql.sql", "GameObject (SpawnId: " UI64FMTD ") has invalid faction (%u) defined in `gameobject_overrides`.", spawnId, gameObjectOverride.Faction);
+
+        ++count;
+    } while (result->NextRow());
+
+    TC_LOG_INFO("server.loading", ">> Loaded %u gameobject faction and flags overrides in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
 }
 
 void ObjectMgr::LoadExplorationBaseXP()
@@ -7844,8 +7881,8 @@ void ObjectMgr::LoadPointsOfInterest()
 
     uint32 count = 0;
 
-    //                                               0   1          2          3     4      5           6     7
-    QueryResult result = WorldDatabase.Query("SELECT ID, PositionX, PositionY, Icon, Flags, Importance, Name, Unknown905 FROM points_of_interest");
+    //                                               0   1          2          3          4     5      6           7     8
+    QueryResult result = WorldDatabase.Query("SELECT ID, PositionX, PositionY, PositionZ, Icon, Flags, Importance, Name, Unknown905 FROM points_of_interest");
 
     if (!result)
     {
@@ -7861,16 +7898,17 @@ void ObjectMgr::LoadPointsOfInterest()
 
         PointOfInterest pointOfInterest;
         pointOfInterest.ID              = id;
-        pointOfInterest.Pos.Relocate(fields[1].GetFloat(), fields[2].GetFloat());
-        pointOfInterest.Icon            = fields[3].GetUInt32();
-        pointOfInterest.Flags           = fields[4].GetUInt32();
-        pointOfInterest.Importance      = fields[5].GetUInt32();
-        pointOfInterest.Name            = fields[6].GetString();
-        pointOfInterest.Unknown905      = fields[7].GetInt32();
+        pointOfInterest.Pos.Relocate(fields[1].GetFloat(), fields[2].GetFloat(), fields[3].GetFloat());
+        pointOfInterest.Icon            = fields[4].GetUInt32();
+        pointOfInterest.Flags           = fields[5].GetUInt32();
+        pointOfInterest.Importance      = fields[6].GetUInt32();
+        pointOfInterest.Name            = fields[7].GetString();
+        pointOfInterest.Unknown905      = fields[8].GetInt32();
 
-        if (!Trinity::IsValidMapCoord(pointOfInterest.Pos.GetPositionX(), pointOfInterest.Pos.GetPositionY()))
+        if (!Trinity::IsValidMapCoord(pointOfInterest.Pos.GetPositionX(), pointOfInterest.Pos.GetPositionY(), pointOfInterest.Pos.GetPositionZ()))
         {
-            TC_LOG_ERROR("sql.sql", "Table `points_of_interest` (ID: %u) have invalid coordinates (PositionX: %f PositionY: %f), ignored.", id, pointOfInterest.Pos.GetPositionX(), pointOfInterest.Pos.GetPositionY());
+            TC_LOG_ERROR("sql.sql", "Table `points_of_interest` (ID: %u) have invalid coordinates (PositionX: %f PositionY: %f, PositionZ: %f), ignored.",
+                id, pointOfInterest.Pos.GetPositionX(), pointOfInterest.Pos.GetPositionY(), pointOfInterest.Pos.GetPositionZ());
             continue;
         }
 
@@ -9932,6 +9970,11 @@ GameObjectTemplateAddon const* ObjectMgr::GetGameObjectTemplateAddon(uint32 entr
         return &itr->second;
 
     return nullptr;
+}
+
+GameObjectOverride const* ObjectMgr::GetGameObjectOverride(ObjectGuid::LowType spawnId) const
+{
+    return Trinity::Containers::MapGetValuePtr(_gameObjectOverrideStore, spawnId);
 }
 
 CreatureTemplate const* ObjectMgr::GetCreatureTemplate(uint32 entry) const

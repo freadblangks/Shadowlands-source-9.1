@@ -196,6 +196,7 @@ DB2Storage<ItemSparseEntry>                     sItemSparseStore("ItemSparse.db2
 DB2Storage<ItemSpecEntry>                       sItemSpecStore("ItemSpec.db2", ItemSpecLoadInfo::Instance());
 DB2Storage<ItemSpecOverrideEntry>               sItemSpecOverrideStore("ItemSpecOverride.db2", ItemSpecOverrideLoadInfo::Instance());
 DB2Storage<ItemXBonusTreeEntry>                 sItemXBonusTreeStore("ItemXBonusTree.db2", ItemXBonusTreeLoadInfo::Instance());
+DB2Storage<ItemXItemEffectEntry>                sItemXItemEffectStore("ItemXItemEffect.db2", ItemXItemEffectLoadInfo::Instance());
 DB2Storage<KeychainEntry>                       sKeychainStore("Keychain.db2", KeychainLoadInfo::Instance());
 DB2Storage<LanguageWordsEntry>                  sLanguageWordsStore("LanguageWords.db2", LanguageWordsLoadInfo::Instance());
 DB2Storage<LanguagesEntry>                      sLanguagesStore("Languages.db2", LanguagesLoadInfo::Instance());
@@ -416,7 +417,7 @@ namespace
     CurvePointsContainer _curvePoints;
     EmotesTextSoundContainer _emoteTextSounds;
     std::unordered_map<std::pair<uint32 /*level*/, int32 /*expansion*/>, ExpectedStatEntry const*> _expectedStatsByLevel;
-    std::unordered_map<uint32 /*contentTuningId*/, std::vector<ExpectedStatModEntry const*>> _expectedStatModsByContentTuning;
+    std::unordered_map<uint32 /*contentTuningId*/, std::vector<ContentTuningXExpectedEntry const*>> _expectedStatModsByContentTuning;
     FactionTeamContainer _factionTeams;
     std::unordered_map<uint32, std::set<FriendshipRepReactionEntry const*, DB2Manager::FriendshipRepReactionEntryComparator>> _friendshipRepReactions;
     HeirloomItemsContainer _heirlooms;
@@ -745,6 +746,7 @@ uint32 DB2Manager::LoadStores(std::string const& dataPath, LocaleConstant defaul
     LOAD_DB2(sItemSpecStore);
     LOAD_DB2(sItemSpecOverrideStore);
     LOAD_DB2(sItemXBonusTreeStore);
+    LOAD_DB2(sItemXItemEffectStore);
     LOAD_DB2(sKeychainStore);
     LOAD_DB2(sLanguageWordsStore);
     LOAD_DB2(sLanguagesStore);
@@ -1074,8 +1076,8 @@ uint32 DB2Manager::LoadStores(std::string const& dataPath, LocaleConstant defaul
     }
 
     for (ContentTuningXExpectedEntry const* contentTuningXExpectedStat : sContentTuningXExpectedStore)
-        if (ExpectedStatModEntry const* expectedStatMod = sExpectedStatModStore.LookupEntry(contentTuningXExpectedStat->ExpectedStatModID))
-            _expectedStatModsByContentTuning[contentTuningXExpectedStat->ContentTuningID].push_back(expectedStatMod);
+        if (sExpectedStatModStore.LookupEntry(contentTuningXExpectedStat->ExpectedStatModID))
+            _expectedStatModsByContentTuning[contentTuningXExpectedStat->ContentTuningID].push_back(contentTuningXExpectedStat);
 
     for (CurvePointEntry const* curvePoint : sCurvePointStore)
         if (sCurveStore.LookupEntry(curvePoint->CurveID))
@@ -1199,7 +1201,8 @@ uint32 DB2Manager::LoadStores(std::string const& dataPath, LocaleConstant defaul
     {
         ASSERT(namesProfanity->Language < TOTAL_LOCALES || namesProfanity->Language == -1);
         std::wstring name;
-        ASSERT(Utf8toWStr(namesProfanity->Name, name));
+        bool conversionResult = Utf8toWStr(namesProfanity->Name, name);
+        ASSERT(conversionResult);
         if (namesProfanity->Language != -1)
             _nameValidators[namesProfanity->Language].emplace_back(name, Trinity::regex::perl | Trinity::regex::icase | Trinity::regex::optimize);
         else
@@ -1217,7 +1220,8 @@ uint32 DB2Manager::LoadStores(std::string const& dataPath, LocaleConstant defaul
     for (NamesReservedEntry const* namesReserved : sNamesReservedStore)
     {
         std::wstring name;
-        ASSERT(Utf8toWStr(namesReserved->Name, name));
+        bool conversionResult = Utf8toWStr(namesReserved->Name, name);
+        ASSERT(conversionResult);
         _nameValidators[TOTAL_LOCALES].emplace_back(name, Trinity::regex::perl | Trinity::regex::icase | Trinity::regex::optimize);
     }
 
@@ -1225,7 +1229,8 @@ uint32 DB2Manager::LoadStores(std::string const& dataPath, LocaleConstant defaul
     {
         ASSERT(!(namesReserved->LocaleMask & ~((1u << TOTAL_LOCALES) - 1)));
         std::wstring name;
-        ASSERT(Utf8toWStr(namesReserved->Name, name));
+        bool conversionResult = Utf8toWStr(namesReserved->Name, name);
+        ASSERT(conversionResult);
         for (uint32 i = 0; i < TOTAL_LOCALES; ++i)
         {
             if (i == LOCALE_none)
@@ -2131,10 +2136,25 @@ EmotesTextSoundEntry const* DB2Manager::GetTextSoundEmoteFor(uint32 emote, uint8
 template<float(ExpectedStatModEntry::*field)>
 struct ExpectedStatModReducer
 {
-    float operator()(float mod, ExpectedStatModEntry const* expectedStatMod)
+    float operator()(float mod, ContentTuningXExpectedEntry const* contentTuningXExpected)
     {
-        return mod * (expectedStatMod ? expectedStatMod->*field : 1.0f);
+        if (!contentTuningXExpected)
+            return mod;
+
+        //if (contentTuningXExpected->MinMythicPlusSeasonID)
+        //    if (MythicPlusSeasonEntry const* mythicPlusSeason = sMythicPlusSeasonStore.LookupEntry(contentTuningXExpected->MinMythicPlusSeasonID))
+        //        if (MythicPlusSubSeason < mythicPlusSeason->SubSeason)
+        //            return mod;
+
+        //if (contentTuningXExpected->MaxMythicPlusSeasonID)
+        //    if (MythicPlusSeasonEntry const* mythicPlusSeason = sMythicPlusSeasonStore.LookupEntry(contentTuningXExpected->MaxMythicPlusSeasonID))
+        //        if (MythicPlusSubSeason >= mythicPlusSeason->SubSeason)
+        //            return mod;
+
+        return mod * sExpectedStatModStore.AssertEntry(contentTuningXExpected->ExpectedStatModID)->*field;
     }
+
+    // int32 MythicPlusSubSeason = 0;
 };
 
 float DB2Manager::EvaluateExpectedStat(ExpectedStatType stat, uint32 level, int32 expansion, uint32 contentTuningId, Classes unitClass) const
@@ -2165,7 +2185,7 @@ float DB2Manager::EvaluateExpectedStat(ExpectedStatType stat, uint32 level, int3
             break;
     }
 
-    std::vector<ExpectedStatModEntry const*> const* contentTuningMods = Trinity::Containers::MapGetValuePtr(_expectedStatModsByContentTuning, contentTuningId);
+    std::vector<ContentTuningXExpectedEntry const*> const* contentTuningMods = Trinity::Containers::MapGetValuePtr(_expectedStatModsByContentTuning, contentTuningId);
     float value = 0.0f;
     switch (stat)
     {

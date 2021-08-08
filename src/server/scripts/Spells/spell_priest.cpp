@@ -78,20 +78,11 @@ enum PriestSpells
     SPELL_PRIEST_PRAYER_OF_MENDING_AURA             = 41635,
     SPELL_PRIEST_PRAYER_OF_MENDING_HEAL             = 33110,
     SPELL_PRIEST_PRAYER_OF_MENDING_JUMP             = 155793,
-    SPELL_PRIEST_MIND_CONTROL                       = 605,
 };
 
 enum MiscSpells
 {
     SPELL_GEN_REPLENISHMENT                         = 57669
-};
-
-enum Effect
-{
-    EFFECT_0,
-    EFFECT_1,
-    EFFECT_2,
-    EFFECT_3,
 };
 
 class PowerCheck
@@ -155,7 +146,7 @@ class spell_pri_aq_3p_bonus : public SpellScriptLoader
                     return;
 
                 CastSpellExtraArgs args(aurEff);
-                args.SpellValueOverrides.AddBP0(CalculatePct(static_cast<int32>(healInfo->GetHeal()), 10));
+                args.AddSpellBP0(CalculatePct(static_cast<int32>(healInfo->GetHeal()), 10));
                 caster->CastSpell(caster, SPELL_PRIEST_ORACULAR_HEAL, args);
             }
 
@@ -361,7 +352,7 @@ class spell_pri_guardian_spirit : public SpellScriptLoader
                 // remove the aura now, we don't want 40% healing bonus
                 Remove(AURA_REMOVE_BY_ENEMY_SPELL);
                 CastSpellExtraArgs args(TRIGGERED_FULL_MASK);
-                args.SpellValueOverrides.AddBP0(healAmount);
+                args.AddSpellBP0(healAmount);
                 target->CastSpell(target, SPELL_PRIEST_GUARDIAN_SPIRIT_HEAL, args);
                 absorbAmount = dmgInfo.GetDamage();
             }
@@ -1101,7 +1092,7 @@ class spell_pri_t10_heal_2p_bonus : public SpellScriptLoader
                 amount += target->GetRemainingPeriodicAmount(caster->GetGUID(), SPELL_PRIEST_BLESSED_HEALING, SPELL_AURA_PERIODIC_HEAL);
 
                 CastSpellExtraArgs args(aurEff);
-                args.SpellValueOverrides.AddBP0(amount);
+                args.AddSpellBP0(amount);
                 caster->CastSpell(target, SPELL_PRIEST_BLESSED_HEALING, args);
             }
 
@@ -1149,8 +1140,8 @@ class spell_pri_vampiric_embrace : public SpellScriptLoader
                 int32 teamHeal = selfHeal / 2;
 
                 CastSpellExtraArgs args(aurEff);
-                args.SpellValueOverrides.AddMod(SPELLVALUE_BASE_POINT0, teamHeal);
-                args.SpellValueOverrides.AddMod(SPELLVALUE_BASE_POINT1, selfHeal);
+                args.AddSpellMod(SPELLVALUE_BASE_POINT0, teamHeal);
+                args.AddSpellMod(SPELLVALUE_BASE_POINT1, selfHeal);
                 GetTarget()->CastSpell(nullptr, SPELL_PRIEST_VAMPIRIC_EMBRACE_HEAL, args);
             }
 
@@ -1218,8 +1209,12 @@ class spell_pri_vampiric_touch : public SpellScriptLoader
                         if (AuraEffect const* aurEff = GetEffect(EFFECT_1))
                         {
                             // backfire damage
+                            int32 bp = aurEff->GetAmount();
+                            bp = target->SpellDamageBonusTaken(caster, aurEff->GetSpellInfo(), bp, DOT);
+                            bp *= 8;
+
                             CastSpellExtraArgs args(aurEff);
-                            args.SpellValueOverrides.AddBP0(aurEff->GetAmount() * 8);
+                            args.AddSpellBP0(bp);
                             caster->CastSpell(target, SPELL_PRIEST_VAMPIRIC_TOUCH_DISPEL, args);
                         }
                     }
@@ -1341,96 +1336,6 @@ public:
     }
 };
 
-// 121536 - Angelic Feather talent
-class Spell_pri_mind_control : public SpellScriptLoader
-{
-    public:
-        Spell_pri_mind_control() : SpellScriptLoader("Spell_pri_mind_control") { }
-
-        class Spell_pri_mind_control_SpellScript : public SpellScript
-        {
-            PrepareSpellScript(Spell_pri_mind_control_SpellScript);
-
-            bool Validate(SpellInfo const* /*spellInfo*/) override
-            {
-                return ValidateSpellInfo({ SPELL_PRIEST_MIND_CONTROL });
-            }
-
-            void HandleEffectDummy(SpellEffIndex /*effIndex*/)
-            {
-                Position destPos = GetHitDest()->GetPosition();
-                float radius = GetEffectInfo()->CalcRadius();
-
-                // Caster is prioritary
-                if (GetCaster()->IsWithinDist2d(&destPos, radius))
-                {
-                    GetCaster()->CastSpell(GetCaster(), SPELL_PRIEST_MIND_CONTROL, true);
-                }
-                else
-                {
-                    SpellCastTargets targets;
-                    targets.SetDst(destPos);
-                    CastSpellExtraArgs args;
-                    args.TriggerFlags = TriggerFlags();
-                    args.CastDifficulty = GetCastDifficulty();
-                    GetCaster()->CastSpell(targets, SPELL_PRIEST_MIND_CONTROL, args);
-                }
-            }
-
-            void Register() override
-            {
-                OnEffectHit += SpellEffectFn(spell_pri_mind_control_SpellScript::HandleEffectDummy, EFFECT_1, EFFECT_2, SPELL_EFFECT_DUMMY);
-            }
-        };
-
-        SpellScript* GetSpellScript() const override
-        {
-            return new spell_pri_mind_control_SpellScript();
-        }
-};
-
-// Angelic Feather areatrigger - created by SPELL_PRIEST_ANGELIC_FEATHER_AREATRIGGER
-class areatrigger_pri_mind_contril : public AreaTriggerEntityScript
-{
-public:
-    areatrigger_pri_mind_control() : AreaTriggerEntityScript("areatrigger_pri_mind_control") { }
-
-    struct areatrigger_pri_mind_contolAI : AreaTriggerAI
-    {
-        areatrigger_pri_mind_controlAI(AreaTrigger* areatrigger) : AreaTriggerAI(areatrigger) { }
-
-        // Called when the AreaTrigger has just been initialized, just before added to map
-        void OnInitialize() override
-        {
-            if (Unit* caster = at->GetCaster())
-            {
-                std::vector<AreaTrigger*> areaTriggers = caster->GetAreaTriggers(SPELL_PRIEST_MIND_CONTROL);
-
-                if (areaTriggers.size() >= 3)
-                    areaTriggers.front()->SetDuration(1.3s);
-            }
-        }
-
-        void OnUnitEnter(Unit* unit) override
-        {
-            if (Unit* caster = at->GetCaster())
-            {
-                if (caster->IsFriendlyTo(unit))
-                {
-                    // If target already has aura, increase duration to max 130% of initial duration
-                    caster->CastSpell(unit, SPELL_PRIEST_MIND_CONTROL_AURA, true);
-                    at->SetDuration(1.3s);
-                }
-            }
-        }
-    };
-
-    AreaTriggerAI* GetAI(AreaTrigger* areatrigger) const override
-    {
-        return new areatrigger_pri_mind_controlAI(areatrigger);
-    }
-};
-
 void AddSC_priest_spell_scripts()
 {
     new spell_pri_aq_3p_bonus();
@@ -1458,6 +1363,4 @@ void AddSC_priest_spell_scripts()
     new spell_pri_vampiric_touch();
     new spell_pri_angelic_feather_trigger();
     new areatrigger_pri_angelic_feather();
-    new spell_mind_control();
-    new areatrigger_pri_mind_controlAI();
 }

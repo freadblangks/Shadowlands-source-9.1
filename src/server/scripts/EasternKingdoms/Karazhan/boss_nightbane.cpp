@@ -157,6 +157,7 @@ public:
                 Talk(EMOTE_SUMMON);
                 events.SetPhase(PHASE_INTRO);
                 me->setActive(true);
+                me->SetFarVisible(true);
                 me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                 me->GetMotionMaster()->MoveAlongSplineChain(POINT_INTRO_START, SPLINE_CHAIN_INTRO_START, false);
                 HandleTerraceDoors(false);
@@ -299,7 +300,7 @@ public:
                     break;
                 case EVENT_INTRO_LANDING:
                     me->SetImmuneToPC(false);
-                    me->SetInCombatWithZone();
+                    DoZoneInCombat();
                     break;
                 case EVENT_LAND:
                     Talk(YELL_LAND_PHASE);

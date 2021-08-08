@@ -70,45 +70,12 @@ enum DeathKnightSpells
     SPELL_DK_UNHOLY                             = 137007,
     SPELL_DK_UNHOLY_VIGOR                       = 196263,
     SPELL_DK_VOLATILE_SHIELDING                 = 207188,
-    SPELL_DK_VOLATILE_SHIELDING_DAMAGE          = 207194,
-    SPELL_DK_IMPROVED_BLOOD_PRESENCE            = 50371,50365,63611,
-};
-
-enum Effect
-{
-   EFFECT_0, 
-   EFFECT_1,
-   EFFECT_2,
-   EFFECT_3, 
+    SPELL_DK_VOLATILE_SHIELDING_DAMAGE          = 207194
 };
 
 enum Misc
 {
     NPC_DK_DANCING_RUNE_WEAPON                  = 27893
-};
-
-// 50371 = DK improved Blood Presence
-class SPELL_DK_IMPROVED_BLOOD_PRESENCE : public SpellScript
-{
-    PrepareSpellScript(spell_dk_improved_blood_presence);
-    bool CheckProc(ProcEventInfo& eventInfo)
-
-    if (Unit* caster = eventInfo.GetActor())
-    {
-        Player* player = caster->CastSpell();
-        if (!player || caster->getClass() != CLASS_DEATH_KNIGHT)
-            return false;
-        for (uint8 i = 0; i < player->CastSpell(IMPROVED_BLOOD_PRESENCE); ++i)
-            if (player->CastSpell(i) == 0)
-                return true;
-       
-        return true;           
-    }
-    
-    void Register() override
-    {
-        DoCheckProc += AuraCheckProcFn(spell_dk_improved_blood_presence::CheckProc, EFFECT_1, EFFECT_2, EFFECT_3,); 
-    };
 };
 
 // 70656 - Advantage (T10 4P Melee Bonus)
@@ -178,7 +145,7 @@ public:
         if (!GetTarget()->HasAura(SPELL_DK_VOLATILE_SHIELDING))
         {
             CastSpellExtraArgs args(aurEff);
-            args.SpellValueOverrides.AddBP0(CalculatePct(absorbAmount, 2 * absorbAmount * 100 / maxHealth));
+            args.AddSpellMod(SPELLVALUE_BASE_POINT0, CalculatePct(absorbAmount, 2 * absorbAmount * 100 / maxHealth));
             GetTarget()->CastSpell(GetTarget(), SPELL_DK_RUNIC_POWER_ENERGIZE, args);
         }
     }
@@ -319,7 +286,7 @@ class spell_dk_dancing_rune_weapon : public AuraScript
         int32 amount = static_cast<int32>(damageInfo->GetDamage()) / 2;
         SpellNonMeleeDamage log(drw, drw->GetVictim(), spellInfo, { spellInfo->GetSpellXSpellVisualId(drw), 0 }, spellInfo->GetSchoolMask());
         log.damage = amount;
-        drw->DealDamage(drw->GetVictim(), amount, nullptr, SPELL_DIRECT_DAMAGE, spellInfo->GetSchoolMask(), spellInfo, true);
+        Unit::DealDamage(drw, drw->GetVictim(), amount, nullptr, SPELL_DIRECT_DAMAGE, spellInfo->GetSchoolMask(), spellInfo, true);
         drw->SendSpellNonMeleeDamageLog(&log);
     }
 
@@ -832,5 +799,4 @@ void AddSC_deathknight_spell_scripts()
     RegisterAuraScript(spell_dk_pvp_4p_bonus);
     RegisterSpellScript(spell_dk_raise_dead);
     RegisterAuraScript(spell_dk_vampiric_blood);
-    RegisterSpellScript(spell_dk_improved_blood_presence);
-};
+}

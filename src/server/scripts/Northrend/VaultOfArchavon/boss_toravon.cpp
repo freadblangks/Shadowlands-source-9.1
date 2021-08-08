@@ -160,7 +160,7 @@ struct npc_frozen_orb : public ScriptedAI
             if (toravon->IsInCombat())
             {
                 toravon->AI()->JustSummoned(me);
-                me->SetInCombatWithZone();
+                DoZoneInCombat();
             }
             else
                 me->DespawnOrUnsummon();
@@ -184,7 +184,7 @@ class spell_toravon_random_aggro : public SpellScript
         if (!caster->IsAIEnabled)
             return;
 
-        caster->GetThreatManager().resetAllAggro();
+        caster->GetThreatManager().ResetAllThreat();
 
         if (Unit* target = caster->AI()->SelectTarget(SELECT_TARGET_RANDOM, 1))
             caster->GetThreatManager().AddThreat(target, 1000000);

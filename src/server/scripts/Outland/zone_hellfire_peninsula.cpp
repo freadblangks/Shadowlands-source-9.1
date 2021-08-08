@@ -25,15 +25,13 @@ EndScriptData */
 /* ContentData
 npc_aeranas
 npc_ancestral_wolf
-go_haaleshi_altar
-npc_naladu
-npc_tracy_proudwell
-npc_trollbane
 npc_wounded_blood_elf
 npc_fel_guard_hound
 EndContentData */
 
 #include "ScriptMgr.h"
+#include "CellImpl.h"
+#include "GridNotifiersImpl.h"
 #include "Log.h"
 #include "MotionMaster.h"
 #include "ObjectAccessor.h"
@@ -1043,220 +1041,222 @@ public:
     }
 };
 
-/*######
-## go_haaleshi_altar
-######*/
-
-class go_haaleshi_altar : public GameObjectScript
+enum WatchCommanderLeonus
 {
-public:
-    go_haaleshi_altar() : GameObjectScript("go_haaleshi_altar") { }
-
-    bool OnGossipHello(Player* /*player*/, GameObject* go)
-    {
-        go->SummonCreature(C_AERANAS, -1321.79f, 4043.80f, 116.24f, 1.25f, TEMPSUMMON_TIMED_DESPAWN, 180000);
-        return false;
-    }
+    SAY_COVER                   = 0,
+    EVENT_START                 = 1,
+    EVENT_LEONUS_TALK           = 2,
+    EVENT_INFERNAL_RAIN_ATTACK  = 3,
+    EVENT_FEAR_CONTROLLER_CAST  = 4,
+    EVENT_ACTIVE_FALSE          = 5,
+    NPC_INFERNAL_RAIN           = 18729,
+    SPELL_INFERNAL_RAIN         = 33814,
+    NPC_FEAR_CONTROLLER         = 19393,
+    DATA_ACTIVE                 = 1,
 };
 
-/*######
-## npc_naladu
-######*/
-
-#define GOSSIP_NALADU_ITEM1 "Why don't you escape?"
-
-enum eNaladu
+struct npc_watch_commander_leonus : public ScriptedAI
 {
-    GOSSIP_TEXTID_NALADU1   = 9788
-};
+    npc_watch_commander_leonus(Creature* creature) : ScriptedAI(creature) { }
 
-class npc_naladu : public CreatureScript
-{
-public:
-    npc_naladu() : CreatureScript("npc_naladu") { }
-
-    bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action)
+    void Reset() override
     {
-        player->PlayerTalkClass->ClearMenus();
-        if (action == GOSSIP_ACTION_INFO_DEF+1)
-            player->SEND_GOSSIP_MENU(GOSSIP_TEXTID_NALADU1, creature->GetGUID());
-
-        return true;
+        _events.Reset();
+        _events.ScheduleEvent(EVENT_START, 2min, 10min);
     }
 
-    bool OnGossipHello(Player* player, Creature* creature)
+    void SetData(uint32 /*type*/, uint32 data) override
     {
-        if (creature->isQuestGiver())
-            player->PrepareQuestMenu(creature->GetGUID());
-
-        player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_NALADU_ITEM1, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF+1);
-        player->SEND_GOSSIP_MENU(player->GetGossipTextId(creature), creature->GetGUID());
-        return true;
-    }
-};
-
-/*######
-## npc_tracy_proudwell
-######*/
-
-#define GOSSIP_TEXT_REDEEM_MARKS        "I have marks to redeem!"
-#define GOSSIP_TRACY_PROUDWELL_ITEM1    "I heard that your dog Fei Fei took Klatu's prayer beads..."
-#define GOSSIP_TRACY_PROUDWELL_ITEM2    "<back>"
-
-enum eTracy
-{
-    GOSSIP_TEXTID_TRACY_PROUDWELL1       = 10689,
-    QUEST_DIGGING_FOR_PRAYER_BEADS       = 10916
-};
-
-class npc_tracy_proudwell : public CreatureScript
-{
-public:
-    npc_tracy_proudwell() : CreatureScript("npc_tracy_proudwell") { }
-
-    bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action)
-    {
-        player->PlayerTalkClass->ClearMenus();
-        switch (action)
+        switch (data)
         {
-            case GOSSIP_ACTION_INFO_DEF+1:
-                player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_TRACY_PROUDWELL_ITEM2, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 2);
-                player->SEND_GOSSIP_MENU(GOSSIP_TEXTID_TRACY_PROUDWELL1, creature->GetGUID());
+            case DATA_ACTIVE:
+                _events.ScheduleEvent(EVENT_ACTIVE_FALSE, 1s);
                 break;
-            case GOSSIP_ACTION_INFO_DEF+2:
-                player->SEND_GOSSIP_MENU(player->GetGossipTextId(creature), creature->GetGUID());
-                break;
-            case GOSSIP_ACTION_TRADE:
-                player->GetSession()->SendListInventory(creature->GetGUID());
+            default:
                 break;
         }
-
-        return true;
     }
 
-    bool OnGossipHello(Player* player, Creature* creature)
+    void UpdateAI(uint32 diff) override
     {
-        if (creature->isQuestGiver())
-            player->PrepareQuestMenu(creature->GetGUID());
+        _events.Update(diff);
 
-        if (creature->isVendor())
-            player->ADD_GOSSIP_ITEM(GOSSIP_ICON_VENDOR, GOSSIP_TEXT_REDEEM_MARKS, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_TRADE);
-
-        if (player->GetQuestStatus(QUEST_DIGGING_FOR_PRAYER_BEADS) == QUEST_STATUS_INCOMPLETE)
-            player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_TRACY_PROUDWELL_ITEM1, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
-
-        player->SEND_GOSSIP_MENU(player->GetGossipTextId(creature), creature->GetGUID());
-        return true;
-    }
-};
-
-/*######
-## npc_trollbane
-######*/
-
-#define GOSSIP_TROLLBANE_ITEM1      "Tell me of the Sons of Lothar."
-#define GOSSIP_TROLLBANE_ITEM2      "<more>"
-#define GOSSIP_TROLLBANE_ITEM3      "Tell me of your homeland."
-
-enum eTrollbane
-{
-    GOSSIP_TEXTID_TROLLBANE1        = 9932,
-    GOSSIP_TEXTID_TROLLBANE2        = 9933,
-    GOSSIP_TEXTID_TROLLBANE3        = 8772
-};
-
-class npc_trollbane : public CreatureScript
-{
-public:
-    npc_trollbane() : CreatureScript("npc_trollbane") { }
-
-    bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action)
-    {
-        player->PlayerTalkClass->ClearMenus();
-        switch (action)
+        while (uint32 eventId = _events.ExecuteEvent())
         {
-            case GOSSIP_ACTION_INFO_DEF+1:
-                player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_TROLLBANE_ITEM2, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 2);
-                player->SEND_GOSSIP_MENU(GOSSIP_TEXTID_TROLLBANE1, creature->GetGUID());
-                break;
-            case GOSSIP_ACTION_INFO_DEF+2:
-                player->SEND_GOSSIP_MENU(GOSSIP_TEXTID_TROLLBANE2, creature->GetGUID());
-                break;
-            case GOSSIP_ACTION_INFO_DEF+3:
-                player->SEND_GOSSIP_MENU(GOSSIP_TEXTID_TROLLBANE3, creature->GetGUID());
-                break;
+            switch (eventId)
+            {
+                case EVENT_START:
+                    _events.ScheduleEvent(EVENT_LEONUS_TALK, 1s);
+                    _events.ScheduleEvent(EVENT_INFERNAL_RAIN_ATTACK, 1s);
+                    _events.ScheduleEvent(EVENT_FEAR_CONTROLLER_CAST, 1s);
+                    break;
+                case EVENT_LEONUS_TALK:
+                    Talk(SAY_COVER);
+                    me->HandleEmoteCommand(EMOTE_ONESHOT_SHOUT);
+                    break;
+                case EVENT_INFERNAL_RAIN_ATTACK:
+                {
+                    std::list<Creature*> infernalrainList;
+                    Trinity::AllCreaturesOfEntryInRange checkerInfernalrain(me, NPC_INFERNAL_RAIN, 200.0f);
+                    Trinity::CreatureListSearcher<Trinity::AllCreaturesOfEntryInRange> searcherInfernal(me, infernalrainList, checkerInfernalrain);
+                    Cell::VisitAllObjects(me, searcherInfernal, 200.0f);
+
+                    for (Creature* infernal : infernalrainList)
+                        if (!infernal->isMoving() && infernal->GetPositionZ() > 118.0f)
+                            infernal->AI()->SetData(DATA_ACTIVE, DATA_ACTIVE);
+
+                    break;
+                }
+                case EVENT_FEAR_CONTROLLER_CAST:
+                {
+                    std::list<Creature*> fearcontrollerList;
+                    Trinity::AllCreaturesOfEntryInRange checkerFear(me, NPC_FEAR_CONTROLLER, 200.0f);
+                    Trinity::CreatureListSearcher<Trinity::AllCreaturesOfEntryInRange> searcherFear(me, fearcontrollerList, checkerFear);
+                    Cell::VisitAllObjects(me, searcherFear, 200.0f);
+
+                    for (Creature* fearController : fearcontrollerList)
+                        fearController->AI()->SetData(DATA_ACTIVE, DATA_ACTIVE);
+
+                    break;
+                }
+                case EVENT_ACTIVE_FALSE:
+                    _events.ScheduleEvent(EVENT_LEONUS_TALK, 1h);
+                    _events.ScheduleEvent(EVENT_INFERNAL_RAIN_ATTACK, 1h);
+                    _events.ScheduleEvent(EVENT_FEAR_CONTROLLER_CAST, 1h);
+                    break;
+            }
         }
 
-        return true;
+        if (!UpdateVictim())
+            return;
+
+        DoMeleeAttackIfReady();
     }
 
-    bool OnGossipHello(Player* player, Creature* creature)
-    {
-        if (creature->isQuestGiver())
-            player->PrepareQuestMenu(creature->GetGUID());
-
-        player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_TROLLBANE_ITEM1, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
-        player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_TROLLBANE_ITEM3, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 3);
-        player->SEND_GOSSIP_MENU(player->GetGossipTextId(creature), creature->GetGUID());
-        return true;
-    }
+private:
+    EventMap _events;
 };
 
-/*######
-## npc_Magistrix_Carinda
-######*/
-
-enum npc_Magistrix_Carinda
+enum InfernalRainHellfire
 {
-    Quest_Arelions_Journal              = 9374,
-    Object_Arelions_Journal             = 23339,
-    Npc_Blistering_Oozeling             = 16903,
-    Quest_Arelions_Mistress             = 9472,
-    npc_Viera_Sunwhisper                = 17226,
-    item_Carindas_Scroll_of_Retribution = 23693,
-    Quest_Arelions_Secret               = 10286,
-    Quest_The_Mistress_Revealed         = 10287
-}
+    EVENT_INFERNAL_RAIN_CAST   = 1,
+    EVENT_INFERNAL_RAIN_STOP   = 2,
+    NPC_WATCH_COMMANDER_LEONUS = 19392
+};
 
-class npc_Magistrix_Carinda : public CreatureScript
+struct npc_infernal_rain_hellfire : public ScriptedAI
 {
-public:
-    npc_Magistrix_Carinda() : CreatureScript("npc_Magistrix_Carinda") { }
+    npc_infernal_rain_hellfire(Creature* creature) : ScriptedAI(creature) { }
 
-    struct npc_Magistrix_CarindaAI : public ScriptedAI
+    void SetData(uint32 /*type*/, uint32 data) override
     {
-        npc_Magistrix_CarindaAI(Creature* creature) : ScriptedAI(creature)
+        switch (data)
         {
-            Initialize();
+            case DATA_ACTIVE:
+                _events.ScheduleEvent(EVENT_INFERNAL_RAIN_CAST, 1s, 2s);
+                _events.ScheduleEvent(EVENT_INFERNAL_RAIN_STOP, 60s);
+                break;
+            default:
+                break;
         }
-}
+    }
 
+    void UpdateAI(uint32 diff) override
+    {
+        _events.Update(diff);
 
+        while (uint32 eventId = _events.ExecuteEvent())
+        {
+            switch (eventId)
+            {
+                case EVENT_INFERNAL_RAIN_CAST:
+                {
+                    std::list<Creature*> infernalrainList;
+                    Trinity::AllCreaturesOfEntryInRange checker(me, NPC_INFERNAL_RAIN, 200.0f);
+                    Trinity::CreatureListSearcher<Trinity::AllCreaturesOfEntryInRange> searcher(me, infernalrainList, checker);
+                    Cell::VisitAllObjects(me, searcher, 200.0f);
 
-class npc_barada : public CreatureScript
+                    if (!infernalrainList.empty())
+                    {
+                        Creature* random = Trinity::Containers::SelectRandomContainerElement(infernalrainList);
+                        if (random->isMoving() && random->GetPositionZ() < 118.0f)
+                        {
+                            CastSpellExtraArgs args;
+                            args.AddSpellMod(SPELLVALUE_MAX_TARGETS, 1);
+                            me->CastSpell(random, SPELL_INFERNAL_RAIN, args);
+                        }
+                    }
+
+                    _events.ScheduleEvent(EVENT_INFERNAL_RAIN_CAST, 1s, 2s);
+                    break;
+                }
+                case EVENT_INFERNAL_RAIN_STOP:
+                    _events.CancelEvent(EVENT_INFERNAL_RAIN_CAST);
+                    if (Creature* watchcommanderLeonus = me->FindNearestCreature(NPC_WATCH_COMMANDER_LEONUS, 200))
+                        watchcommanderLeonus->AI()->SetData(DATA_ACTIVE, DATA_ACTIVE);
+
+                    break;
+            }
+        }
+    }
+
+private:
+    EventMap _events;
+};
+
+enum fear_controller
 {
+    EVENT_FEAR_CAST = 1,
+    EVENT_FEAR_STOP = 2,
+    SPELL_FEAR      = 33815 // Serverside spell
+};
 
+struct npc_fear_controller : public ScriptedAI
+{
+    npc_fear_controller(Creature* creature) : ScriptedAI(creature) { }
+
+    void SetData(uint32 /*type*/, uint32 data) override
+    {
+        if (data == DATA_ACTIVE)
+        {
+            _events.ScheduleEvent(EVENT_FEAR_CAST, 1s);
+            _events.ScheduleEvent(EVENT_FEAR_STOP, 60s);
+        }
+    }
+
+    void UpdateAI(uint32 diff) override
+    {
+        _events.Update(diff);
+
+        while (uint32 eventId = _events.ExecuteEvent())
+        {
+            switch (eventId)
+            {
+                case EVENT_FEAR_CAST:
+                    DoCastAOE(SPELL_FEAR);
+                    _events.Repeat(10s);
+                    break;
+                case EVENT_FEAR_STOP:
+                    _events.CancelEvent(EVENT_FEAR_CAST);
+                    break;
+            }
+        }
+    }
+
+private:
+    EventMap _events;
+};
 
 void AddSC_hellfire_peninsula()
 {
     new npc_aeranas();
     new npc_ancestral_wolf();
-    new go_haaleshi_altar();
-    new npc_naladu();
-    new npc_tracy_proudwell();
-    new npc_trollbane();
     new npc_wounded_blood_elf();
     new npc_fel_guard_hound();
     new npc_colonel_jules();
     new npc_barada();
     new npc_magister_aledis();
-    new npc_Magistrix_Carinda();
-    new Quest_Arelions_Journal();
-    new Object_Arelions_Journal();
-    new Npc_Blistering_Oozeling();             
-    new Quest_Arelions_Mistress();             
-    new npc_Viera_Sunwhisper();                
-    new item_Carindas_Scroll_of_Retribution(); 
-    new Quest_Arelions_Secret();               
-    new Quest_The_Mistress_Revealed();         
+    RegisterCreatureAI(npc_watch_commander_leonus);
+    RegisterCreatureAI(npc_infernal_rain_hellfire);
+    RegisterCreatureAI(npc_fear_controller);
 }

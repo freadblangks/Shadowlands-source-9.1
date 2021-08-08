@@ -151,6 +151,7 @@ TC_GAME_API extern DB2Storage<ItemSetSpellEntry>                    sItemSetSpel
 TC_GAME_API extern DB2Storage<ItemSparseEntry>                      sItemSparseStore;
 TC_GAME_API extern DB2Storage<ItemSpecEntry>                        sItemSpecStore;
 TC_GAME_API extern DB2Storage<ItemSpecOverrideEntry>                sItemSpecOverrideStore;
+TC_GAME_API extern DB2Storage<ItemXItemEffectEntry>                 sItemXItemEffectStore;
 TC_GAME_API extern DB2Storage<LanguageWordsEntry>                   sLanguageWordsStore;
 TC_GAME_API extern DB2Storage<LanguagesEntry>                       sLanguagesStore;
 TC_GAME_API extern DB2Storage<LFGDungeonsEntry>                     sLFGDungeonsStore;
@@ -291,9 +292,11 @@ public:
     {
         enum class Status : uint8
         {
+            NotSet          = 0,
             Valid           = 1,
             RecordRemoved   = 2,
-            Invalid         = 3
+            Invalid         = 3,
+            NotPublic       = 4
         };
 
         uint32 TableHash = 0;

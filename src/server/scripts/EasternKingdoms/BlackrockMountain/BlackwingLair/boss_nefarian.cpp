@@ -351,6 +351,7 @@ public:
                                     if (Creature* nefarian = me->SummonCreature(NPC_NEFARIAN, NefarianLoc[0]))
                                     {
                                         nefarian->setActive(true);
+                                        nefarian->SetFarVisible(true);
                                         nefarian->SetCanFly(true);
                                         nefarian->SetDisableGravity(true);
                                         nefarian->CastSpell(nullptr, SPELL_SHADOWFLAME_INITIAL);
@@ -434,7 +435,7 @@ public:
             Talk(SAY_RANDOM);
         }
 
-        void JustDied(Unit* /*Killer*/) override
+        void JustDied(Unit* /*killer*/) override
         {
             _JustDied();
             Talk(SAY_DEATH);
@@ -455,7 +456,7 @@ public:
 
             if (id == 1)
             {
-                me->SetInCombatWithZone();
+                DoZoneInCombat();
                 if (me->GetVictim())
                     AttackStart(me->GetVictim());
             }
@@ -574,7 +575,7 @@ public:
                     if ((*itr) && !(*itr)->IsAlive())
                     {
                         (*itr)->Respawn();
-                        (*itr)->SetInCombatWithZone();
+                        DoZoneInCombat((*itr));
                         (*itr)->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                         (*itr)->SetReactState(REACT_AGGRESSIVE);
                         (*itr)->SetStandState(UNIT_STAND_STATE_STAND);

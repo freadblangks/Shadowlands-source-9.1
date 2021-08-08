@@ -170,10 +170,10 @@ struct boss_teron_gorefiend : public BossAI
         if (!events.IsInPhase(PHASE_INTRO) && !UpdateVictim())
             return;
 
+        events.Update(diff);
+
         if (me->HasUnitState(UNIT_STATE_CASTING))
             return;
-
-        events.Update(diff);
 
         while (uint32 eventId = events.ExecuteEvent())
         {
@@ -233,7 +233,7 @@ struct npc_doom_blossom : public NullCreatureAI
 
         DoCast(SPELL_SUMMON_BLOSSOM_MOVE_TARGET);
         _scheduler.CancelAll();
-        me->SetInCombatWithZone();
+        DoZoneInCombat();
         _scheduler.Schedule(Seconds(12), [this](TaskContext shadowBolt)
         {
             if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))
@@ -428,12 +428,12 @@ class spell_teron_gorefiend_shadow_of_death_remove : public SpellScript
     }
 };
 
-class at_teron_gorefiend_entrance : public AreaTriggerScript
+class at_teron_gorefiend_entrance : public OnlyOnceAreaTriggerScript
 {
 public:
-    at_teron_gorefiend_entrance() : AreaTriggerScript("at_teron_gorefiend_entrance") { }
+    at_teron_gorefiend_entrance() : OnlyOnceAreaTriggerScript("at_teron_gorefiend_entrance") { }
 
-    bool OnTrigger(Player* player, AreaTriggerEntry const* /*areaTrigger*/, bool /*entered*/) override
+    bool _OnTrigger(Player* player, AreaTriggerEntry const* /*areaTrigger*/, bool /*entered*/) override
     {
         if (InstanceScript* instance = player->GetInstanceScript())
             if (Creature* teron = instance->GetCreature(DATA_TERON_GOREFIEND))

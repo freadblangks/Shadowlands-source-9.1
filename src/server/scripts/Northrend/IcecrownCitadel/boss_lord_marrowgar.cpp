@@ -754,12 +754,12 @@ class spell_marrowgar_bone_slice : public SpellScriptLoader
         }
 };
 
-class at_lord_marrowgar_entrance : public AreaTriggerScript
+class at_lord_marrowgar_entrance : public OnlyOnceAreaTriggerScript
 {
     public:
-        at_lord_marrowgar_entrance() : AreaTriggerScript("at_lord_marrowgar_entrance") { }
+        at_lord_marrowgar_entrance() : OnlyOnceAreaTriggerScript("at_lord_marrowgar_entrance") { }
 
-        bool OnTrigger(Player* player, AreaTriggerEntry const* /*areaTrigger*/, bool /*entered*/) override
+        bool _OnTrigger(Player* player, AreaTriggerEntry const* /*areaTrigger*/, bool /*entered*/) override
         {
             if (InstanceScript* instance = player->GetInstanceScript())
                 if (Creature* lordMarrowgar = ObjectAccessor::GetCreature(*player, instance->GetGuidData(DATA_LORD_MARROWGAR)))

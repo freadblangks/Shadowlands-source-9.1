@@ -79,6 +79,7 @@ class npc_xerestrasza : public CreatureScript
                 if (action == ACTION_BALTHARUS_DEATH)
                 {
                     me->setActive(true);
+                    me->SetFarVisible(true);
                     _isIntro = false;
 
                     Talk(SAY_XERESTRASZA_EVENT);
@@ -133,6 +134,7 @@ class npc_xerestrasza : public CreatureScript
                             me->AddNpcFlag(UNIT_NPC_FLAG_QUESTGIVER);
                             Talk(SAY_XERESTRASZA_EVENT_7);
                             me->setActive(false);
+                            me->SetFarVisible(false);
                             break;
                         default:
                             break;
@@ -152,12 +154,12 @@ class npc_xerestrasza : public CreatureScript
         }
 };
 
-class at_baltharus_plateau : public AreaTriggerScript
+class at_baltharus_plateau : public OnlyOnceAreaTriggerScript
 {
     public:
-        at_baltharus_plateau() : AreaTriggerScript("at_baltharus_plateau") { }
+        at_baltharus_plateau() : OnlyOnceAreaTriggerScript("at_baltharus_plateau") { }
 
-        bool OnTrigger(Player* player, AreaTriggerEntry const* /*areaTrigger*/, bool /*entered*/) override
+        bool _OnTrigger(Player* player, AreaTriggerEntry const* /*areaTrigger*/, bool /*entered*/) override
         {
             // Only trigger once
             if (InstanceScript* instance = player->GetInstanceScript())
@@ -198,7 +200,7 @@ class spell_ruby_sanctum_rallying_shout : public SpellScriptLoader
                 if (_targetCount && !GetCaster()->HasAura(SPELL_RALLY))
                 {
                     CastSpellExtraArgs args(TRIGGERED_FULL_MASK);
-                    args.SpellValueOverrides.AddMod(SPELLVALUE_AURA_STACK, _targetCount);
+                    args.AddSpellMod(SPELLVALUE_AURA_STACK, _targetCount);
                     GetCaster()->CastSpell(GetCaster(), SPELL_RALLY, args);
                 }
             }

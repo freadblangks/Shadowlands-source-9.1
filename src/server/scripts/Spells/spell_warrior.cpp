@@ -30,27 +30,24 @@
 #include "SpellAuraEffects.h"
 #include "SpellHistory.h"
 #include "SpellScript.h"
-#include <Bag.h>
 
 enum WarriorSpells
 {
     SPELL_WARRIOR_BLADESTORM_PERIODIC_WHIRLWIND     = 50622,
     SPELL_WARRIOR_BLOODTHIRST_HEAL                  = 117313,
     SPELL_WARRIOR_CHARGE                            = 34846,
-    SPELL_WARRIOR_COLOSSUS_SMASH_BUFF               = 208086,
     SPELL_WARRIOR_CHARGE_EFFECT                     = 218104,
     SPELL_WARRIOR_CHARGE_EFFECT_BLAZING_TRAIL       = 198337,
     SPELL_WARRIOR_CHARGE_PAUSE_RAGE_DECAY           = 109128,
     SPELL_WARRIOR_CHARGE_ROOT_EFFECT                = 105771,
     SPELL_WARRIOR_CHARGE_SLOW_EFFECT                = 236027,
     SPELL_WARRIOR_COLOSSUS_SMASH                    = 167105,
-    SPELL_WARRIOR_UNCHACKLED_FURY                   = 76856,
     SPELL_WARRIOR_COLOSSUS_SMASH_EFFECT             = 208086,
     SPELL_WARRIOR_EXECUTE                           = 20647,
     SPELL_WARRIOR_GLYPH_OF_THE_BLAZING_TRAIL        = 123779,
     SPELL_WARRIOR_GLYPH_OF_HEROIC_LEAP              = 159708,
     SPELL_WARRIOR_GLYPH_OF_HEROIC_LEAP_BUFF         = 133278,
-    SPELL_WARRIOR_HEROIC_LEAP_JUMP                  = 94954,
+    SPELL_WARRIOR_HEROIC_LEAP_JUMP                  = 178368,
     SPELL_WARRIOR_IMPENDING_VICTORY                 = 202168,
     SPELL_WARRIOR_IMPENDING_VICTORY_HEAL            = 202166,
     SPELL_WARRIOR_IMPROVED_HEROIC_LEAP              = 157449,
@@ -65,12 +62,8 @@ enum WarriorSpells
     SPELL_WARRIOR_SWEEPING_STRIKES_EXTRA_ATTACK_2   = 26654,
     SPELL_WARRIOR_TAUNT                             = 355,
     SPELL_WARRIOR_TRAUMA_EFFECT                     = 215537,
-    SPELL_WARRIOR_WAR_MACHINE_AURA                  = 215566,
-    SPELL_WARRIOR_WAR_MACHINE                       = 262231,
-    SPELL_WARRRIOR_WAR_MACHINE_BUFF                 = 262232,
     SPELL_WARRIOR_VICTORIOUS                        = 32216,
     SPELL_WARRIOR_VICTORY_RUSH_HEAL                 = 118779,
-    SPELL_WARRIOR_SIEGEBREAKER_BUFF                 = 280773,
 };
 
 enum WarriorMisc
@@ -456,7 +449,7 @@ class spell_warr_item_t10_prot_4p_bonus : public SpellScriptLoader
                 Unit* target = eventInfo.GetActionTarget();
                 int32 bp0 = CalculatePct(target->GetMaxHealth(), GetSpellInfo()->GetEffect(EFFECT_1)->CalcValue());
                 CastSpellExtraArgs args(TRIGGERED_FULL_MASK);
-                args.SpellValueOverrides.AddBP0(bp0);
+                args.AddSpellBP0(bp0);
                 target->CastSpell(nullptr, SPELL_WARRIOR_STOICISM, args);
             }
 
@@ -868,244 +861,6 @@ class spell_warr_victory_rush : public SpellScriptLoader
         }
 };
 
-//280772 - Siegebreaker
-class spell_warr_siegebreaker : public SpellScript
-{
-    PrepareSpellScript(spell_warr_siegebreaker);
-
-    void HandleOnHit()
-    {
-        Unit* caster = GetCaster();
-        caster->CastSpell(nullptr, SPELL_WARRIOR_SIEGEBREAKER_BUFF, true);
-    }
-
-    void Register() override
-    {
-        OnHit += SpellHitFn(spell_warr_siegebreaker::HandleOnHit);
-    }
-};
-
-//197690
-class spell_defensive_state : public AuraScript
-{
-    PrepareAuraScript(spell_defensive_state);
-
-    void OnApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
-    {
-        if (Unit* caster = GetCaster())
-            if (AuraEffect* defensiveState = caster->GetAura(197690)->GetEffect(0))
-                defensiveState->GetAmount();
-    }
-
-    void Register() override
-    {
-        OnEffectApply += AuraEffectApplyFn(spell_defensive_state::OnApply, EFFECT_0, SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN, AURA_EFFECT_HANDLE_REAL);
-    }
-};
-
-// War Machine 215556
-class aura_warr_war_machine : public AuraScript
-{
-    PrepareAuraScript(aura_warr_war_machine);
-
-    void OnApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
-    {
-        if (Unit* caster = GetCaster())
-            caster->CastSpell(caster, SPELL_WARRIOR_WAR_MACHINE_AURA, true);
-    }
-
-    void OnRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
-    {
-        if (Unit* caster = GetCaster())
-            caster->RemoveAurasDueToSpell(SPELL_WARRIOR_WAR_MACHINE_AURA);
-    }
-
-    void Register() override
-    {
-        OnEffectApply += AuraEffectApplyFn(aura_warr_war_machine::OnApply, EFFECT_0, SPELL_AURA_PROC_TRIGGER_SPELL, AURA_EFFECT_HANDLE_REAL);
-        OnEffectRemove += AuraEffectRemoveFn(aura_warr_war_machine::OnRemove, EFFECT_0, SPELL_AURA_PROC_TRIGGER_SPELL, AURA_EFFECT_HANDLE_REAL);
-    }
-};
-
-//262231
-class war_machine : public PlayerScript
-{
-public:
-    war_machine() : PlayerScript("war_machine") { }
-
-    void OnPVPKill(Player* killer, Player* killed)
-    {
-        if (killer->getClass() != CLASS_WARRIOR)
-            return;
-
-        if (!killer->HasAura(SPELL_WARRRIOR_WAR_MACHINE_BUFF) && killer->HasAura(SPELL_WARRIOR_WAR_MACHINE))
-            killer->CastSpell(nullptr, SPELL_WARRRIOR_WAR_MACHINE_BUFF, true);
-    }
-
-    void OnCreatureKill(Player* killer, Creature* killed)
-    {
-        if (killer->getClass() != CLASS_WARRIOR)
-            return;
-
-        if (!killer->HasAura(SPELL_WARRRIOR_WAR_MACHINE_BUFF) && killer->HasAura(SPELL_WARRIOR_WAR_MACHINE))
-            killer->CastSpell(nullptr, SPELL_WARRRIOR_WAR_MACHINE_BUFF, true);
-    }
-};
-
-// 23920 Spell Reflect
-class spell_warr_spell_reflect : public SpellScriptLoader
-{
-public:
-    spell_warr_spell_reflect() : SpellScriptLoader("spell_warr_spell_reflect") { }
-
-    class spell_warr_spell_reflect_AuraScript : public AuraScript
-    {
-        PrepareAuraScript(spell_warr_spell_reflect_AuraScript);
-
-        void OnApply(const AuraEffect* /*aurEff*/, AuraEffectHandleModes /*mode*/)
-        {
-            Unit* caster = GetCaster();
-            if (!caster || caster->GetTypeId() != TYPEID_PLAYER)
-                return;
-
-            Item* item = caster->ToPlayer()->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND);
-            if (item && item->GetTemplate()->GetInventoryType() == INVTYPE_SHIELD)
-                caster->CastSpell(caster, 146120, true);
-            else if (caster->GetFaction() == 1732) // Alliance
-                caster->CastSpell(caster, 147923, true);
-            else // Horde
-                caster->CastSpell(caster, 146122, true);
-        }
-
-        void OnRemove(const AuraEffect* /*aurEff*/, AuraEffectHandleModes /*mode*/)
-        {
-            Unit* caster = GetCaster();
-            if (!caster || caster->GetTypeId() != TYPEID_PLAYER)
-                return;
-
-            // Visuals
-            caster->RemoveAura(146120);
-            caster->RemoveAura(147923);
-            caster->RemoveAura(146122);
-        }
-
-        void Register() override
-        {
-            OnEffectApply += AuraEffectApplyFn(spell_warr_spell_reflect_AuraScript::OnApply, EFFECT_0, SPELL_AURA_REFLECT_SPELLS, AURA_EFFECT_HANDLE_REAL_OR_REAPPLY_MASK);
-            OnEffectRemove += AuraEffectRemoveFn(spell_warr_spell_reflect_AuraScript::OnRemove, EFFECT_0, SPELL_AURA_REFLECT_SPELLS, AURA_EFFECT_HANDLE_REAL_OR_REAPPLY_MASK);
-        }
-    };
-
-    AuraScript* GetAuraScript() const override
-    {
-        return new spell_warr_spell_reflect_AuraScript();
-    }
-};
-
-// 262161 Warbreaker
-class spell_warr_warbreaker : public SpellScript
-{
-    PrepareSpellScript(spell_warr_warbreaker);
-
-    void HandleOnHitTarget(SpellEffIndex /*effIndex*/)
-    {
-        if (Unit* caster = GetCaster())
-        {
-            if (Unit* target = GetHitUnit())
-                caster->CastSpell(target, SPELL_WARRIOR_COLOSSUS_SMASH_BUFF, true);
-        }
-    }
-
-    void CountTargets(std::list<WorldObject*>& targets)
-    {
-        if (Unit* caster = GetCaster())
-        {
-            if (Aura* inForTheKill = caster->GetAura(248621)) // In For The Kill
-            {
-                int32 hpPct = inForTheKill->GetSpellInfo()->GetEffect(EFFECT_2)->CalcValue(caster);
-                int32 hastePct = inForTheKill->GetEffect(EFFECT_0)->GetAmount();
-                for (std::list<WorldObject*>::const_iterator itr = targets.begin(); itr != targets.end(); ++itr)
-                {
-                    if (Unit* target = (*itr)->ToUnit())
-                    {
-                        if (target->HealthBelowPct(hpPct))
-                        {
-                            hastePct = inForTheKill->GetSpellInfo()->GetEffect(EFFECT_1)->CalcValue(caster);
-                            break;
-                        }
-                    }
-                }
-                caster->CastSpell(caster, 248622, &hastePct); // In For The Kill
-            }
-        }
-    }
-
-    void Register() override
-    {
-        OnEffectHitTarget += SpellEffectFn(spell_warr_warbreaker::HandleOnHitTarget, EFFECT_0, SPELL_EFFECT_SCHOOL_DAMAGE);
-        OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_warr_warbreaker::CountTargets, EFFECT_0, TARGET_UNIT_SRC_AREA_ENEMY);
-    }
-};
-
-// Avatar - 107574
-class spell_warr_avatar : public SpellScriptLoader
-{
-public:
-    spell_warr_avatar() : SpellScriptLoader("spell_warr_avatar") { }
-
-    class spell_warr_avatar_AuraScript : public AuraScript
-    {
-        PrepareAuraScript(spell_warr_avatar_AuraScript);
-
-        void OnApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
-        {
-            if (Player* player = GetCaster()->ToPlayer())
-            {
-                player->RemoveMovementImpairingAuras(true);
-            }
-        }
-
-        void Register() override
-        {
-            OnEffectApply += AuraEffectApplyFn(spell_warr_avatar_AuraScript::OnApply, EFFECT_0, SPELL_AURA_ADD_PCT_MODIFIER, AURA_EFFECT_HANDLE_REAL);
-        }
-    };
-
-    AuraScript* GetAuraScript() const
-    {
-        return new spell_warr_avatar_AuraScript();
-    }
-};
-
-//18499
-class spell_warr_berzerker_rage : public SpellScriptLoader
-{
-public:
-    spell_warr_berzerker_rage() : SpellScriptLoader("spell_warr_berzerker_rage") { }
-
-    class spell_warr_berzerker_rage_AuraScript : public AuraScript
-    {
-        PrepareAuraScript(spell_warr_berzerker_rage_AuraScript);
-
-        void HandleRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
-        {
-            Unit* caster = GetCaster();
-
-            caster->RemoveAurasDueToSpell(SPELL_WARRIOR_UNCHACKLED_FURY);
-        }
-
-        void Register() override
-        {
-            OnEffectRemove += AuraEffectRemoveFn(spell_warr_berzerker_rage_AuraScript::HandleRemove, EFFECT_0, SPELL_AURA_ADD_PCT_MODIFIER, AURA_EFFECT_HANDLE_REAL);
-        }
-    };
-
-    AuraScript* GetAuraScript() const override
-    {
-        return new spell_warr_berzerker_rage_AuraScript();
-    }
-};
-
 void AddSC_warrior_spell_scripts()
 {
     new spell_warr_bloodthirst();
@@ -1128,12 +883,4 @@ void AddSC_warrior_spell_scripts()
     new spell_warr_t3_prot_8p_bonus();
     new spell_warr_victorious_state();
     new spell_warr_victory_rush();
-    RegisterSpellScript(spell_warr_siegebreaker);
-    RegisterAuraScript(spell_defensive_state);
-    RegisterAuraScript(aura_warr_war_machine);
-    RegisterPlayerScript(war_machine);
-    new spell_warr_spell_reflect();
-    RegisterSpellScript(spell_warr_warbreaker);
-    new spell_warr_avatar();
-    new spell_warr_berzerker_rage();
 }

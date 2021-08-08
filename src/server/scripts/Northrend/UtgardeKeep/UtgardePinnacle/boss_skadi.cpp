@@ -171,7 +171,7 @@ public:
             if (!instance->GetCreature(DATA_GRAUF))
                 me->SummonCreature(NPC_GRAUF, GraufLoc);
 
-            instance->DoStopCriteriaTimer(CRITERIA_TIMED_TYPE_EVENT, ACHIEV_LODI_DODI_WE_LOVES_THE_SKADI);
+            instance->DoStopCriteriaTimer(CriteriaStartEvent::SendEvent, ACHIEV_LODI_DODI_WE_LOVES_THE_SKADI);
         }
 
         void EnterEvadeMode(EvadeReason /*why*/) override
@@ -235,7 +235,7 @@ public:
                     SpawnFirstWave();
                     Talk(SAY_AGGRO);
                     _phase = PHASE_FLYING;
-                    instance->DoStartCriteriaTimer(CRITERIA_TIMED_TYPE_EVENT, ACHIEV_LODI_DODI_WE_LOVES_THE_SKADI);
+                    instance->DoStartCriteriaTimer(CriteriaStartEvent::SendEvent, ACHIEV_LODI_DODI_WE_LOVES_THE_SKADI);
 
                     scheduler
                         .Schedule(Seconds(6), [this](TaskContext resetCheck)
@@ -366,6 +366,7 @@ public:
             init.Launch();
 
             me->setActive(true);
+            me->SetFarVisible(true);
             me->SetCanFly(true);
             me->SetDisableGravity(true);
             me->SetAnimTier(UnitBytes1_Flags(UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_HOVER), false);

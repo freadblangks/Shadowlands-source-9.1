@@ -191,7 +191,7 @@ enum AzeriteTierUnlockSetFlags
     AZERITE_TIER_UNLOCK_SET_FLAG_DEFAULT = 0x1
 };
 
-#define BATTLE_PET_SPECIES_MAX_ID 3084
+#define BATTLE_PET_SPECIES_MAX_ID 3159
 
 enum BattlemasterListFlags
 {
@@ -528,7 +528,7 @@ enum CriteriaTypes : uint8
     CRITERIA_TYPE_CONVERT_ITEMS_TO_CURRENCY             = 229,
 };
 
-#define CRITERIA_TYPE_TOTAL 230
+#define CRITERIA_TYPE_TOTAL 232
 
 enum class CriteriaTreeFlags : uint16
 {
@@ -1299,6 +1299,11 @@ enum class ModifierTreeType : int32
     RapidRenownCatchupActive                                            = 320, /*NYI*/ // Rapid Renown Catchup Active
     PlayerMythicPlusRatingEqualOrGreaterThan                            = 321, /*NYI*/ // Player has Mythic+ Rating of at least "{#DungeonScore}"
     PlayerMythicPlusRunCountInCurrentExpansionEqualOrGreaterThan        = 322, /*NYI*/ // Player has completed at least "{#MythicKeystoneRuns}" Mythic+ runs in current expansion
+    PlayerHasCustomizationChoice                                        = 323, // (Mainline) Player has Customization Choice "{ChrCustomizationChoice}"
+    PlayerBestWeeklyWinPvpTier                                          = 324, // (Mainline) Player has best weekly win in PVP tier {PvpTier}
+    PlayerBestWeeklyWinPvpTierInBracketEqualOrGreaterThan               = 325, // (Mainline) Player has best weekly win at or above "{@PVP_TIER_ENUM}" for "{@PVP_BRACKET}"
+    PlayerHasVanillaCollectorsEdition                                   = 326, // Player has Vanilla Collector's Edition
+    PlayerHasItemWithKeystoneLevelModifierEqualOrGreaterThan            = 327,
 };
 
 enum class ModifierTreeOperator : int8
@@ -1455,7 +1460,7 @@ enum class SpellShapeshiftFormFlags : int32
 
 DEFINE_ENUM_FLAG(SpellShapeshiftFormFlags);
 
-#define TaxiMaskSize 337
+#define TaxiMaskSize 338
 typedef std::array<uint8, TaxiMaskSize> TaxiMask;
 
 enum TotemCategoryType
