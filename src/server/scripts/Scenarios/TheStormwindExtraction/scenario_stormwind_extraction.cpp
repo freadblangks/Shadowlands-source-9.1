@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 KyrianCore
+ * Copyright 2021 ShadowCore
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -123,10 +123,10 @@ struct scenario_stormwind_extraction : public InstanceScript
             {
                 DoPlayConversation(CONVERSATION_NULLIFICATION);
                 if (Creature* thalyssra = GetThalyssra())
-                    thalyssra->AddAura(SPELL_NULLIFICATION_BARRIER, thalyssra);
+                    thalyssra->AddAura(SPELL_NULLIFICATION_BARRIER);
 
                 if (Creature* zul = GetZul())
-                    zul->AddAura(SPELL_NULLIFICATION_BARRIER, zul);
+                    zul->AddAura(SPELL_NULLIFICATION_BARRIER);
 
             }).Schedule(34s, [this](TaskContext /*context*/)
             {

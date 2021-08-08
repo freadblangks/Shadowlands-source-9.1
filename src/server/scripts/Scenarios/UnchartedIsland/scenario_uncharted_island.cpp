@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 KyrianCore
+ * Copyright 2021 ShadowCore
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -23,6 +23,7 @@
 #include "InstanceScript.h"
 #include "Scenario.h"
 #include "uncharted_island.h"
+
 
 struct scenario_uncharted_island_tutorial : public InstanceScript
 {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 KyrianCore
+ * Copyright 2021 ShadowCore
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -49,7 +49,6 @@ public:
         //horde
         player->KilledMonsterCredit(139309);
 
-	    // 1907 spawndiff 38
         // 1768 map 1955 spawndiff 12
 
         // 1724 spawndiff 38

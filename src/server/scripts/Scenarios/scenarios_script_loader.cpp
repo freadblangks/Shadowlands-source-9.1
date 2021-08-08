@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 KyrianCore
+ * Copyright 2021 ShadowCore
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -22,8 +22,6 @@ void AddSC_scenario_uncharted_island_tutorial();
 void AddSC_scenario_whispering_reef_island();
 void AddSC_scenario_pursuing_the_black_harvest();
 
-void AddSC_scenario_snowblossom_village();
-
 void AddScenariosScripts()
 {
     AddSC_stormwind_extraction();
@@ -32,6 +30,4 @@ void AddScenariosScripts()
     AddSC_scenario_uncharted_island_tutorial();
 	AddSC_scenario_whispering_reef_island();
 	AddSC_scenario_pursuing_the_black_harvest();
-	
-	AddSC_scenario_snowblossom_village();
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 KyrianCore
+ * Copyright 2021 ShadowCore
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -19,7 +19,6 @@
 #include "AreaTriggerAI.h"
 #include "CombatAI.h"
 #include "GameObjectAI.h"
-#include "GameObject.h"
 #include "Scenario.h"
 #include "ScriptMgr.h"
 #include "stormwind_extraction.h"
@@ -31,11 +30,11 @@ struct go_se_sewer_access_portal : public GameObjectAI
 
     void Reset() override
     {
-       // go->GetScheduler().CancelAll();
-      //  go->GetScheduler().Schedule(1s, [this] (TaskContext context)
+        go->GetScheduler().CancelAll();
+        go->GetScheduler().Schedule(1s, [this] (TaskContext context)
         {
 			std::list<Player*> p_list;
-			//go->GetPlayerListInGrid(p_list, 15.0f);
+			go->GetPlayerListInGrid(p_list, 15.0f);
 			for (auto & p : p_list)
 			if (Scenario* scenario = p->GetScenario())
 			if (scenario->CheckCompletedCriteriaTree(CRITERIA_TREE_OPEN_SEWERS, p))
@@ -43,12 +42,12 @@ struct go_se_sewer_access_portal : public GameObjectAI
 				p->CastSpell(p, SPELL_TELEPORT_STOCKADE, true);				
 				scenario->SendScenarioEvent(p, SCENARIO_EVENT_ENTER_STOCKADE);
 
-				//if (InstanceScript* instanceScript = go->GetInstanceScript())
-			//	instanceScript->SetData(SCENARIO_EVENT_ENTER_STOCKADE, 1);
-				//return;
+				if (InstanceScript* instanceScript = go->GetInstanceScript())
+				instanceScript->SetData(SCENARIO_EVENT_ENTER_STOCKADE, 1);
+				return;
 			}
-		//	context.Repeat();
-		}//);
+			context.Repeat();
+		});
     }
     
     void UpdateAI(uint32 diff) override
@@ -92,7 +91,6 @@ struct npc_se_thalyssra : public CombatAI
 
 private:
     int32 m_currentCombatMovement = 0;
-    InstanceScript* instance;
 };
 
 // 134120
@@ -130,11 +128,10 @@ struct go_se_talanji_zul_cell_door : public GameObjectAI
     {
         if (state == GO_ACTIVATED)
         {
-
-            //if (InstanceScript* instanceScript = go->GetInstanceScript())
+            if (InstanceScript* instanceScript = go->GetInstanceScript())
             {
-          //      instanceScript->DoSendScenarioEvent(SCENARIO_EVENT_FREE_PRISONNERS);
-           //     instanceScript->SetData(SCENARIO_EVENT_FREE_PRISONNERS, 1);
+                instanceScript->DoSendScenarioEvent(SCENARIO_EVENT_FREE_PRISONNERS);
+                instanceScript->SetData(SCENARIO_EVENT_FREE_PRISONNERS, 1);
             }
         }
     }
@@ -156,10 +153,10 @@ public:
 
             player->CastSpell(player, SPELL_SCENARIO_COMPLETE, true);
 
-        //   player->AddMovieDelayedAction(857, [player]
+            player->AddMovieDelayedAction(857, [player]
             {
                 player->CastSpell(player, SPELL_SCENARIO_COMPLETE_TELEPORT, true);
-            }//);
+            });
         });
     }
 };
@@ -176,10 +173,10 @@ struct at_se_boat_final : AreaTriggerAI
 
         player->CastSpell(player, SPELL_SCENARIO_COMPLETE, true);
 
-     //   player->AddMovieDelayedAction(857, [player]
+        player->AddMovieDelayedAction(857, [player]
         {
             player->CastSpell(player, SPELL_SCENARIO_COMPLETE_TELEPORT, true);
-        }//);
+        });
     }
 };
 
