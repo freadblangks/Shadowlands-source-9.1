@@ -27,3 +27,12 @@ void AddSC_instance_mists_of_tirna_scithe()
 {
     RegisterInstanceScript(instance_mists_of_tirna_scithe, 2290);
 }
+
+struct mist_of_tirna_scithe : public InstanceScript
+{
+	mist_of_tirna_scithe(InstanceMap*) : InstanceScript(map) { }
+};	
+void AddSC_mist_of_tirna_scithe()
+{
+	RegisterInstanceScript(mists_of_tirna_scithe,2291);
+};
