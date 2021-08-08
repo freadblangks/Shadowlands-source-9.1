@@ -117,11 +117,3 @@ void WorldSession::HandleUnlearnSkillOpcode(WorldPackets::Spells::UnlearnSkill& 
 
     GetPlayer()->SetSkill(packet.SkillLine, 0, 0, 0);
 }
-
-void WorldSession::HandleUnlearnSpecialization(WorldPackets::Talent::UnlearnSpecialization& packet)
-{
-    if (GetPlayer()->GetSpecializationId() == packet.SpecializationID)
-    {
-        GetPlayer()->RemoveSpell(packet.SpecializationID);
-    }
-}

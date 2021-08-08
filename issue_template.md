@@ -12,7 +12,6 @@
       don't put ' around numbers.
       don't put ( ) if they aren't needed.
       use only 1 DELETE + INSERT when we add multiple items to one table, unless you are scripting multiple creatures.
-      put default values on every new column we want to add on that way we can make smallers inserts.
       start fix by -- in case some previous sql misses proper ending.
       DELETE by guid AND entry to be sure we don't delete existing spawns.
       start sql code with 3 ` sql         --->

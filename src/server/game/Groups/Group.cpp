@@ -1151,49 +1151,6 @@ void Group::MasterLoot(Loot* loot, WorldObject* pLootedObject)
     }
 }
 
-void Group::DoRollForAllMembers(ObjectGuid guid, uint8 slot, uint32 mapid, Loot* loot, LootItem& item, Player* player)
-{
-    // Already rolled?
-    for (auto& iter : RollId)
-        if (iter->itemSlot == slot && loot == iter->getLoot() && iter->isValid())
-            return;
-
-    Roll* r = new Roll(item);
-    r->lootedGUID = loot->GetGUID();
-    WorldObject* pLootedObject = nullptr;
-
-    if (guid.IsCreatureOrVehicle())
-        pLootedObject = player->GetMap()->GetCreature(guid);
-    else if (guid.IsGameObject())
-        pLootedObject = player->GetMap()->GetGameObject(guid);
-
-    if (!pLootedObject)
-        return;
-
-    //a vector is filled with only near party members
-    for (GroupReference* itr = GetFirstMember(); itr != nullptr; itr = itr->next())
-    {
-        Player* member = itr->GetSource();
-        if (!member)
-            continue;
-
-        if (member->IsWithinDistInMap(pLootedObject, sWorld->getFloatConfig(CONFIG_GROUP_XP_DISTANCE), false))
-        {
-            r->totalPlayersRolling++;
-            r->playerVote[member->GetGUID()] = NOT_EMITED_YET;
-        }
-    }
-
-    if (r->totalPlayersRolling > 0)
-    {
-        r->itemSlot = slot;
-
-        RollId.push_back(r);
-    }
-
-    SendLootStartRollToPlayer(60000, mapid, player, true, *r); // TODO add CanRollForItemInLFG() for replace true if it's true, all players can need 
-}
-
 void Group::CountRollVote(ObjectGuid playerGuid, ObjectGuid lootObjectGuid, uint8 lootListId, uint8 choice)
 {
     Rolls::iterator rollI = GetRoll(lootObjectGuid, lootListId);

@@ -46,6 +46,14 @@ struct AchievementEntry
     int32 CovenantID;
 };
 
+struct Achievement_CategoryEntry
+{
+    LocalizedString Name;
+    uint32 ID;
+    int16 Parent;
+    int8 UiOrder;
+};
+
 struct AdventureJournalEntry
 {
     uint32 ID;
@@ -1136,6 +1144,8 @@ struct CriteriaTreeEntry
     uint32 CriteriaID;
     int32 OrderIndex;
     int32 Flags;
+
+    EnumFlag<CriteriaTreeFlags> GetFlags() const { return static_cast<CriteriaTreeFlags>(Flags); }
 };
 
 struct CurrencyTypesEntry
@@ -1391,6 +1401,27 @@ struct FactionTemplateEntry
     bool IsContestedGuardFaction() const { return (Flags & FACTION_TEMPLATE_FLAG_CONTESTED_GUARD) != 0; }
 };
 
+struct FriendshipRepReactionEntry
+{
+    uint32 ID;
+    LocalizedString Reaction;
+    uint32 FriendshipRepID;
+    uint16 ReactionThreshold;
+};
+
+struct FriendshipReputationEntry
+{
+    LocalizedString Description;
+    LocalizedString StandingModified;
+    LocalizedString StandingChanged;
+    uint32 ID;
+    int32 FactionID;
+    int32 TextureFileID;
+    int32 Flags;
+
+    EnumFlag<FriendshipReputationFlags> GetFlags() const { return static_cast<FriendshipReputationFlags>(Flags); }
+};
+
 struct GameObjectDisplayInfoEntry
 {
     uint32 ID;
@@ -1525,42 +1556,6 @@ struct GarrFollowerXAbilityEntry
     uint8 FactionIndex;
     uint16 GarrAbilityID;
     uint32 GarrFollowerID;
-};
-
-struct GarrMissionEntry
-{
-    LocalizedString Name;
-    LocalizedString Location;
-    LocalizedString Description;
-    float MapPos[2];
-    float WorldPos[2];
-    uint32 ID;
-    uint8  GarrTypeID;
-    uint8  GarrMissionTypeID;
-    uint8  GarrFollowerTypeID;
-    uint8  MaxFollowers;
-    uint32 MissionCost;
-    uint16 MissionCostCurrencyTypesID;
-    uint8 OfferedGarrMissionTextureID;
-    uint16 UiTextureKitID;
-    uint32 EnvGarrMechanicID;
-    int32  EnvGarrMechanicTypeID;
-    uint32 PlayerConditionID;
-    int32 GarrMissionSetID;
-    int8  TargetLevel;
-    uint16 TargetItemLevel;
-    int32 MissionDuration;
-    int32 TravelDuration;
-    uint32 OfferDuration;
-    uint8  BaseCompletionChance;
-    uint32 BaseFollowerXP;
-    uint32 OvermaxRewardPackID;
-    uint8  FollowerDeathChance;
-    uint32 AreaID;
-    uint32 Flags;
-    float AutoMissionScalar;
-    int32 AutoMissionScalarCurveID;
-    int32 AutoCombatantEnvCasterID;
 };
 
 struct GarrPlotEntry
@@ -1909,26 +1904,6 @@ struct ItemDisenchantLootEntry
     uint32 Class;
 };
 
-struct ItemDisplayInfoEntry
-{
-    uint32 ID;
-    int32 ItemVisual;
-    int32 ParticleColorID;
-    uint32 ItemRangedDisplayInfoID;
-    uint32 OverrideSwooshSoundKitID;
-    int32 SheatheTransformMatrixID;
-    int32 StateSpellVisualKitID;
-    int32 SheathedSpellVisualKitID;
-    uint32 UnsheathedSpellVisualKitID;
-    int32 Flags;
-    uint32 ModelResourcesID[2];
-    int32 ModelMaterialResourcesID[2];
-    int32 Field_8_2_0_30080_011[2];
-    int32 GeosetGroup[6];
-    int32 AttachmentGeosetGroup[6];
-    int32 HelmetGeosetVis[2];
-};
-
 struct ItemEffectEntry
 {
     uint32 ID;
@@ -2008,6 +1983,16 @@ struct ItemModifiedAppearanceEntry
     uint16 ItemAppearanceID;
     uint8 OrderIndex;
     int8 TransmogSourceTypeEnum;
+};
+
+struct ItemModifiedAppearanceExtraEntry
+{
+    uint32 ID;
+    int32 IconFileDataID;
+    int32 UnequippedIconFileDataID;
+    uint8 SheatheType;
+    int8 DisplayWeaponSubclassID;
+    int8 DisplayInventoryType;
 };
 
 struct ItemNameDescriptionEntry
@@ -2478,6 +2463,14 @@ struct OverrideSpellDataEntry
     uint8 Flags;
 };
 
+struct ParagonReputationEntry
+{
+    uint32 ID;
+    uint32 FactionID;
+    int32 LevelThreshold;
+    int32 QuestID;
+};
+
 struct PhaseEntry
 {
     uint32 ID;
@@ -2662,6 +2655,19 @@ struct PvpTalentSlotUnlockEntry
     int32 DemonHunterLevelRequired;
 };
 
+struct PvpTierEntry
+{
+    LocalizedString Name;
+    uint32 ID;
+    int16 MinRating;
+    int16 MaxRating;
+    int32 PrevTier;
+    int32 NextTier;
+    int8 BracketID;
+    int8 Rank;
+    int32 RankIconFileDataID;
+};
+
 struct QuestFactionRewardEntry
 {
     uint32 ID;
@@ -2675,6 +2681,14 @@ struct QuestInfoEntry
     int8 Type;
     uint8 Modifiers;
     uint16 Profession;
+};
+
+struct QuestLineXQuestEntry
+{
+    uint32 ID;
+    uint32 QuestLineID;
+    uint32 QuestID;
+    uint32 OrderIndex;
 };
 
 struct QuestMoneyRewardEntry
@@ -3095,6 +3109,13 @@ struct SpellItemEnchantmentConditionEntry
     uint8 RtOperandType[5];
     uint8 RtOperand[5];
     uint8 Logic[5];
+};
+
+struct SpellLabelEntry
+{
+    uint32 ID;
+    uint32 LabelID;
+    uint32 SpellID;
 };
 
 struct SpellLearnSpellEntry
@@ -3629,21 +3650,6 @@ struct VehicleSeatEntry
                 VEHICLE_SEAT_FLAG_B_USABLE_FORCED_3 | VEHICLE_SEAT_FLAG_B_USABLE_FORCED_4));
     }
     inline bool IsEjectable() const { return HasFlag(VEHICLE_SEAT_FLAG_B_EJECTABLE); }
-};
-
-struct VignetteEntry
-{
-    uint32 ID;
-    LocalizedString Name;
-    uint32 PlayerConditionID;
-    uint32 VisibleTrackingQuestID;
-    uint32 QuestFeedbackEffectID;
-    uint32 Flags;
-    float MaxHeight;
-    float MinHeight;
-    int8 VignetteType;
-    int32 RewardQuestID;
-    int32 UiWidgetSetID;
 };
 
 struct WMOAreaTableEntry

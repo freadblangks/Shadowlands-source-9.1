@@ -180,7 +180,7 @@ BattlePetMgr::BattlePetMgr(WorldSession* owner)
     for (uint8 i = 0; i < MAX_PET_BATTLE_SLOTS; ++i)
     {
         WorldPackets::BattlePet::BattlePetSlot slot;
-      //  slot.Index = i;
+        slot.Index = i;
         _slots.push_back(slot);
     }
 }
@@ -227,7 +227,7 @@ void BattlePetMgr::LoadFromDB(PreparedQueryResult pets, PreparedQueryResult slot
         do
         {
             Field* fields = slots->Fetch();
-           // _slots[i].Index = fields[0].GetUInt8();
+            _slots[i].Index = fields[0].GetUInt8();
             auto itr = _pets.find(fields[1].GetUInt64());
             if (itr != _pets.end())
                 _slots[i].Pet = itr->second.PacketInfo;
@@ -295,7 +295,7 @@ void BattlePetMgr::SaveToDB(LoginDatabaseTransaction& trans)
     for (WorldPackets::BattlePet::BattlePetSlot const& slot : _slots)
     {
         stmt = LoginDatabase.GetPreparedStatement(LOGIN_INS_BATTLE_PET_SLOTS);
-     //   stmt->setUInt8(0, slot.Index);
+        stmt->setUInt8(0, slot.Index);
         stmt->setUInt32(1, _owner->GetBattlenetAccountId());
         stmt->setUInt64(2, slot.Pet.Guid.GetCounter());
         stmt->setBool(3, slot.Locked);
@@ -359,6 +359,16 @@ uint8 BattlePetMgr::GetPetCount(uint32 species) const
     }));
 }
 
+uint32 BattlePetMgr::GetPetUniqueSpeciesCount() const
+{
+    std::set<uint32> speciesIds;
+    std::transform(_pets.begin(), _pets.end(), std::inserter(speciesIds, speciesIds.end()), [](std::pair<uint64 const, BattlePet> const& pet)
+    {
+        return pet.second.PacketInfo.Species;
+    });
+    return speciesIds.size();
+}
+
 void BattlePetMgr::UnlockSlot(uint8 slot)
 {
     if (!_slots[slot].Locked)
@@ -366,11 +376,11 @@ void BattlePetMgr::UnlockSlot(uint8 slot)
 
     _slots[slot].Locked = false;
 
-   // WorldPackets::BattlePet::PetBattleSlotUpdates updates;
-   // updates.Slots.push_back(_slots[slot]);
-  //  updates.AutoSlotted = false; // what's this?
-  //  updates.NewSlot = true; // causes the "new slot unlocked" bubble to appear
-   // _owner->SendPacket(updates.Write());
+    WorldPackets::BattlePet::PetBattleSlotUpdates updates;
+    updates.Slots.push_back(_slots[slot]);
+    updates.AutoSlotted = false; // what's this?
+    updates.NewSlot = true; // causes the "new slot unlocked" bubble to appear
+    _owner->SendPacket(updates.Write());
 }
 
 uint16 BattlePetMgr::GetMaxPetLevel() const
@@ -408,9 +418,9 @@ void BattlePetMgr::CageBattlePet(ObjectGuid guid)
 
     RemovePet(guid);
 
-   // WorldPackets::BattlePet::BattlePetDeleted deletePet;
-   // deletePet.PetGuid = guid;
-  //  _owner->SendPacket(deletePet.Write());
+    WorldPackets::BattlePet::BattlePetDeleted deletePet;
+    deletePet.PetGuid = guid;
+    _owner->SendPacket(deletePet.Write());
 }
 
 void BattlePetMgr::HealBattlePetsPct(uint8 pct)
@@ -464,7 +474,7 @@ void BattlePetMgr::DismissPet()
 void BattlePetMgr::SendJournal()
 {
     WorldPackets::BattlePet::BattlePetJournal battlePetJournal;
-  //  battlePetJournal.Trap = _trapLevel;
+    battlePetJournal.Trap = _trapLevel;
 
     for (auto& pet : _pets)
         if (pet.second.SaveInfo != BATTLE_PET_REMOVED)
@@ -477,12 +487,12 @@ void BattlePetMgr::SendJournal()
 
 void BattlePetMgr::SendUpdates(std::vector<std::reference_wrapper<BattlePet>> pets, bool petAdded)
 {
-  /*  WorldPackets::BattlePet::BattlePetUpdates updates;
+    WorldPackets::BattlePet::BattlePetUpdates updates;
     for (BattlePet& pet : pets)
         updates.Pets.push_back(std::ref(pet.PacketInfo));
 
     updates.PetAdded = petAdded;
-    _owner->SendPacket(updates.Write());*/
+    _owner->SendPacket(updates.Write());
 }
 
 void BattlePetMgr::SendError(BattlePetError error, uint32 creatureId)

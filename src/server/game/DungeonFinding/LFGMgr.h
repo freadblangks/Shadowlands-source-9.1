@@ -64,12 +64,10 @@ enum LFGMgrEnum
 
 enum LfgFlags
 {
-    LFG_FLAG_UNK1                           = 0x0001,
-    LFG_FLAG_UNK2                           = 0x0002,
-    LFG_FLAG_SEASONAL                       = 0x0004,
-    LFG_FLAG_USER_TELEPORT_NOT_ALLOWED      = 0x0800,
-    LFG_FLAG_NON_BACKFILLABLE               = 0x1000,
-    LFG_FLAG_TIMEWALKER                     = 0x2000,
+    LFG_FLAG_UNK1                                = 0x1,
+    LFG_FLAG_UNK2                                = 0x2,
+    LFG_FLAG_SEASONAL                            = 0x4,
+    LFG_FLAG_UNK3                                = 0x8
 };
 
 /// Determines the type of instance
@@ -256,7 +254,6 @@ struct LfgProposal
         group(), leader(), cancelTime(0), encounters(0), isNew(true)
         { }
 
-    LFGDungeonsEntry const* dbc;
     uint32 id;                                             ///< Proposal Id
     uint32 dungeonId;                                      ///< Dungeon to join
     LfgProposalState state;                                ///< State of the proposal

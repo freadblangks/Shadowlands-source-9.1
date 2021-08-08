@@ -19,6 +19,7 @@
 #define TRINITY_UNITAI_H
 
 #include "Containers.h"
+#include "Errors.h"
 #include "EventMap.h"
 #include "ObjectGuid.h"
 #include "SpellDefines.h"
@@ -307,7 +308,6 @@ class TC_GAME_API UnitAI
         void DoCastSelf(uint32 spellId, CastSpellExtraArgs const& args = {}) { DoCast(me, spellId, args); }
         void DoCastVictim(uint32 spellId, CastSpellExtraArgs const& args = {});
         void DoCastAOE(uint32 spellId, CastSpellExtraArgs const& args = {}) { DoCast(nullptr, spellId, args); }
-        void DoCastRandom(uint32 spellId, float dist, bool triggered = false, int32 aura = 0, uint32 position = 0);
 
         virtual bool ShouldSparWith(Unit const* /*target*/) const { return false; }
 
@@ -320,28 +320,6 @@ class TC_GAME_API UnitAI
         // Called when a game event starts or ends
         virtual void OnGameEvent(bool /*start*/, uint16 /*eventId*/) { }
 
-        /// Add timed delayed operation
-        /// @p_Timeout  : Delay time
-        /// @p_Function : Callback function
-        void AddTimedDelayedOperation(uint32 p_Timeout, std::function<void()>&& p_Function)
-        {
-            m_EmptyWarned = false;
-            m_TimedDelayedOperations.push_back(std::pair<uint32, std::function<void()>>(p_Timeout, p_Function));
-        }
-
-        /// Called after last delayed operation was deleted
-        /// Do whatever you want
-        virtual void LastOperationCalled() { }
-
-        void ClearDelayedOperations()
-        {
-            m_TimedDelayedOperations.clear();
-            m_EmptyWarned = false;
-        }
-
-        std::vector<std::pair<int32, std::function<void()>>>    m_TimedDelayedOperations;   ///< Delayed operations
-        bool                                                    m_EmptyWarned;              ///< Warning when there are no more delayed operations
-
     private:
         UnitAI(UnitAI const& right) = delete;
         UnitAI& operator=(UnitAI const& right) = delete;
@@ -349,5 +327,5 @@ class TC_GAME_API UnitAI
         ThreatManager& GetThreatManager();
         void SortByDistance(std::list<Unit*> list, bool ascending = true);
 };
-  
+
 #endif

@@ -96,32 +96,6 @@ namespace WorldPackets
 
             bool Enable = false;
         };
-
-        class SaveClientVariables final : public ClientPacket
-        {
-        public:
-            SaveClientVariables(WorldPacket&& packet) : ClientPacket(CMSG_REPORT_CLIENT_VARIABLES, std::move(packet)) { }
-
-            void Read() override;
-
-            struct VarablesStruct
-            {
-                std::string VariableName;
-                std::string Value;
-            };
-
-            std::list<VarablesStruct> Varables;
-        };
-
-        class TwitterStatus final : public ServerPacket
-        {
-        public:
-            TwitterStatus() : ServerPacket(SMSG_TWITTER_STATUS, 4) { }
-
-            WorldPacket const* Write() override;
-
-            uint32 StatusInt = 0;
-        };
     }
 }
 

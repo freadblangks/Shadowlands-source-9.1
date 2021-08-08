@@ -36,7 +36,3 @@ endif()
 if(TOOLS)
   add_subdirectory(CascLib)
 endif()
-
-if (USE_EXTRACTORS)
-  add_subdirectory(libmpq)
-endif()

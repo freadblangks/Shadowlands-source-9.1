@@ -448,7 +448,7 @@ namespace WorldPackets
                 int32 BestSeasonRating = 0;
                 int32 PvpTierID = 0;
                 int32 Unused3 = 0;
-                bool Unused4 = false;
+                bool Disqualified = false;
             } Bracket[6];
         };
 
@@ -486,60 +486,6 @@ namespace WorldPackets
             uint8 Winner = 0;
             WorldPackets::Duration<Seconds> Duration;
             Optional<PVPMatchStatistics> LogData;
-        };
-
-        class BattlemasterJoinBrawl final : public ClientPacket
-        {
-        public:
-            BattlemasterJoinBrawl(WorldPacket&& packet) : ClientPacket(CMSG_BATTLEMASTER_JOIN_BRAWL, std::move(packet)) { }
-
-            void Read() override;
-
-            uint8 RolesMask = 0;
-        };
-
-        class WargameRequestSuccessfullySentToOpponent final : public ServerPacket
-        {
-        public:
-            WargameRequestSuccessfullySentToOpponent() : ServerPacket(SMSG_WARGAME_REQUEST_SUCCESSFULLY_SENT_TO_OPPONENT, 6) { }
-
-            WorldPacket const* Write() override;
-
-            Optional<uint32> UnkInt2;
-            Optional<uint32> UnkInt3;
-            uint32 UnkInt = 0;
-        };
-
-        class SendRequestScheduledPVPInfoResponse final : public ServerPacket
-        {
-        public:
-            SendRequestScheduledPVPInfoResponse() : ServerPacket(SMSG_REQUEST_SCHEDULED_PVP_INFO_RESPONSE) { }
-
-            WorldPacket const* Write() override;
-
-            uint32 BrawlType = 0;
-            int32 TimeToEnd = 0;
-            bool IsActive = false;
-        };
-
-        class AcceptWargameInvite final : public ClientPacket
-        {
-        public:
-            AcceptWargameInvite(WorldPacket&& packet) : ClientPacket(CMSG_ACCEPT_WARGAME_INVITE, std::move(packet)) { }
-
-            void Read() override;
-
-            ObjectGuid OpposingPartyMember;
-            uint64 QueueID = 0;
-            bool Accept = false;
-        };
-
-        class BattlemasterJoinArenaSkirmish final : public ClientPacket
-        {
-        public:
-            BattlemasterJoinArenaSkirmish(WorldPacket&& packet) : ClientPacket(CMSG_BATTLEMASTER_JOIN_SKIRMISH, std::move(packet)) { }
-
-            void Read() override;
         };
     }
 }

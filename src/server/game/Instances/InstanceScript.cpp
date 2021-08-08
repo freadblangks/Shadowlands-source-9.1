@@ -40,7 +40,6 @@
 #include <sstream>
 #include <cstdarg>
 #include "SpellMgr.h"
-#include <Scenarios\ScenarioMgr.h>
 
 BossBoundaryData::~BossBoundaryData()
 {
@@ -132,11 +131,6 @@ Creature* InstanceScript::GetCreature(uint32 type)
 GameObject* InstanceScript::GetGameObject(uint32 type)
 {
     return instance->GetGameObject(GetObjectGuid(type));
-}
-
-void InstanceScript::GetPlayersCount()
-{
-    uint64 playersCount = instance->GetPlayers().getSize();
 }
 
 void InstanceScript::SetHeaders(std::string const& dataHeaders)
@@ -365,7 +359,7 @@ bool InstanceScript::SetBossState(uint32 id, EncounterState state)
 
             if (bossInfo->state == DONE)
             {
-                TC_LOG_ERROR("map", "InstanceScript: Tried to set instance state from %s back to %s for map %u, instance id %u. Blocked!", GetBossStateName(bossInfo->state), GetBossStateName(state), instance->GetId(), instance->GetInstanceId());
+                TC_LOG_ERROR("map", "InstanceScript: Tried to set instance boss %u state from %s back to %s for map %u, instance id %u. Blocked!", id, GetBossStateName(bossInfo->state), GetBossStateName(state), instance->GetId(), instance->GetInstanceId());
                 return false;
             }
 
@@ -388,7 +382,7 @@ bool InstanceScript::SetBossState(uint32 id, EncounterState state)
                         for (Map::PlayerList::const_iterator i = playerList.begin(); i != playerList.end(); ++i)
                             if (Player* player = i->GetSource())
                                 if (player->IsAlive())
-                                    player->ProcSkillsAndAuras(nullptr, PROC_FLAG_ENCOUNTER_START, PROC_FLAG_NONE, PROC_SPELL_TYPE_MASK_ALL, PROC_SPELL_PHASE_NONE, PROC_HIT_NONE, nullptr, nullptr, nullptr);
+                                    Unit::ProcSkillsAndAuras(player, nullptr, PROC_FLAG_ENCOUNTER_START, PROC_FLAG_NONE, PROC_SPELL_TYPE_MASK_ALL, PROC_SPELL_PHASE_NONE, PROC_HIT_NONE, nullptr, nullptr, nullptr);
                     break;
                 }
                 case FAIL:
@@ -632,41 +626,26 @@ void InstanceScript::DoUpdateCriteria(CriteriaTypes type, uint32 miscValue1 /*= 
                 player->UpdateCriteria(type, miscValue1, miscValue2, 0, unit);
 }
 
-void InstanceScript::DoCompleteAchievement(uint32 achievement)
-{
-    AchievementEntry const* achievementEntry = sAchievementStore.LookupEntry(achievement);
-    if (!achievementEntry)
-    {
-        TC_LOG_ERROR("scripts", "DoCompleteAchievement called for not existing achievement %u", achievement);
-        return;
-    }
-
-    DoOnPlayers([achievementEntry](Player* player)
-    {
-        player->CompletedAchievement(achievementEntry);
-    });
-}
-
 // Start timed achievement for all players in instance
-void InstanceScript::DoStartCriteriaTimer(CriteriaTimedTypes type, uint32 entry)
+void InstanceScript::DoStartCriteriaTimer(CriteriaStartEvent startEvent, uint32 entry)
 {
     Map::PlayerList const& PlayerList = instance->GetPlayers();
 
     if (!PlayerList.isEmpty())
         for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
             if (Player* player = i->GetSource())
-                player->StartCriteriaTimer(type, entry);
+                player->StartCriteriaTimer(startEvent, entry);
 }
 
 // Stop timed achievement for all players in instance
-void InstanceScript::DoStopCriteriaTimer(CriteriaTimedTypes type, uint32 entry)
+void InstanceScript::DoStopCriteriaTimer(CriteriaStartEvent startEvent, uint32 entry)
 {
     Map::PlayerList const& PlayerList = instance->GetPlayers();
 
     if (!PlayerList.isEmpty())
         for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
             if (Player* player = i->GetSource())
-                player->RemoveCriteriaTimer(type, entry);
+                player->RemoveCriteriaTimer(startEvent, entry);
 }
 
 // Remove Auras due to Spell on all players in instance
@@ -701,44 +680,6 @@ void InstanceScript::DoCastSpellOnPlayers(uint32 spell)
 bool InstanceScript::ServerAllowsTwoSideGroups()
 {
     return sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_GROUP);
-}
-
-CreatureGroup* InstanceScript::SummonCreatureGroup(uint32 creatureGroupID, std::list<TempSummon*>* list /*= nullptr*/)
-{
-    bool createTempList = !list;
-    if (createTempList)
-        list = new std::list<TempSummon*>;
-
-    instance->SummonCreatureGroup(creatureGroupID, list);
-
-    for (TempSummon* summon : *list)
-        summonBySummonGroupIDs[creatureGroupID].push_back(summon->GetGUID());
-
-    if (createTempList)
-    {
-        delete list;
-        list = nullptr;
-    }
-
-    return GetCreatureGroup(creatureGroupID);
-}
-
-CreatureGroup* InstanceScript::GetCreatureGroup(uint32 creatureGroupID)
-{
-    for (ObjectGuid guid : summonBySummonGroupIDs[creatureGroupID])
-        if (Creature* summon = instance->GetCreature(guid))
-            return summon->GetFormation();
-
-    return nullptr;
-}
-
-void InstanceScript::DespawnCreatureGroup(uint32 creatureGroupID)
-{
-    for (ObjectGuid guid : summonBySummonGroupIDs[creatureGroupID])
-        if (Creature* summon = instance->GetCreature(guid))
-            summon->DespawnOrUnsummon();
-
-    summonBySummonGroupIDs.erase(creatureGroupID);
 }
 
 bool InstanceScript::CheckAchievementCriteriaMeet(uint32 criteria_id, Player const* /*source*/, Unit const* /*target*/ /*= nullptr*/, uint32 /*miscvalue1*/ /*= 0*/)
@@ -829,17 +770,16 @@ void InstanceScript::UpdateEncounterState(EncounterCreditType type, uint32 credi
 
     uint32 dungeonId = 0;
 
-    for (DungeonEncounterList::const_iterator itr = encounters->begin(); itr != encounters->end(); ++itr)
+    for (auto const& encounter : *encounters)
     {
-        DungeonEncounter const* encounter = *itr;
-        if (encounter->creditType == type && encounter->creditEntry == creditEntry)
+        if (encounter.creditType == type && encounter.creditEntry == creditEntry)
         {
-            completedEncounters |= 1 << encounter->dbcEntry->Bit;
-            if (encounter->lastEncounterDungeon)
+            completedEncounters |= 1 << encounter.dbcEntry->Bit;
+            if (encounter.lastEncounterDungeon)
             {
-                dungeonId = encounter->lastEncounterDungeon;
+                dungeonId = encounter.lastEncounterDungeon;
                 TC_LOG_DEBUG("lfg", "UpdateEncounterState: Instance %s (instanceId %u) completed encounter %s. Credit Dungeon: %u",
-                    instance->GetMapName(), instance->GetInstanceId(), encounter->dbcEntry->Name[sWorld->GetDefaultDbcLocale()], dungeonId);
+                    instance->GetMapName(), instance->GetInstanceId(), encounter.dbcEntry->Name[sWorld->GetDefaultDbcLocale()], dungeonId);
                 break;
             }
         }
@@ -848,15 +788,19 @@ void InstanceScript::UpdateEncounterState(EncounterCreditType type, uint32 credi
     if (dungeonId)
     {
         Map::PlayerList const& players = instance->GetPlayers();
-        for (Map::PlayerList::const_iterator i = players.begin(); i != players.end(); ++i)
+        for (auto const& ref : players)
         {
-            if (Player* player = i->GetSource())
+            if (Player* player = ref.GetSource())
+            {
                 if (Group* grp = player->GetGroup())
+                {
                     if (grp->isLFGGroup())
                     {
                         sLFGMgr->FinishDungeon(grp->GetGUID(), dungeonId, instance);
                         return;
                     }
+                }
+            }
         }
     }
 }
@@ -877,22 +821,6 @@ void InstanceScript::UpdatePhasing()
     for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
         if (Player* player = itr->GetSource())
             PhasingHandler::SendToPlayer(player);
-}
-
-void InstanceScript::CompleteScenario()
-{
-    if (InstanceScenario* inScenario = instance->GetInstanceScenario())
-        inScenario->CompleteScenario();
-    else
-        TC_LOG_ERROR("scripts", "InstanceScript::CompleteScenario() fail", "");
-}
-
-void InstanceScript::CompleteCurrStep()
-{
-    if (InstanceScenario* inScenario = instance->GetInstanceScenario())
-        inScenario->CompleteCurrStep();
-    else
-        TC_LOG_ERROR("scripts", "InstanceScript::CompleteCurrStep() fail", "");
 }
 
 /*static*/ char const* InstanceScript::GetBossStateName(uint8 state)
@@ -978,93 +906,4 @@ bool InstanceHasScript(WorldObject const* obj, char const* scriptName)
         return instance->GetScriptName() == scriptName;
 
     return false;
-}
-
-void InstanceScript::DoNearTeleportPlayers(const Position pos, bool casting /*=false*/)
-{
-    DoOnPlayers([pos, casting](Player* player)
-    {
-        player->NearTeleportTo(pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), pos.GetOrientation(), casting);
-    });
-}
-
-void InstanceScript::DoTeleportPlayers(uint32 mapId, const Position pos)
-{
-    DoOnPlayers([pos, mapId](Player* player)
-    {
-        player->TeleportTo(mapId, pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), pos.GetOrientation());
-    });
-}
-
-void InstanceScript::DoOnPlayers(std::function<void(Player*)>&& function)
-{
-    Map::PlayerList const& plrList = instance->GetPlayers();
-
-    if (!plrList.isEmpty())
-        for (Map::PlayerList::const_iterator i = plrList.begin(); i != plrList.end(); ++i)
-            if (Player* player = i->GetSource())
-                function(player);
-}
-
-// Add aura on all players in instance
-void InstanceScript::DoAddAuraOnPlayers(uint32 spell)
-{
-    DoOnPlayers([spell](Player* player)
-    {
-        player->AddAura(spell, player);
-    });
-}
-
-// Cast spell on all players in instance
-void InstanceScript::DoPlayScenePackageIdOnPlayers(uint32 scenePackageId)
-{
-    DoOnPlayers([scenePackageId](Player* player)
-    {
-        player->GetSceneMgr().PlaySceneByPackageId(scenePackageId);
-    });
-}
-
-void InstanceScript::DoStartMovie(uint32 movieId)
-{
-    MovieEntry const* movieEntry = sMovieStore.LookupEntry(movieId);
-    if (!movieEntry)
-    {
-        TC_LOG_ERROR("scripts", "DoStartMovie called for not existing movieId %u", movieId);
-        return;
-    }
-
-    DoOnPlayers([movieId](Player* player)
-    {
-        player->SendMovieStart(movieId);
-    });
-}
-
-void InstanceScript::DoPlayConversation(uint32 conversationId)
-{
-    DoOnPlayers([conversationId](Player* player)
-    {
-        player->PlayConversation(conversationId);
-    });
-}
-
-void InstanceScript::DoSendScenarioEvent(uint32 eventId)
-{
-    DoOnPlayers([eventId](Player* player)
-    {
-        player->GetScenario()->SendScenarioEvent(player, eventId);
-        return;
-    });
-}
-
-void InstanceScript::GetScenarioByID(Player* p_Player, uint32 p_ScenarioId)
-{
-    InstanceMap* map = instance->ToInstanceMap();
-
-    if (InstanceScenario* instanceScenario = sScenarioMgr->CreateInstanceScenarioByID(map, p_ScenarioId))
-    {
-        TC_LOG_ERROR("scripts", "GetScenarioByID CreateInstanceScenario %s", "");
-        map->SetInstanceScenario(instanceScenario);
-    }
-    else
-        TC_LOG_DEBUG("scripts", "InstanceScript: GetScenarioByID failed");
 }

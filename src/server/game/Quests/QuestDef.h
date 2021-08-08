@@ -21,6 +21,7 @@
 #include "Common.h"
 #include "DBCEnums.h"
 #include "DatabaseEnvFwd.h"
+#include "LootItemType.h"
 #include "Optional.h"
 #include "RaceMask.h"
 #include "SharedDefines.h"
@@ -29,7 +30,6 @@
 #include <vector>
 
 class Player;
-enum class LootItemType : uint8;
 
 namespace WorldPackets
 {
@@ -39,7 +39,7 @@ namespace WorldPackets
     }
 }
 
-#define MAX_QUEST_LOG_SIZE 100
+#define MAX_QUEST_LOG_SIZE 25
 
 #define QUEST_ITEM_DROP_COUNT 4
 #define QUEST_REWARD_CHOICES_COUNT 6
@@ -377,18 +377,18 @@ struct QuestObjective
     {
         switch (Type)
         {
-        case QUEST_OBJECTIVE_MONSTER:
-        case QUEST_OBJECTIVE_ITEM:
-        case QUEST_OBJECTIVE_GAMEOBJECT:
-        case QUEST_OBJECTIVE_TALKTO:
-        case QUEST_OBJECTIVE_PLAYERKILLS:
-        case QUEST_OBJECTIVE_WINPVPPETBATTLES:
-        case QUEST_OBJECTIVE_HAVE_CURRENCY:
-        case QUEST_OBJECTIVE_OBTAIN_CURRENCY:
-        case QUEST_OBJECTIVE_INCREASE_REPUTATION:
-            return true;
-        default:
-            break;
+            case QUEST_OBJECTIVE_MONSTER:
+            case QUEST_OBJECTIVE_ITEM:
+            case QUEST_OBJECTIVE_GAMEOBJECT:
+            case QUEST_OBJECTIVE_TALKTO:
+            case QUEST_OBJECTIVE_PLAYERKILLS:
+            case QUEST_OBJECTIVE_WINPVPPETBATTLES:
+            case QUEST_OBJECTIVE_HAVE_CURRENCY:
+            case QUEST_OBJECTIVE_OBTAIN_CURRENCY:
+            case QUEST_OBJECTIVE_INCREASE_REPUTATION:
+                return true;
+            default:
+                break;
         }
         return false;
     }
@@ -414,17 +414,17 @@ struct QuestObjective
     {
         switch (type)
         {
-        case QUEST_OBJECTIVE_ITEM:
-        case QUEST_OBJECTIVE_CURRENCY:
-        case QUEST_OBJECTIVE_LEARNSPELL:
-        case QUEST_OBJECTIVE_MIN_REPUTATION:
-        case QUEST_OBJECTIVE_MAX_REPUTATION:
-        case QUEST_OBJECTIVE_MONEY:
-        case QUEST_OBJECTIVE_HAVE_CURRENCY:
-        case QUEST_OBJECTIVE_INCREASE_REPUTATION:
-            return true;
-        default:
-            break;
+            case QUEST_OBJECTIVE_ITEM:
+            case QUEST_OBJECTIVE_CURRENCY:
+            case QUEST_OBJECTIVE_LEARNSPELL:
+            case QUEST_OBJECTIVE_MIN_REPUTATION:
+            case QUEST_OBJECTIVE_MAX_REPUTATION:
+            case QUEST_OBJECTIVE_MONEY:
+            case QUEST_OBJECTIVE_HAVE_CURRENCY:
+            case QUEST_OBJECTIVE_INCREASE_REPUTATION:
+                return true;
+            default:
+                break;
         }
         return false;
     }
@@ -569,7 +569,6 @@ class TC_GAME_API Quest
         bool   IsSeasonal() const { return (_questSortID == -QUEST_SORT_SEASONAL || _questSortID == -QUEST_SORT_SPECIAL || _questSortID == -QUEST_SORT_LUNAR_FESTIVAL || _questSortID == -QUEST_SORT_MIDSUMMER || _questSortID == -QUEST_SORT_BREWFEST || _questSortID == -QUEST_SORT_LOVE_IS_IN_THE_AIR || _questSortID == -QUEST_SORT_NOBLEGARDEN) && !IsRepeatable(); }
         bool   IsDailyOrWeekly() const { return (_flags & (QUEST_FLAGS_DAILY | QUEST_FLAGS_WEEKLY)) != 0; }
         bool   IsRaidQuest(Difficulty difficulty) const;
-        bool   IsEmissaryQuest() const { return QuestInfoID == QUEST_INFO_EMISSARY_QUEST; }
         bool   IsAllowedInRaid(Difficulty difficulty) const;
         bool   IsDFQuest() const { return (_specialFlags & QUEST_SPECIAL_FLAGS_DF_QUEST) != 0; }
         uint32 CalculateHonorGain(uint8 level) const;
@@ -661,6 +660,7 @@ class TC_GAME_API Quest
         uint32 _limitTime = 0;
         Trinity::RaceMask<uint64> _allowableRaces;
         int32 _treasurePickerID = 0;
+        int32 _expansion = 0;
         int32 _managedWorldStateID = 0;
         int32 _questSessionBonus = 0;
         std::string _logTitle;
@@ -706,10 +706,6 @@ class TC_GAME_API Quest
 
         // Helpers
         static uint32 RoundXPValue(uint32 xp);
-
-        public:
-        int32 _expansion = 0;
-        uint32 QuestInfoID = 0;
 };
 
 struct QuestStatusData
@@ -718,7 +714,6 @@ struct QuestStatusData
     QuestStatus Status = QUEST_STATUS_NONE;
     uint32 Timer = 0;
     bool Explored = false;
-    std::vector<int32> ObjectiveData;
 };
 
 #endif

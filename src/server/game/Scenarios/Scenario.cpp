@@ -18,7 +18,6 @@
 #include "Scenario.h"
 #include "InstanceSaveMgr.h"
 #include "Log.h"
-#include "LootMgr.h"
 #include "ObjectAccessor.h"
 #include "ObjectMgr.h"
 #include "Player.h"
@@ -29,8 +28,8 @@ Scenario::Scenario(ScenarioData const* scenarioData) : _data(scenarioData), _cur
 {
     ASSERT(_data);
 
-    for (auto step : _data->Steps)
-        SetStepState(step.second, SCENARIO_STEP_NOT_STARTED);
+    for (std::pair<uint8 const, ScenarioStepEntry const*> const& scenarioStep : _data->Steps)
+        SetStepState(scenarioStep.second, SCENARIO_STEP_NOT_STARTED);
 
     if (ScenarioStepEntry const* step = GetFirstStep())
         SetStep(step);
@@ -88,12 +87,6 @@ void Scenario::CompleteScenario()
     return SendPacket(WorldPackets::Scenario::ScenarioCompleted(_data->Entry->ID).Write());
 }
 
-void Scenario::CompleteCurrStep()
-{
-    if (ScenarioStepEntry const* step = GetStep())
-        CompleteStep(step);
-}
-
 void Scenario::SetStep(ScenarioStepEntry const* step)
 {
     _currentstep = step;
@@ -119,12 +112,12 @@ void Scenario::OnPlayerExit(Player* player)
 
 bool Scenario::IsComplete()
 {
-    for (auto step : _data->Steps)
+    for (std::pair<uint8 const, ScenarioStepEntry const*> const& scenarioStep : _data->Steps)
     {
-        if (step.second->IsBonusObjective())
+        if (scenarioStep.second->IsBonusObjective())
             continue;
 
-        if (GetStepState(step.second) != SCENARIO_STEP_DONE)
+        if (GetStepState(scenarioStep.second) != SCENARIO_STEP_DONE)
             return false;
     }
 
@@ -229,7 +222,7 @@ void Scenario::BuildScenarioState(WorldPackets::Scenario::ScenarioState* scenari
     scenarioState->CriteriaProgress = GetCriteriasProgress();
     scenarioState->BonusObjectives = GetBonusObjectivesData();
     // Don't know exactly what this is for, but seems to contain list of scenario steps that we're either on or that are completed
-    for (auto state : _stepStates)
+    for (std::pair<ScenarioStepEntry const* const, ScenarioStepState> const& state : _stepStates)
     {
         if (state.first->IsBonusObjective())
             continue;
@@ -253,7 +246,7 @@ ScenarioStepEntry const* Scenario::GetFirstStep() const
 {
     // Do it like this because we don't know what order they're in inside the container.
     ScenarioStepEntry const* firstStep = nullptr;
-    for (auto scenarioStep : _data->Steps)
+    for (std::pair<uint8 const, ScenarioStepEntry const*> const& scenarioStep : _data->Steps)
     {
         if (scenarioStep.second->IsBonusObjective())
             continue;
@@ -263,6 +256,22 @@ ScenarioStepEntry const* Scenario::GetFirstStep() const
     }
 
     return firstStep;
+}
+
+ScenarioStepEntry const* Scenario::GetLastStep() const
+{
+    // Do it like this because we don't know what order they're in inside the container.
+    ScenarioStepEntry const* lastStep = nullptr;
+    for (std::pair<uint8 const, ScenarioStepEntry const*> const& scenarioStep : _data->Steps)
+    {
+        if (scenarioStep.second->IsBonusObjective())
+            continue;
+
+        if (!lastStep || scenarioStep.second->OrderIndex > lastStep->OrderIndex)
+            lastStep = scenarioStep.second;
+    }
+
+    return lastStep;
 }
 
 void Scenario::SendScenarioState(Player* player)
@@ -275,16 +284,16 @@ void Scenario::SendScenarioState(Player* player)
 std::vector<WorldPackets::Scenario::BonusObjectiveData> Scenario::GetBonusObjectivesData()
 {
     std::vector<WorldPackets::Scenario::BonusObjectiveData> bonusObjectivesData;
-    for (auto itr = _data->Steps.begin(); itr != _data->Steps.end(); ++itr)
+    for (std::pair<uint8 const, ScenarioStepEntry const*> const& scenarioStep : _data->Steps)
     {
-        if (!itr->second->IsBonusObjective())
+        if (!scenarioStep.second->IsBonusObjective())
             continue;
 
-        if (sCriteriaMgr->GetCriteriaTree(itr->second->Criteriatreeid))
+        if (sCriteriaMgr->GetCriteriaTree(scenarioStep.second->Criteriatreeid))
         {
             WorldPackets::Scenario::BonusObjectiveData bonusObjectiveData;
-            bonusObjectiveData.BonusObjectiveID = itr->second->ID;
-            bonusObjectiveData.ObjectiveComplete = GetStepState(itr->second) == SCENARIO_STEP_DONE;
+            bonusObjectiveData.BonusObjectiveID = scenarioStep.second->ID;
+            bonusObjectiveData.ObjectiveComplete = GetStepState(scenarioStep.second) == SCENARIO_STEP_DONE;
             bonusObjectivesData.push_back(bonusObjectiveData);
         }
     }
@@ -298,13 +307,13 @@ std::vector<WorldPackets::Achievement::CriteriaProgress> Scenario::GetCriteriasP
 
     if (!_criteriaProgress.empty())
     {
-        for (auto critItr = _criteriaProgress.begin(); critItr != _criteriaProgress.end(); ++critItr)
+        for (std::pair<uint32 const, CriteriaProgress> const& progressPair : _criteriaProgress)
         {
             WorldPackets::Achievement::CriteriaProgress criteriaProgress;
-            criteriaProgress.Id = critItr->first;
-            criteriaProgress.Quantity = critItr->second.Counter;
-            criteriaProgress.Date = critItr->second.Date;
-            criteriaProgress.Player = critItr->second.PlayerGUID;
+            criteriaProgress.Id = progressPair.first;
+            criteriaProgress.Quantity = progressPair.second.Counter;
+            criteriaProgress.Date = progressPair.second.Date;
+            criteriaProgress.Player = progressPair.second.PlayerGUID;
             criteriasProgress.push_back(criteriaProgress);
         }
     }
@@ -322,16 +331,4 @@ void Scenario::SendBootPlayer(Player* player)
     WorldPackets::Scenario::ScenarioVacate scenarioBoot;
     scenarioBoot.ScenarioID = _data->Entry->ID;
     player->SendDirectMessage(scenarioBoot.Write());
-}
-
-void Scenario::SendScenarioEvent(Player* player, uint32 eventId)
-{
-    UpdateCriteria(CRITERIA_TYPE_SEND_EVENT_SCENARIO, eventId, 0, 0, nullptr, player);
-}
-
-void Scenario::SendScenarioEventToPlayers(uint32 eventId)
-{
-    for (ObjectGuid guid : _players)
-        if (Player* player = ObjectAccessor::FindPlayer(guid))
-            CriteriaHandler::UpdateCriteria(CRITERIA_TYPE_SEND_EVENT_SCENARIO, eventId, 0, 0, nullptr, player);
 }

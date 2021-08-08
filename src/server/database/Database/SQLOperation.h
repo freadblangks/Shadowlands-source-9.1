@@ -60,7 +60,7 @@ class TC_DATABASE_API SQLOperation
         virtual int call()
         {
             Execute();
-            return 1;
+            return 0;
         }
         virtual bool Execute() = 0;
         virtual void SetConnection(MySQLConnection* con) { m_conn = con; }

@@ -60,19 +60,6 @@ InstanceScenario* ScenarioMgr::CreateInstanceScenario(Map const* map, TeamId tea
     return new InstanceScenario(map, &itr->second);
 }
 
-InstanceScenario* ScenarioMgr::CreateInstanceScenarioByID(Map const* map, uint32 scenarioID)
-{
-    auto itr = _scenarioData.find(scenarioID);
-    if (itr == _scenarioData.end())
-    {
-        TC_LOG_ERROR("scenario", "Table `scenarios` contained data linking scenario (Id: %u) to map (Id: %u), difficulty (Id: %u) but no scenario data was found related to that scenario Id.", scenarioID, map->GetId(), map->GetDifficultyID());
-        return nullptr;
-    }
-
-    return nullptr;
-    // return new InstanceScenario(map, &itr->second);
-}
-
 void ScenarioMgr::LoadDBData()
 {
     _scenarioDBData.clear();

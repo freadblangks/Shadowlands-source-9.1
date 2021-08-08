@@ -169,40 +169,31 @@ void AppenderConsole::_write(LogMessage const* message)
         uint8 index;
         switch (message->level)
         {
-        case LOG_LEVEL_TRACE:
-            index = 5;
-            break;
-        case LOG_LEVEL_DEBUG:
-            index = 4;
-            break;
-        case LOG_LEVEL_INFO:
-            index = 3;
-            break;
-        case LOG_LEVEL_WARN:
-            index = 2;
-            break;
-        case LOG_LEVEL_FATAL:
-            index = 0;
-            break;
-        case LOG_LEVEL_ERROR: // No break on purpose
-        default:
-            index = 1;
-            break;
+            case LOG_LEVEL_TRACE:
+               index = 5;
+               break;
+            case LOG_LEVEL_DEBUG:
+               index = 4;
+               break;
+            case LOG_LEVEL_INFO:
+               index = 3;
+               break;
+            case LOG_LEVEL_WARN:
+               index = 2;
+               break;
+            case LOG_LEVEL_FATAL:
+               index = 0;
+               break;
+            case LOG_LEVEL_ERROR: // No break on purpose
+            default:
+               index = 1;
+               break;
         }
 
         SetColor(stdout_stream, _colors[index]);
-        if ((stdout_stream == 0) && (sConfigMgr->GetBoolDefault("ConsoleErrorLogging", true)))
-            utf8printf(stderr, "%s%s\n", message->prefix.c_str(), message->text.c_str());
-        else if (stdout_stream == 1)
-            utf8printf(stdout, "%s%s\n", message->prefix.c_str(), message->text.c_str());
-
+        utf8printf(stdout_stream ? stdout : stderr, "%s%s\n", message->prefix.c_str(), message->text.c_str());
         ResetColor(stdout_stream);
     }
     else
-    {
-        if ((stdout_stream == 0) && (sConfigMgr->GetBoolDefault("ConsoleErrorLogging", true)))
-            utf8printf(stderr, "%s%s\n", message->prefix.c_str(), message->text.c_str());
-        else if (stdout_stream == 1)
-            utf8printf(stdout, "%s%s\n", message->prefix.c_str(), message->text.c_str());
-    }
+        utf8printf(stdout_stream ? stdout : stderr, "%s%s\n", message->prefix.c_str(), message->text.c_str());
 }

@@ -855,8 +855,6 @@ _dbPhase(0), m_notifyflags(0)
 {
     m_serverSideVisibility.SetValue(SERVERSIDE_VISIBILITY_GHOST, GHOST_VISIBILITY_ALIVE | GHOST_VISIBILITY_GHOST);
     m_serverSideVisibilityDetect.SetValue(SERVERSIDE_VISIBILITY_GHOST, GHOST_VISIBILITY_ALIVE);
-    m_rwVisibility = false;
-    m_rwVisibilityRange = 0.0f;
 }
 
 void WorldObject::SetWorldObject(bool on)
@@ -932,7 +930,7 @@ void WorldObject::CleanupsBeforeDelete(bool /*finalCleanup*/)
 void WorldObject::UpdatePositionData()
 {
     PositionFullTerrainStatus data;
-    GetMap()->GetFullTerrainStatusForPosition(_phaseShift, GetPositionX(), GetPositionY(), GetPositionZ(), data, MAP_ALL_LIQUIDS);
+    GetMap()->GetFullTerrainStatusForPosition(_phaseShift, GetPositionX(), GetPositionY(), GetPositionZ(), data, map_liquidHeaderTypeFlags::AllLiquids);
     ProcessPositionDataChanged(data);
 }
 
@@ -1830,10 +1828,8 @@ void Map::SummonCreatureGroup(uint8 group, std::list<TempSummon*>* list /*= null
                 list->push_back(summon);
 }
 
-
 void WorldObject::SetZoneScript()
 {
-    m_zoneScript = nullptr;
     if (Map* map = FindMap())
     {
         if (map->IsDungeon())
@@ -1842,10 +1838,8 @@ void WorldObject::SetZoneScript()
         {
             if (Battlefield* bf = sBattlefieldMgr->GetBattlefieldToZoneId(GetZoneId()))
                 m_zoneScript = bf;
-            else if (ZoneScript* out = sOutdoorPvPMgr->GetZoneScript(GetZoneId()))
-                m_zoneScript = out;
             else
-                m_zoneScript = sScriptMgr->GetZoneScript(sObjectMgr->GetScriptIdForZone(GetZoneId()));
+                m_zoneScript = sOutdoorPvPMgr->GetZoneScript(GetZoneId());
         }
     }
 }
@@ -1882,7 +1876,7 @@ TempSummon* WorldObject::SummonCreature(uint32 id, float x, float y, float z, fl
     return SummonCreature(id, { x,y,z,o }, despawnType, despawnTime, 0, privateObjectOwner);
 }
 
-GameObject* WorldObject::SummonGameObject(uint32 entry, Position const& pos, QuaternionData const& rot, uint32 respawnTime)
+GameObject* WorldObject::SummonGameObject(uint32 entry, Position const& pos, QuaternionData const& rot, uint32 respawnTime, GOSummonType summonType)
 {
     if (!IsInWorld())
         return nullptr;
@@ -1902,7 +1896,7 @@ GameObject* WorldObject::SummonGameObject(uint32 entry, Position const& pos, Qua
     PhasingHandler::InheritPhaseShift(go, this);
 
     go->SetRespawnTime(respawnTime);
-    if (GetTypeId() == TYPEID_PLAYER || GetTypeId() == TYPEID_UNIT) //not sure how to handle this
+    if (GetTypeId() == TYPEID_PLAYER || (GetTypeId() == TYPEID_UNIT && summonType == GO_SUMMON_TIMED_OR_CORPSE_DESPAWN)) //not sure how to handle this
         ToUnit()->AddGameObject(go);
     else
         go->SetSpawnedByDefault(false);
@@ -1974,13 +1968,6 @@ Creature* WorldObject::FindNearestCreature(uint32 entry, float range, bool alive
     return creature;
 }
 
-std::list<Creature*> WorldObject::FindNearestCreatures(uint32 entry, float range) const
-{
-    std::list<Creature*> creatureList;
-    GetCreatureListWithEntryInGrid(creatureList, entry, range);
-    return creatureList;
-}
-
 GameObject* WorldObject::FindNearestGameObject(uint32 entry, float range) const
 {
     GameObject* go = nullptr;
@@ -2008,35 +1995,6 @@ Player* WorldObject::SelectNearestPlayer(float distance) const
     Cell::VisitGridObjects(this, searcher, distance);
 
     return target;
-}
-
-AreaTrigger* WorldObject::SelectNearestAreaTrigger(uint32 spellId, float distance) const
-{
-    AreaTrigger* target = nullptr;
-
-    Trinity::NearestAreaTriggerWithIdInObjectRangeCheck checker(this, spellId, distance);
-    Trinity::AreaTriggerSearcher<Trinity::NearestAreaTriggerWithIdInObjectRangeCheck> searcher(this, target, checker);
-    Cell::VisitAllObjects(this, searcher, distance);
-
-    return target;
-}
-
-std::list<AreaTrigger*> WorldObject::SelectNearestAreaTriggers(uint32 spellId, float range)
-{
-    std::list<AreaTrigger*> atList;
-    Trinity::AnyAreatriggerInObjectRangeCheck checker(this, range);
-    Trinity::AreaTriggerListSearcher<Trinity::AnyAreatriggerInObjectRangeCheck> searcher(this, atList, checker);
-    Cell::VisitGridObjects(this, searcher, range);
-
-    atList.remove_if([spellId](AreaTrigger* p_AreaTrigger)
-    {
-        if (p_AreaTrigger == nullptr || p_AreaTrigger->GetSpellId() != spellId)
-            return true;
-
-        return false;
-    });
-
-    return atList;
 }
 
 template <typename Container>
@@ -2299,7 +2257,6 @@ void WorldObject::DestroyForNearbyPlayers()
 
         DestroyForPlayer(player);
         player->m_clientGUIDs.erase(GetGUID());
-        player->GetVignetteMgr().OnWorldObjectDisappear(this);
     }
 }
 
@@ -2427,28 +2384,6 @@ float WorldObject::GetMapHeight(float x, float y, float z, bool vmap/* = true*/,
         z += GetCollisionHeight();
 
     return GetMap()->GetHeight(GetPhaseShift(), x, y, z, vmap, distanceToSearch);
-}
-
-void WorldObject::SetRWVisibilityRange(float rwvisible)
-{
-    if (rwvisible <= 0.0f)
-    {
-        m_rwVisibility = false;
-        m_rwVisibilityRange = 0.0f;
-        return;
-    }
-    m_rwVisibility = true;
-    m_rwVisibilityRange = rwvisible;
-}
-
-bool WorldObject::IsRWVisibility()
-{
-    return m_rwVisibility;
-}
-
-float WorldObject::GetRWVisibility()
-{
-    return m_rwVisibilityRange;
 }
 
 template TC_GAME_API void WorldObject::GetGameObjectListWithEntryInGrid(std::list<GameObject*>&, uint32, float) const;

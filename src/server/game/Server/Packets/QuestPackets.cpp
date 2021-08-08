@@ -627,7 +627,6 @@ WorldPacket const* WorldQuestUpdateResponse::Write()
         _worldPacket << worldQuestUpdate.LastUpdate;
         _worldPacket << uint32(worldQuestUpdate.QuestID);
         _worldPacket << uint32(worldQuestUpdate.Timer);
-        _worldPacket << uint32(worldQuestUpdate.Unk1);
         _worldPacket << int32(worldQuestUpdate.VariableID);
         _worldPacket << int32(worldQuestUpdate.Value);
     }
@@ -652,7 +651,6 @@ ByteBuffer& operator<<(ByteBuffer& data, PlayerChoiceResponseReward const& playe
     data << uint32(playerChoiceResponseReward.HonorPointCount);
     data << uint64(playerChoiceResponseReward.Money);
     data << uint32(playerChoiceResponseReward.Xp);
-    data << uint32(playerChoiceResponseReward.SpellID);
     data << uint32(playerChoiceResponseReward.Items.size());
     data << uint32(playerChoiceResponseReward.Currencies.size());
     data << uint32(playerChoiceResponseReward.Factions.size());
@@ -753,67 +751,5 @@ void ChoiceResponse::Read()
     _worldPacket >> ChoiceID;
     _worldPacket >> ResponseID;
 }
-
-WorldPacket const* QueryQuestRewardResponse::Write()
-{
-    _worldPacket << QuestID;
-    _worldPacket << TreasurePickerID;
-    _worldPacket << BonusCount;
-    _worldPacket << Flags;
-    _worldPacket << uint32(ItemRewards.size());
-    _worldPacket << uint32(CurrencyRewards.size());
-    
-    _worldPacket << MoneyReward;
-
-    for (auto const& currency : CurrencyRewards)
-    {
-        _worldPacket << currency.CurrencyCount;
-        _worldPacket << currency.CurrencyID;
-        _worldPacket << currency.Amount;
-    }
-
-    for (auto const& item : ItemRewards)
-    {
-        _worldPacket << item.Item;
-        _worldPacket << item.ItemCount;
-    }
-
-    return &_worldPacket;
-}
-
-void QueryTreasurePicker::Read()
-{
-    _worldPacket >> QuestID;
-    _worldPacket >> QuestTimer;
-}
-
-WorldPacket const* WorldPackets::Quest::IsQuestCompleteResponse::Write()
-{
-    _worldPacket << QuestID;
-    _worldPacket.WriteBit(Complete);
-    _worldPacket.FlushBits();
-
-    return &_worldPacket;
-}
-
-WorldPacket const* WorldPackets::Quest::DisplayQuestPopup::Write()
-{
-    _worldPacket << QuestID;
-
-    return &_worldPacket;
-}
-
-void WorldPackets::Quest::UiMapQuestLinesRequest::Read()
-{
-    _worldPacket >> UiMapID;
-}
-
-WorldPacket const* UiMapQuestLinesResponse::Write()
-{
-    _worldPacket << UiMapID;
-
-    return &_worldPacket;
-}
-
 }
 }

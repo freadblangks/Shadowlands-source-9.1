@@ -50,15 +50,3 @@ WorldPacket const* WorldPackets::WorldState::UpdateWorldState::Write()
 
     return &_worldPacket;
 }
-
-WorldPacket const* WorldPackets::WorldState::StartElapsedTimers::Write()
-{
-    _worldPacket << static_cast<uint32>(Timers.size());
-    for (auto const& v : Timers)
-    {
-        _worldPacket << v.TimerID;
-        _worldPacket << uint32(v.CurrentDuration);
-    }
-
-    return &_worldPacket;
-}

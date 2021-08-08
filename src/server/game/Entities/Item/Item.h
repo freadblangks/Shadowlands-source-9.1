@@ -74,7 +74,6 @@ struct BonusData
     int32 StatPercentEditor[MAX_ITEM_PROTO_STATS];
     float ItemStatSocketCostMultiplier[MAX_ITEM_PROTO_STATS];
     uint32 SocketColor[MAX_ITEM_PROTO_SOCKETS];
-    uint32 DisplayToastMethod[2];
     ItemBondingType Bonding;
     uint32 AppearanceModID;
     float RepairCostMultiplier;
@@ -402,8 +401,6 @@ class TC_GAME_API Item : public Object
         uint32 GetModifier(ItemModifier modifier) const;
         void SetModifier(ItemModifier modifier, uint32 value);
 
-        uint8 GetDisplayToastMethod(uint8 value = 0) const;
-
         ObjectGuid GetChildItem() const { return m_childItem; }
         void SetChildItem(ObjectGuid childItem) { m_childItem = childItem; }
 
@@ -414,6 +411,7 @@ class TC_GAME_API Item : public Object
         void SetArtifactPower(uint16 artifactPowerId, uint8 purchasedRank, uint8 currentRankWithBonus);
 
         void InitArtifactPowers(uint8 artifactId, uint8 artifactTier);
+        uint32 GetTotalUnlockedArtifactPowers() const;
         uint32 GetTotalPurchasedArtifactPowers() const;
         void ApplyArtifactPowerEnchantmentBonuses(EnchantmentSlot slot, uint32 enchantId, bool apply, Player* owner);
         void CopyArtifactDataFromParent(Item* parent);

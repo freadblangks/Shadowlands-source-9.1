@@ -193,6 +193,7 @@ namespace
         SET_GUID_INFO(AIGroup, FormatWorldObject);
         SET_GUID_INFO(DynamicDoor, FormatWorldObject);
         SET_GUID_INFO(ClientActor, FormatClientActor);
+        SET_GUID_INFO(Vignette, FormatWorldObject);
         SET_GUID_INFO(CallForHelp, FormatWorldObject);
         SET_GUID_INFO(AIResource, FormatWorldObject);
         SET_GUID_INFO(AILock, FormatWorldObject);
@@ -216,7 +217,6 @@ namespace
         SET_GUID_INFO(PetBattle, FormatClient);
         SET_GUID_INFO(UniqUserClient, FormatClient);
         SET_GUID_INFO(BattlePet, FormatGlobal);
-        SET_GUID_INFO(Vignette, FormatClient);
         SET_GUID_INFO(CommerceObj, FormatGlobal);
         SET_GUID_INFO(ClientSession, FormatClient);
         SET_GUID_INFO(Cast, FormatWorldObject);
@@ -487,7 +487,6 @@ template class TC_GAME_API ObjectGuidGenerator<HighGuid::UserClient>;
 template class TC_GAME_API ObjectGuidGenerator<HighGuid::PetBattle>;
 template class TC_GAME_API ObjectGuidGenerator<HighGuid::UniqUserClient>;
 template class TC_GAME_API ObjectGuidGenerator<HighGuid::BattlePet>;
-template class TC_GAME_API ObjectGuidGenerator<HighGuid::Vignette>;
 template class TC_GAME_API ObjectGuidGenerator<HighGuid::CommerceObj>;
 template class TC_GAME_API ObjectGuidGenerator<HighGuid::ClientSession>;
 template class TC_GAME_API ObjectGuidGenerator<HighGuid::Cast>;

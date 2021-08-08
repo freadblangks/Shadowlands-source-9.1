@@ -183,7 +183,6 @@ class Roll : public LootValidatorRef
         uint32 itemid;
         ItemRandomBonusListId itemRandomBonusListId;
         uint8 itemCount;
-        ObjectGuid lootedGUID;
         typedef std::map<ObjectGuid, RollVote> PlayerVote;
         PlayerVote playerVote;                              //vote position correspond with player position (in group)
         uint8 totalPlayersRolling;
@@ -398,7 +397,6 @@ class TC_GAME_API Group
         Rolls::iterator GetRoll(ObjectGuid lootObjectGuid, uint8 lootListId);
         void CountTheRoll(Rolls::iterator roll, Map* allowedMap);
         void CountRollVote(ObjectGuid playerGuid, ObjectGuid lootObjectGuid, uint8 lootListId, uint8 choice);
-        void DoRollForAllMembers(ObjectGuid guid, uint8 slot, uint32 mapid, Loot*, LootItem&, Player*);
         void EndRoll(Loot* loot, Map* allowedMap);
 
         // related to disenchant rolls

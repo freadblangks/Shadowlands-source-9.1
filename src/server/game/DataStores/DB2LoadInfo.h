@@ -53,6 +53,22 @@ struct AchievementLoadInfo
     }
 };
 
+struct AchievementCategoryLoadInfo
+{
+    static DB2LoadInfo const* Instance()
+    {
+        static DB2FieldMeta const fields[] =
+        {
+            { false, FT_STRING, "Name" },
+            { false, FT_INT, "ID" },
+            { true, FT_SHORT, "Parent" },
+            { true, FT_BYTE, "UiOrder" },
+        };
+        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, Achievement_CategoryMeta::Instance(), HOTFIX_SEL_ACHIEVEMENT_CATEGORY);
+        return &loadInfo;
+    }
+};
+
 struct AdventureJournalLoadInfo
 {
     static DB2LoadInfo const* Instance()
@@ -1982,6 +1998,41 @@ struct FactionTemplateLoadInfo
     }
 };
 
+struct FriendshipRepReactionLoadInfo
+{
+    static DB2LoadInfo const* Instance()
+    {
+        static DB2FieldMeta const fields[] =
+        {
+            { false, FT_INT, "ID" },
+            { false, FT_STRING, "Reaction" },
+            { false, FT_INT, "FriendshipRepID" },
+            { false, FT_SHORT, "ReactionThreshold" },
+        };
+        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, FriendshipRepReactionMeta::Instance(), HOTFIX_SEL_FRIENDSHIP_REP_REACTION);
+        return &loadInfo;
+    }
+};
+
+struct FriendshipReputationLoadInfo
+{
+    static DB2LoadInfo const* Instance()
+    {
+        static DB2FieldMeta const fields[] =
+        {
+            { false, FT_STRING, "Description" },
+            { false, FT_STRING, "StandingModified" },
+            { false, FT_STRING, "StandingChanged" },
+            { false, FT_INT, "ID" },
+            { true, FT_INT, "FactionID" },
+            { true, FT_INT, "TextureFileID" },
+            { true, FT_INT, "Flags" },
+        };
+        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, FriendshipReputationMeta::Instance(), HOTFIX_SEL_FRIENDSHIP_REPUTATION);
+        return &loadInfo;
+    }
+};
+
 struct GameobjectDisplayInfoLoadInfo
 {
     static DB2LoadInfo const* Instance()
@@ -2195,52 +2246,6 @@ struct GarrFollowerXAbilityLoadInfo
             { false, FT_INT, "GarrFollowerID" },
         };
         static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, GarrFollowerXAbilityMeta::Instance(), HOTFIX_SEL_GARR_FOLLOWER_X_ABILITY);
-        return &loadInfo;
-    }
-};
-
-struct GarrMissionLoadInfo
-{
-    static DB2LoadInfo const* Instance()
-    {
-        static DB2FieldMeta const fields[] =
-        {
-            { false, FT_STRING, "Name" },
-            { false, FT_STRING, "Description" },
-            { false, FT_STRING, "Location" },
-            { false, FT_FLOAT, "MapPos1" },
-            { false, FT_FLOAT, "MapPos2" },
-            { false, FT_FLOAT, "WorldPos1" },
-            { false, FT_FLOAT, "WorldPos2" },
-            { false, FT_INT, "ID" },
-            { false, FT_BYTE, "GarrTypeID" },
-            { false, FT_BYTE, "GarrMissionTypeID" },
-            { false, FT_BYTE, "GarrFollowerTypeID" },
-            { false, FT_BYTE, "MaxFollowers" },
-            { false, FT_INT, "MissionCost" },
-            { false, FT_SHORT, "MissionCostCurrencyTypesID" },
-            { false, FT_BYTE, "OfferedGarrMissionTextureID" },
-            { false, FT_SHORT, "UiTextureKitID" },
-            { false, FT_INT, "EnvGarrMechanicID" },
-            { true, FT_INT, "EnvGarrMechanicTypeID" },
-            { false, FT_INT, "PlayerConditionID" },
-            { true, FT_INT, "GarrMissionSetID" },
-            { true, FT_BYTE, "TargetLevel" },
-            { false, FT_SHORT, "TargetItemLevel" },
-            { true, FT_INT, "MissionDuration" },
-            { true, FT_INT, "TravelDuration" },
-            { false, FT_INT, "OfferDuration" },
-            { false, FT_BYTE, "BaseCompletionChance" },
-            { false, FT_INT, "BaseFollowerXP" },
-            { false, FT_INT, "OvermaxRewardPackID" },
-            { false, FT_BYTE, "FollowerDeathChance" },
-            { false, FT_INT, "AreaID" },
-            { false, FT_INT, "Flags" },
-            { false, FT_FLOAT, "AutoMissionScalar" },
-            { true, FT_INT, "AutoMissionScalarCurveID" },
-            { true, FT_INT, "AutoCombatantEnvCasterID" },
-        };
-        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, GarrMissionMeta::Instance(), HOTFIX_SEL_GARR_MISSION);
         return &loadInfo;
     }
 };
@@ -2971,48 +2976,6 @@ struct ItemDisenchantLootLoadInfo
     }
 };
 
-struct ItemDisplayInfoLoadInfo
-{
-    static DB2LoadInfo const* Instance()
-    {
-        static DB2FieldMeta const fields[] =
-        {
-            { false, FT_INT, "ID" },
-            { true, FT_INT, "ItemVisual" },
-            { true, FT_INT, "ParticleColorID" },
-            { false, FT_INT, "ItemRangedDisplayInfoID" },
-            { false, FT_INT, "OverrideSwooshSoundKitID" },
-            { true, FT_INT, "SheatheTransformMatrixID" },
-            { true, FT_INT, "StateSpellVisualKitID" },
-            { true, FT_INT, "SheathedSpellVisualKitID" },
-            { false, FT_INT, "UnsheathedSpellVisualKitID" },
-            { true, FT_INT, "Flags" },
-            { false, FT_INT, "ModelResourcesID1" },
-            { false, FT_INT, "ModelResourcesID2" },
-            { true, FT_INT, "ModelMaterialResourcesID1" },
-            { true, FT_INT, "ModelMaterialResourcesID2" },
-            { true, FT_INT, "Field_8_2_0_30080_0111" },
-            { true, FT_INT, "Field_8_2_0_30080_0112" },
-            { true, FT_INT, "GeosetGroup1" },
-            { true, FT_INT, "GeosetGroup2" },
-            { true, FT_INT, "GeosetGroup3" },
-            { true, FT_INT, "GeosetGroup4" },
-            { true, FT_INT, "GeosetGroup5" },
-            { true, FT_INT, "GeosetGroup6" },
-            { true, FT_INT, "AttachmentGeosetGroup1" },
-            { true, FT_INT, "AttachmentGeosetGroup2" },
-            { true, FT_INT, "AttachmentGeosetGroup3" },
-            { true, FT_INT, "AttachmentGeosetGroup4" },
-            { true, FT_INT, "AttachmentGeosetGroup5" },
-            { true, FT_INT, "AttachmentGeosetGroup6" },
-            { true, FT_INT, "HelmetGeosetVis1" },
-            { true, FT_INT, "HelmetGeosetVis2" },
-        };
-        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, ItemDisplayInfoMeta::Instance(), HOTFIX_SEL_ITEM_DISPLAY_INFO);
-        return &loadInfo;
-    }
-};
-
 struct ItemEffectLoadInfo
 {
     static DB2LoadInfo const* Instance()
@@ -3167,6 +3130,24 @@ struct ItemModifiedAppearanceLoadInfo
             { true, FT_BYTE, "TransmogSourceTypeEnum" },
         };
         static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, ItemModifiedAppearanceMeta::Instance(), HOTFIX_SEL_ITEM_MODIFIED_APPEARANCE);
+        return &loadInfo;
+    }
+};
+
+struct ItemModifiedAppearanceExtraLoadInfo
+{
+    static DB2LoadInfo const* Instance()
+    {
+        static DB2FieldMeta const fields[] =
+        {
+            { false, FT_INT, "ID" },
+            { true, FT_INT, "IconFileDataID" },
+            { true, FT_INT, "UnequippedIconFileDataID" },
+            { false, FT_BYTE, "SheatheType" },
+            { true, FT_BYTE, "DisplayWeaponSubclassID" },
+            { true, FT_BYTE, "DisplayInventoryType" },
+        };
+        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, ItemModifiedAppearanceExtraMeta::Instance(), HOTFIX_SEL_ITEM_MODIFIED_APPEARANCE_EXTRA);
         return &loadInfo;
     }
 };
@@ -4008,6 +3989,22 @@ struct OverrideSpellDataLoadInfo
     }
 };
 
+struct ParagonReputationLoadInfo
+{
+    static DB2LoadInfo const* Instance()
+    {
+        static DB2FieldMeta const fields[] =
+        {
+            { false, FT_INT, "ID" },
+            { false, FT_INT, "FactionID" },
+            { true, FT_INT, "LevelThreshold" },
+            { true, FT_INT, "QuestID" },
+        };
+        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, ParagonReputationMeta::Instance(), HOTFIX_SEL_PARAGON_REPUTATION);
+        return &loadInfo;
+    }
+};
+
 struct PhaseLoadInfo
 {
     static DB2LoadInfo const* Instance()
@@ -4341,6 +4338,27 @@ struct PvpTalentSlotUnlockLoadInfo
     }
 };
 
+struct PvpTierLoadInfo
+{
+    static DB2LoadInfo const* Instance()
+    {
+        static DB2FieldMeta const fields[] =
+        {
+            { false, FT_STRING, "Name" },
+            { false, FT_INT, "ID" },
+            { true, FT_SHORT, "MinRating" },
+            { true, FT_SHORT, "MaxRating" },
+            { true, FT_INT, "PrevTier" },
+            { true, FT_INT, "NextTier" },
+            { true, FT_BYTE, "BracketID" },
+            { true, FT_BYTE, "Rank" },
+            { true, FT_INT, "RankIconFileDataID" },
+        };
+        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, PvpTierMeta::Instance(), HOTFIX_SEL_PVP_TIER);
+        return &loadInfo;
+    }
+};
+
 struct QuestFactionRewardLoadInfo
 {
     static DB2LoadInfo const* Instance()
@@ -4377,6 +4395,22 @@ struct QuestInfoLoadInfo
             { false, FT_SHORT, "Profession" },
         };
         static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, QuestInfoMeta::Instance(), HOTFIX_SEL_QUEST_INFO);
+        return &loadInfo;
+    }
+};
+
+struct QuestLineXQuestLoadInfo
+{
+    static DB2LoadInfo const* Instance()
+    {
+        static DB2FieldMeta const fields[] =
+        {
+            { false, FT_INT, "ID" },
+            { false, FT_INT, "QuestLineID" },
+            { false, FT_INT, "QuestID" },
+            { false, FT_INT, "OrderIndex" },
+        };
+        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, QuestLineXQuestMeta::Instance(), HOTFIX_SEL_QUEST_LINE_X_QUEST);
         return &loadInfo;
     }
 };
@@ -5159,6 +5193,21 @@ struct SpellItemEnchantmentConditionLoadInfo
             { false, FT_BYTE, "Logic5" },
         };
         static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, SpellItemEnchantmentConditionMeta::Instance(), HOTFIX_SEL_SPELL_ITEM_ENCHANTMENT_CONDITION);
+        return &loadInfo;
+    }
+};
+
+struct SpellLabelLoadInfo
+{
+    static DB2LoadInfo const* Instance()
+    {
+        static DB2FieldMeta const fields[] =
+        {
+            { false, FT_INT, "ID" },
+            { false, FT_INT, "LabelID" },
+            { false, FT_INT, "SpellID" },
+        };
+        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, SpellLabelMeta::Instance(), HOTFIX_SEL_SPELL_LABEL);
         return &loadInfo;
     }
 };
@@ -6091,29 +6140,6 @@ struct VehicleSeatLoadInfo
             { true, FT_SHORT, "CameraModeID" },
         };
         static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, VehicleSeatMeta::Instance(), HOTFIX_SEL_VEHICLE_SEAT);
-        return &loadInfo;
-    }
-};
-
-struct VignetteLoadInfo
-{
-    static DB2LoadInfo const* Instance()
-    {
-        static DB2FieldMeta const fields[] =
-        {
-            { false, FT_INT, "ID" },
-            { false, FT_STRING, "Name" },
-            { false, FT_INT, "PlayerConditionID" },
-            { false, FT_INT, "VisibleTrackingQuestID" },
-            { false, FT_INT, "QuestFeedbackEffectID" },
-            { false, FT_INT, "Flags" },
-            { false, FT_FLOAT, "MaxHeight" },
-            { false, FT_FLOAT, "MinHeight" },
-            { true, FT_BYTE, "VignetteType" },
-            { true, FT_INT, "RewardQuestID" },
-            { true, FT_INT, "UiWidgetSetID" },
-        };
-        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, VignetteMeta::Instance(), HOTFIX_SEL_VIGNETTE);
         return &loadInfo;
     }
 };

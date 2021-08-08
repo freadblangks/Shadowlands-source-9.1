@@ -111,12 +111,11 @@ bool Garrison::LoadFromDB(PreparedQueryResult garrison, PreparedQueryResult blue
             follower.PacketInfo.CurrentBuildingID = fields[7].GetUInt32();
             follower.PacketInfo.CurrentMissionID = fields[8].GetUInt32();
             follower.PacketInfo.FollowerStatus = fields[9].GetUInt32();
-
             if (!sGarrBuildingStore.LookupEntry(follower.PacketInfo.CurrentBuildingID))
                 follower.PacketInfo.CurrentBuildingID = 0;
 
-            if (!sGarrMissionStore.LookupEntry(follower.PacketInfo.CurrentMissionID))
-                follower.PacketInfo.CurrentMissionID = 0;
+            //if (!sGarrMissionStore.LookupEntry(follower.PacketInfo.CurrentMissionID))
+            //    follower.PacketInfo.CurrentMissionID = 0;
 
         } while (followers->NextRow());
 
@@ -495,6 +494,8 @@ void Garrison::ActivateBuilding(uint32 garrPlotInstanceId)
             WorldPackets::Garrison::GarrisonBuildingActivated buildingActivated;
             buildingActivated.GarrPlotInstanceID = garrPlotInstanceId;
             _owner->SendDirectMessage(buildingActivated.Write());
+
+            _owner->UpdateCriteria(CRITERIA_TYPE_UPGRADE_GARRISON_BUILDING, plot->BuildingInfo.PacketInfo->GarrBuildingID);
         }
     }
 }

@@ -27,30 +27,30 @@ void WorldSession::HandleBattlePetRequestJournal(WorldPackets::BattlePet::Battle
 
 void WorldSession::HandleBattlePetSetBattleSlot(WorldPackets::BattlePet::BattlePetSetBattleSlot& battlePetSetBattleSlot)
 {
-  /*  if (BattlePetMgr::BattlePet* pet = GetBattlePetMgr()->GetPet(battlePetSetBattleSlot.PetGuid))
+    if (BattlePetMgr::BattlePet* pet = GetBattlePetMgr()->GetPet(battlePetSetBattleSlot.PetGuid))
         if (WorldPackets::BattlePet::BattlePetSlot* slot = GetBattlePetMgr()->GetSlot(battlePetSetBattleSlot.Slot))
-            slot->Pet = pet->PacketInfo;*/
+            slot->Pet = pet->PacketInfo;
 }
 
 void WorldSession::HandleBattlePetModifyName(WorldPackets::BattlePet::BattlePetModifyName& battlePetModifyName)
 {
-  /*  if (BattlePetMgr::BattlePet* pet = GetBattlePetMgr()->GetPet(battlePetModifyName.PetGuid))
+    if (BattlePetMgr::BattlePet* pet = GetBattlePetMgr()->GetPet(battlePetModifyName.PetGuid))
     {
-      //  pet->PacketInfo.Name = battlePetModifyName.Name;
+        pet->PacketInfo.Name = battlePetModifyName.Name;
 
         if (pet->SaveInfo != BATTLE_PET_NEW)
             pet->SaveInfo = BATTLE_PET_CHANGED;
-    }*/
+    }
 }
 
 void WorldSession::HandleBattlePetDeletePet(WorldPackets::BattlePet::BattlePetDeletePet& battlePetDeletePet)
 {
-    //GetBattlePetMgr()->RemovePet(battlePetDeletePet.PetGuid);
+    GetBattlePetMgr()->RemovePet(battlePetDeletePet.PetGuid);
 }
 
 void WorldSession::HandleBattlePetSetFlags(WorldPackets::BattlePet::BattlePetSetFlags& battlePetSetFlags)
 {
-  /*  if (BattlePetMgr::BattlePet* pet = GetBattlePetMgr()->GetPet(battlePetSetFlags.PetGuid))
+    if (BattlePetMgr::BattlePet* pet = GetBattlePetMgr()->GetPet(battlePetSetFlags.PetGuid))
     {
         if (battlePetSetFlags.ControlType == FLAGS_CONTROL_TYPE_APPLY)
             pet->PacketInfo.Flags |= battlePetSetFlags.Flags;
@@ -59,18 +59,18 @@ void WorldSession::HandleBattlePetSetFlags(WorldPackets::BattlePet::BattlePetSet
 
         if (pet->SaveInfo != BATTLE_PET_NEW)
             pet->SaveInfo = BATTLE_PET_CHANGED;
-    }*/
+    }
 }
 
 void WorldSession::HandleCageBattlePet(WorldPackets::BattlePet::CageBattlePet& cageBattlePet)
 {
-   // GetBattlePetMgr()->CageBattlePet(cageBattlePet.PetGuid);
+    GetBattlePetMgr()->CageBattlePet(cageBattlePet.PetGuid);
 }
 
 void WorldSession::HandleBattlePetSummon(WorldPackets::BattlePet::BattlePetSummon& battlePetSummon)
 {
-    /*if (*_player->m_activePlayerData->SummonedBattlePetGUID != battlePetSummon.PetGuid)
+    if (*_player->m_activePlayerData->SummonedBattlePetGUID != battlePetSummon.PetGuid)
         GetBattlePetMgr()->SummonPet(battlePetSummon.PetGuid);
     else
-        GetBattlePetMgr()->DismissPet();*/
+        GetBattlePetMgr()->DismissPet();
 }

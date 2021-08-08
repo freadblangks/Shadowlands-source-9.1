@@ -1036,37 +1036,6 @@ struct GameObjectTemplate
         }
     }
 
-    uint32 GetVignetteId() const
-    {
-        switch (type)
-        {
-        case GAMEOBJECT_TYPE_CHEST:
-            return chest.SpawnVignette;
-        case GAMEOBJECT_TYPE_GOOBER:
-            return goober.SpawnVignette;
-        case GAMEOBJECT_TYPE_GATHERING_NODE:
-            return gatheringNode.SpawnVignette;
-        case GAMEOBJECT_TYPE_CAPTURE_POINT:
-            return capturePoint.SpawnVignette;
-        default:
-            return 0;
-        }
-    }
-
-    uint32 GetTrackingQuestId() const
-    {
-        uint32 playerConditionID = 0;
-        switch (type)
-        {
-        case GAMEOBJECT_TYPE_CHEST:
-            playerConditionID = chest.conditionID1;
-            break;
-        default:
-            break;
-        }
-        return 0;
-    }
-
     void InitializeQueryData();
     WorldPacket BuildQueryData(LocaleConstant loc) const;
 };

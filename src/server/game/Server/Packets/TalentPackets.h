@@ -141,16 +141,6 @@ namespace WorldPackets
             int32 SpellID = 0;
             std::vector<PvPTalent> Talents;
         };
-
-        class UnlearnSpecialization : public ClientPacket
-        {
-        public:
-            UnlearnSpecialization(WorldPacket&& packet) : ClientPacket(CMSG_UNLEARN_SPECIALIZATION, std::move(packet)) {}
-
-            void Read() override;
-
-            uint8 SpecializationID = 0;
-        };
     }
 }
 

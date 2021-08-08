@@ -55,13 +55,10 @@ typedef std::map<uint32, ScenarioData> ScenarioDataContainer;
 
 enum ScenarioType
 {
-    SCENARIO_TYPE_DEFAULT               = 0,
-    SCENARIO_TYPE_CHALLENGE_MODE        = 1,
-    SCENARIO_TYPE_PROVING_GROUNDS       = 2,
-    SCENARIO_TYPE_USE_DUNGEON_DISPLAY   = 3,
-    SCENARIO_TYPE_LEGION_INVASION       = 4,
-    SCENARIO_TYPE_BOOST_TUTORIAL        = 5,
-    SCENARIO_TYPE_WARFRONT              = 6
+    SCENARIO_TYPE_SCENARIO          = 0,
+    SCENARIO_TYPE_CHALLENGE_MODE    = 1,
+    SCENARIO_TYPE_SOLO              = 2,
+    SCENARIO_TYPE_DUNGEON           = 10,
 };
 
 struct ScenarioPOIPoint
@@ -109,7 +106,6 @@ public:
     static ScenarioMgr* Instance();
 
     InstanceScenario* CreateInstanceScenario(Map const* map, TeamId team) const;
-    InstanceScenario* CreateInstanceScenarioByID(Map const* map, uint32 scenarioID);
 
     void LoadDBData();
     void LoadDB2Data();

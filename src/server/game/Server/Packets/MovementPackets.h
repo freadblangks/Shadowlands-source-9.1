@@ -669,25 +669,6 @@ namespace WorldPackets
             ObjectGuid MoverGUID;
             std::vector<MoveStateChange> StateChanges;
         };
-
-        class AbortNewWorld final : public ServerPacket
-        {
-        public:
-            AbortNewWorld() : ServerPacket(SMSG_ABORT_NEW_WORLD, 0) { }
-
-            WorldPacket const* Write() override { return &_worldPacket; }
-        };
-
-        class AdjustSplineDuration final : public ServerPacket
-        {
-        public:
-            AdjustSplineDuration() : ServerPacket(SMSG_ADJUST_SPLINE_DURATION, 16 + 4) { }
-
-            WorldPacket const* Write() override;
-
-            ObjectGuid Unit;
-            float Scale = 0.0f;
-        };
     }
 
     ByteBuffer& operator<<(ByteBuffer& data, Movement::MonsterSplineFilterKey const& monsterSplineFilterKey);

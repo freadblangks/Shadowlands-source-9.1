@@ -96,16 +96,5 @@ namespace WorldPackets
             uint64 GUID = 0; ///< Set Identifier
             uint8 Reason = 0;
         };
-
-        class AssignEquipmentSetSpec final : public ClientPacket
-        {
-        public:
-            AssignEquipmentSetSpec(WorldPacket&& packet) : ClientPacket(CMSG_ASSIGN_EQUIPMENT_SET_SPEC, std::move(packet)) { }
-
-            void Read() override;
-
-            uint64 GUID = 0;
-            uint32 SpecID = 0;
-        };
     }
 }

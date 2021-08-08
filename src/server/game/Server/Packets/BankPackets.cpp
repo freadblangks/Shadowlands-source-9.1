@@ -35,22 +35,3 @@ void WorldPackets::Bank::BuyBankSlot::Read()
 {
     _worldPacket >> Guid;
 }
-
-void WorldPackets::Bank::AutoBankReagent::Read()
-{
-    _worldPacket >> Inv
-        >> Bag
-        >> Slot;
-}
-
-void WorldPackets::Bank::AutoStoreBankReagent::Read()
-{
-    _worldPacket >> Inv
-        >> Bag
-        >> Slot;
-}
-
-void WorldPackets::Bank::DepositReagentBank::Read()
-{
-    _worldPacket >> Guid;
-}

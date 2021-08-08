@@ -1630,6 +1630,8 @@ bool Pet::Create(ObjectGuid::LowType guidlow, Map* map, uint32 Entry)
     AddUnitFlag2(UNIT_FLAG2_REGENERATE_POWER);
     SetSheath(SHEATH_STATE_MELEE);
 
+    GetThreatManager().Initialize();
+
     return true;
 }
 
@@ -1690,7 +1692,7 @@ void Pet::CastPetAura(PetAura const* aura)
     args.TriggerFlags = TRIGGERED_FULL_MASK;
 
     if (auraId == 35696)                                      // Demonic Knowledge
-        args.SpellValueOverrides.AddMod(SPELLVALUE_BASE_POINT0, CalculatePct(aura->GetDamage(), GetStat(STAT_STAMINA) + GetStat(STAT_INTELLECT)));
+        args.AddSpellMod(SPELLVALUE_BASE_POINT0, CalculatePct(aura->GetDamage(), GetStat(STAT_STAMINA) + GetStat(STAT_INTELLECT)));
 
     CastSpell(this, auraId, args);
 }

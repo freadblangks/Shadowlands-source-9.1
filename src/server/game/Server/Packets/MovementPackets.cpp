@@ -1017,12 +1017,3 @@ WorldPacket const* WorldPackets::Movement::MoveSetCompoundState::Write()
 
     return &_worldPacket;
 }
-
-WorldPacket const* WorldPackets::Movement::AdjustSplineDuration::Write()
-{
-    _worldPacket << Unit;
-    _worldPacket << Scale;
-
-    return &_worldPacket;
-}
-

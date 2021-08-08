@@ -30,7 +30,6 @@
 #include "BattlefieldMgr.h"
 #include "BattlegroundMgr.h"
 #include "BattlenetRpcErrorCodes.h"
-#include "BattlePayData.h"
 #include "BattlePetMgr.h"
 #include "BlackMarketMgr.h"
 #include "CalendarMgr.h"
@@ -155,9 +154,6 @@ World::World()
     _guidAlert = false;
     _warnDiff = 0;
     _warnShutdownTime = GameTime::GetGameTime();
-
-    _currentFactionBalance = TEAM_NEUTRAL;
-    _currentFactionBalanceReward = FactionOutnumberReward::None;
 }
 
 /// World destructor
@@ -1597,10 +1593,6 @@ void World::LoadConfigSettings(bool reload)
     m_int_configs[CONFIG_BLACKMARKET_MAXAUCTIONS] = sConfigMgr->GetIntDefault("BlackMarket.MaxAuctions", 12);
     m_int_configs[CONFIG_BLACKMARKET_UPDATE_PERIOD] = sConfigMgr->GetIntDefault("BlackMarket.UpdatePeriod", 24);
 
-    // BattlePay
-    m_bool_configs[CONFIG_BATTLE_PAY_ENABLED] = sConfigMgr->GetBoolDefault("BattlePay.Enabled", true);
-    m_int_configs[CONFIG_BATTLE_PAY_CURRENCY] = sConfigMgr->GetIntDefault("BattlePay.Currency", 1);
-
     // HotSwap
     m_bool_configs[CONFIG_HOTSWAP_ENABLED] = sConfigMgr->GetBoolDefault("HotSwap.Enabled", true);
     m_bool_configs[CONFIG_HOTSWAP_RECOMPILER_ENABLED] = sConfigMgr->GetBoolDefault("HotSwap.EnableReCompiler", true);
@@ -1624,13 +1616,6 @@ void World::LoadConfigSettings(bool reload)
 
     // Whether to use LoS from game objects
     m_bool_configs[CONFIG_CHECK_GOBJECT_LOS] = sConfigMgr->GetBoolDefault("CheckGameObjectLoS", true);
-
-    // FactionBalance
-    m_int_configs[CONFIG_FACTION_BALANCE_LEVEL_CHECK_DIFF] = sConfigMgr->GetIntDefault("Pvp.FactionBalance.LevelCheckDiff", 0);
-    m_float_configs[CONFIG_CALL_TO_ARMS_5_PCT] = sConfigMgr->GetFloatDefault("Pvp.FactionBalance.Pct5", 0.6f);
-    m_float_configs[CONFIG_CALL_TO_ARMS_10_PCT] = sConfigMgr->GetFloatDefault("Pvp.FactionBalance.Pct10", 0.7f);
-    m_float_configs[CONFIG_CALL_TO_ARMS_20_PCT] = sConfigMgr->GetFloatDefault("Pvp.FactionBalance.Pct2", 0.8f);
-    m_float_configs[CONFIG_OVERWHELMING_ODDS_PCT] = sConfigMgr->GetFloatDefault("Pvp.FactionBalance.Overwhelming", 0.9f);
 
     // call ScriptMgr if we're reloading the configuration
     if (reload)
@@ -2261,10 +2246,6 @@ void World::SetInitialWorldSettings()
     TC_LOG_INFO("server.loading", "Loading Item loot...");
     sLootItemStorage->LoadStorageFromDB();
 
-
-    TC_LOG_INFO("server.loading", "Loading Zones script names...");
-    sObjectMgr->LoadZoneScriptNames();
-
     TC_LOG_INFO("server.loading", "Initialize query data...");
     sObjectMgr->InitializeQueriesData(QUERY_DATA_ALL);
 
@@ -2402,13 +2383,6 @@ void World::SetInitialWorldSettings()
     TC_LOG_INFO("server.loading", "Loading scenario poi data");
     sScenarioMgr->LoadScenarioPOI();
 
-    // load battle pay
-    TC_LOG_INFO("server.loading", "Loading battlepay data...");
-    sBattlePayDataStore->Initialize();
-
-    TC_LOG_INFO("server.loading", "Initializing faction balance query");
-    InitFactionBalanceQuery();
-
     // Preload all cells, if required for the base maps
     if (sWorld->getBoolConfig(CONFIG_BASEMAP_LOAD_GRIDS))
     {
@@ -2429,53 +2403,6 @@ void World::SetInitialWorldSettings()
     TC_METRIC_EVENT("events", "World initialized", "World initialized in " + std::to_string(startupDuration / 60000) + " minutes " + std::to_string((startupDuration % 60000) / 1000) + " seconds");
 
     sLog->SetRealmId(realm.Id.Realm);
-}
-
-void World::SetFactionBalanceForce(TeamId team, FactionOutnumberReward reward)
-{
-    _hasForcedFactionBalance = true;
-    _forcedFactionBalance = team;
-    _forcedFactionBalanceReward = reward;
-    UpdateFactionBalanceRewardSpellValues();
-}
-
-void World::SetFactionBalanceForceOff()
-{
-    _hasForcedFactionBalance = false;
-    UpdateFactionBalanceRewardSpellValues();
-}
-
-std::string CreateFactionBalanceStatement()
-{
-    // Example query: SELECT IF(race IN (1,3), 1, 0) as 'alliance', count(*) FROM characters WHERE ((playerFlags & 0x00000800) = 0x00000800) GROUP BY alliance;
-
-    std::stringstream ss;
-    ss << "SELECT IF(race IN (";
-
-    bool added = false;
-    for (uint8 race = 0; race < MAX_RACES; ++race)
-    {
-        ChrRacesEntry const* rEntry = sChrRacesStore.LookupEntry(race);
-        if (rEntry && rEntry->Alliance)
-        {
-            if (added)
-                ss << ", ";
-            ss << race;
-            added = true;
-        }
-    }
-    if (!added)
-        TC_LOG_WARN("sql.sql", ">> Failed constructing faction balance query. There are no alliances.");
-
-    uint32 flag = PLAYER_FLAGS_WAR_MODE_DESIRED;
-    ss << "), 1, 0) as 'alliance', count(*) FROM Characters WHERE ((playerFlags & " << flag << ") = " << flag << ") GROUP BY alliance";
-
-    return ss.str();
-}
-
-void World::InitFactionBalanceQuery()
-{
-    m_factionBalanceQuery = CreateFactionBalanceStatement();
 }
 
 void World::LoadAutobroadcasts()
@@ -3586,9 +3513,6 @@ void World::ResetWeeklyQuests()
 
     // change available weeklies
     sPoolMgr->ChangeWeeklyQuests();
-
-    // Update faction balance
-    UpdateFactionBalance();
 }
 
 void World::ResetMonthlyQuests()
@@ -3795,99 +3719,6 @@ void World::ReloadRBAC()
 void World::RemoveOldCorpses()
 {
     m_timers[WUPDATE_CORPSES].SetCurrent(m_timers[WUPDATE_CORPSES].GetInterval());
-}
-
-uint8 GetFactionOutnumberedRewardEffectValue(FactionOutnumberReward reward)
-{
-    uint8 baseValue = 10;
-    switch (reward)
-    {
-    case FactionOutnumberReward::Overwhelming:
-    case FactionOutnumberReward::Percent20: return baseValue + 20;
-    case FactionOutnumberReward::Percent10: return baseValue + 10;
-    case FactionOutnumberReward::Percent5: return baseValue + 5;
-    case FactionOutnumberReward::None:
-    default: return 0;
-    }
-}
-
-void World::UpdateFactionBalanceRewardSpellValues()
-{
-    FactionOutnumberReward reward = _hasForcedFactionBalance ? _forcedFactionBalanceReward : _currentFactionBalanceReward;
-
-    uint8 effectsValue = GetFactionOutnumberedRewardEffectValue(reward);
-    _currentFactionBalanceRewardSpellValues.Clear();
-
-    SpellInfo const* spellEntry = sSpellMgr->GetSpellInfo(WARMODE_ENLISTED_SPELL_OUTSIDE, DIFFICULTY_NONE);
-    if (spellEntry)
-    {
-        SpellEffectInfoVector const effects = spellEntry->GetEffects();
-        _currentFactionBalanceRewardSpellValues.Reserve(effects.size());
-        for (uint32 i = 0; i < effects.size(); ++i)
-            _currentFactionBalanceRewardSpellValues.AddSpellMod(SpellValueMod(SPELLVALUE_BASE_POINT0 + i), effectsValue);
-    }
-}
-
-void World::UpdateFactionBalance()
-{
-    uint8 maxPlayerLevel = sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL) - sWorld->getIntConfig(CONFIG_FACTION_BALANCE_LEVEL_CHECK_DIFF);
-
-    // race, level
-    QueryResult result = CharacterDatabase.Query(m_factionBalanceQuery.c_str());
-    if (!result)
-    {
-        TC_LOG_WARN("sql.sql", "UpdateFactionBalance: Failed querying faction balance status");
-        return;
-    }
-
-    uint64 hordeCount;
-    uint64 allianceCount;
-
-    Field* fields = result->Fetch();
-    hordeCount = fields[1].GetInt8();
-
-    if (!result->NextRow())
-    {
-        TC_LOG_WARN("sql.sql", "UpdateFactionBalance: Failed querying faction balance status (2nd row)");
-        return;
-    }
-
-    allianceCount = fields[1].GetInt8();
-
-    // We're expecting the second row to be alliance (alliance=1), but if for some reason it's the opposite we'll just swap the values
-    uint8 isAlliance = fields[0].GetInt8();
-    if (isAlliance == 0)
-        std::swap(hordeCount, allianceCount);
-
-    uint32 bigTeamCount = hordeCount;
-    TeamId bigTeam = TEAM_HORDE;
-    if (allianceCount >= hordeCount)
-    {
-        bigTeamCount = allianceCount;
-        bigTeam = TEAM_ALLIANCE;
-    }
-
-    uint64 total = allianceCount + hordeCount;
-    float pct = (float)bigTeamCount / total;
-
-    float callToArmsPct5 = sWorld->getFloatConfig(CONFIG_CALL_TO_ARMS_5_PCT);
-    float callToArmsPct10 = sWorld->getFloatConfig(CONFIG_CALL_TO_ARMS_10_PCT);
-    float callToArmsPct20 = sWorld->getFloatConfig(CONFIG_CALL_TO_ARMS_20_PCT);
-    float overwhelmingOdds = sWorld->getFloatConfig(CONFIG_OVERWHELMING_ODDS_PCT);
-
-
-    TeamId factionBalance = (pct >= callToArmsPct5) ? bigTeam : TEAM_NEUTRAL;
-    FactionOutnumberReward reward = (overwhelmingOdds >= pct) ? FactionOutnumberReward::Overwhelming :
-        (callToArmsPct20 >= pct) ? FactionOutnumberReward::Percent20 :
-        (callToArmsPct10 >= pct) ? FactionOutnumberReward::Percent10 :
-        (callToArmsPct5 >= pct) ? FactionOutnumberReward::Percent5 :
-        FactionOutnumberReward::None;
-
-    _currentFactionBalance = factionBalance;
-    _currentFactionBalanceReward = reward;
-
-    // spell values
-    UpdateFactionBalanceRewardSpellValues();
 }
 
 Realm realm;

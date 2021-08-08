@@ -78,28 +78,6 @@ namespace WorldPackets
             uint32 Result               = 0;
             uint32 AuctionDuration      = 0; // preset auction duration enum
         };
-
-        class ConsumableTokenCanVeteranBuy final : public ClientPacket
-        {
-        public:
-            ConsumableTokenCanVeteranBuy(WorldPacket&& packet) : ClientPacket(CMSG_CONSUMABLE_TOKEN_CAN_VETERAN_BUY, std::move(packet)) { }
-
-            void Read() override;
-
-            uint32 UnkInt = 0;
-        };
-
-        class ConsumableTokenCanVeteranBuyResponse final : public ServerPacket
-        {
-        public:
-            ConsumableTokenCanVeteranBuyResponse() : ServerPacket(SMSG_CONSUMABLE_TOKEN_CAN_VETERAN_BUY_RESPONSE, 8 + 4 + 4) { }
-
-            WorldPacket const* Write() override;
-
-            uint64 UnkLong = 0;
-            uint32 UnkInt = 0;
-            uint32 UnkInt2 = 0;
-        };
     }
 }
 

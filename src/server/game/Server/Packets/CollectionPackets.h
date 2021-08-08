@@ -43,15 +43,6 @@ namespace WorldPackets
             uint32 ID = 0;
             bool IsFavorite = false;
         };
-
-        class BattlePetClearFanfare final : public ClientPacket
-        {
-        public:
-            BattlePetClearFanfare(WorldPacket&& packet) : ClientPacket(CMSG_BATTLE_PET_CLEAR_FANFARE, std::move(packet)) { }
-
-            void Read() override;
-            ObjectGuid BattlePetGUID;
-        };
     }
 }
 

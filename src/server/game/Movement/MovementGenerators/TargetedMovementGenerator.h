@@ -1,169 +1,119 @@
 /*
- * Copyright (C) 2005-2011 MaNGOS <http://getmangos.com/>
+ * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef MANGOS_TARGETEDMOVEMENTGENERATOR_H
-#define MANGOS_TARGETEDMOVEMENTGENERATOR_H
+#ifndef TRINITY_TARGETEDMOVEMENTGENERATOR_H
+#define TRINITY_TARGETEDMOVEMENTGENERATOR_H
 
 #include "MovementGenerator.h"
 #include "FollowerReference.h"
-#include "PathFinder.h"
-#include "Unit.h"
+#include "Timer.h"
+
+#define MOVE_FOLLOW_REPOSITIONING_DISTANCE 1.5f
 
 class TargetedMovementGeneratorBase
 {
     public:
-        explicit TargetedMovementGeneratorBase(Unit &target) { i_target.link(&target, this); }
+        TargetedMovementGeneratorBase(Unit* target)
+        {
+            _target.link(target, this);
+        }
+
+        bool IsTargetValid() const { return _target.isValid(); }
+        Unit* GetTarget() const { return _target.getTarget(); }
         void stopFollowing() { }
-    protected:
-        FollowerReference i_target;
+
+    private:
+        FollowerReference _target;
 };
 
 template<class T, typename D>
-class TargetedMovementGeneratorMedium
-: public MovementGeneratorMedium< T, D >, public TargetedMovementGeneratorBase
+class TargetedMovementGenerator : public MovementGeneratorMedium< T, D >, public TargetedMovementGeneratorBase
 {
-    protected:
-        TargetedMovementGeneratorMedium(Unit &target, float offset, float angle) :
-            TargetedMovementGeneratorBase(target), m_checkDistanceTimer(0), m_fOffset(offset),
-            m_fAngle(angle), m_bRecalculateTravel(false), m_bTargetReached(false),
-            m_bReachable(true), m_fTargetLastX(0), m_fTargetLastY(0), m_fTargetLastZ(0), m_bTargetOnTransport(false)
-        {
-        }
-        ~TargetedMovementGeneratorMedium() {}
-
     public:
-        
-        void UpdateAsync(T&, uint32 diff);
+        explicit TargetedMovementGenerator(Unit* target, float offset, float angle) : TargetedMovementGeneratorBase(target), _path(nullptr), _timer(0), _offset(offset), _angle(angle), _recalculateTravel(false), _speedChanged(false), _targetReached(false), _interrupt(false) { }
+        ~TargetedMovementGenerator();
 
-        bool IsReachable() const
-        {
-            return m_bReachable;
-        }
+        bool DoUpdate(T*, uint32);
 
-        Unit* GetTarget() const { return i_target.getTarget(); }
+        void UnitSpeedChanged() override { _speedChanged = true; }
 
-        void UnitSpeedChanged() { m_bRecalculateTravel=true; }
-        void UpdateFinalDistance(float fDistance);
+        virtual void ClearUnitStateMove(T*) { }
+        virtual void AddUnitStateMove(T*) { }
+        virtual bool HasLostTarget(T*) const { return false; }
+        virtual void ReachTarget(T*) { }
+        virtual bool EnableWalking() const { return false; }
+        virtual void MovementInform(T*) { }
+        virtual float GetMaxDistanceBeforeRepositioning(T*) { return 0.0f; }
 
-    protected:
-        void _setTargetLocation(T &);
+        bool IsReachable() const;
+        void SetTargetLocation(T* owner, bool updateDestination);
 
-        ShortTimeTracker m_checkDistanceTimer;
-
-        float m_fOffset;
-        float m_fAngle;
-        bool m_bRecalculateTravel : 1;
-        bool m_bTargetReached : 1;
-        bool m_bReachable;
-
-        float m_fTargetLastX;
-        float m_fTargetLastY;
-        float m_fTargetLastZ;
-        bool  m_bTargetOnTransport;
+    private:
+        PathGenerator* _path;
+        TimeTrackerSmall _timer;
+        float _offset;
+        float _angle;
+        bool _recalculateTravel;
+        bool _speedChanged;
+        bool _targetReached;
+        bool _interrupt;
 };
 
 template<class T>
-class ChaseMovementGenerator : public TargetedMovementGeneratorMedium<T, ChaseMovementGenerator<T> >
+class ChaseMovementGenerator : public TargetedMovementGenerator<T, ChaseMovementGenerator<T> >
 {
     public:
-        explicit ChaseMovementGenerator(Unit &target)
-            : TargetedMovementGeneratorMedium<T, ChaseMovementGenerator<T> >(target) {}
-        ChaseMovementGenerator(Unit &target, float offset, float angle)
-            : TargetedMovementGeneratorMedium<T, ChaseMovementGenerator<T> >(target, offset, angle) {}
-        ~ChaseMovementGenerator() {}
+        explicit ChaseMovementGenerator(Unit* target, float offset, float angle) : TargetedMovementGenerator<T, ChaseMovementGenerator<T> >(target, offset, angle) { }
 
-        MovementGeneratorType GetMovementGeneratorType() const { return CHASE_MOTION_TYPE; }
+        MovementGeneratorType GetMovementGeneratorType() const override { return CHASE_MOTION_TYPE; }
 
-        bool Update(T &, uint32 const&);
-        void Initialize(T &);
-        void Finalize(T &);
-        void Interrupt(T &);
-        void Reset(T &);
-        void MovementInform(T &);
+        void DoInitialize(T*);
+        void DoFinalize(T*);
+        void DoReset(T*);
 
-        static void _clearUnitStateMove(T &u) { u.ClearUnitState(UNIT_STAT_CHASE_MOVE); }
-        static void _addUnitStateMove(T &u)  { u.AddUnitState(UNIT_STAT_CHASE_MOVE); }
-        bool EnableWalking() const { return false;}
-        bool _lostTarget(T &u) const { return u.GetVictim() != this->GetTarget(); }
-        void _reachTarget(T &);
-    private:
-        ShortTimeTracker m_spreadTimer{ 0 };
-        ShortTimeTracker m_leashExtensionTimer{ 5000 };
-        bool m_bIsSpreading = false;
-        bool m_bCanSpread = true;
-        uint8 m_uiSpreadAttempts = 0;
-
-        void DoBackMovement(T &, Unit* target);
-        void DoSpreadIfNeeded(T &, Unit* target);
-        bool TargetDeepInBounds(T &, Unit* target) const;
-        bool TargetWithinBoundsPercentDistance(T &, Unit* target, float pct) const;
-
-        // Needed to compile with gcc for some reason.
-        using TargetedMovementGeneratorMedium<T, ChaseMovementGenerator<T> >::i_target;
-        using TargetedMovementGeneratorMedium<T, ChaseMovementGenerator<T> >::m_fAngle;
-        using TargetedMovementGeneratorMedium<T, ChaseMovementGenerator<T> >::m_fOffset;
-        using TargetedMovementGeneratorMedium<T, ChaseMovementGenerator<T> >::m_fTargetLastX;
-        using TargetedMovementGeneratorMedium<T, ChaseMovementGenerator<T> >::m_fTargetLastY;
-        using TargetedMovementGeneratorMedium<T, ChaseMovementGenerator<T> >::m_fTargetLastZ;
-        using TargetedMovementGeneratorMedium<T, ChaseMovementGenerator<T> >::m_checkDistanceTimer;
-        using TargetedMovementGeneratorMedium<T, ChaseMovementGenerator<T> >::m_bTargetOnTransport;
-        using TargetedMovementGeneratorMedium<T, ChaseMovementGenerator<T> >::m_bRecalculateTravel;
-        using TargetedMovementGeneratorMedium<T, ChaseMovementGenerator<T> >::m_bTargetReached;
+        void ClearUnitStateMove(T*) override;
+        void AddUnitStateMove(T*) override;
+        bool HasLostTarget(T*) const override;
+        void ReachTarget(T*) override;
+        void MovementInform(T*) override;
+        float GetMaxDistanceBeforeRepositioning(T*) override;
 };
 
 template<class T>
-class FollowMovementGenerator : public TargetedMovementGeneratorMedium<T, FollowMovementGenerator<T> >
+class FollowMovementGenerator : public TargetedMovementGenerator<T, FollowMovementGenerator<T> >
 {
     public:
-        explicit FollowMovementGenerator(Unit &target)
-            : TargetedMovementGeneratorMedium<T, FollowMovementGenerator<T> >(target){}
-        FollowMovementGenerator(Unit &target, float offset, float angle)
-            : TargetedMovementGeneratorMedium<T, FollowMovementGenerator<T> >(target, offset, angle) {}
-        ~FollowMovementGenerator() {}
+        explicit FollowMovementGenerator(Unit* target, float offset, float angle) : TargetedMovementGenerator<T, FollowMovementGenerator<T> >(target, offset, angle) { }
 
-        MovementGeneratorType GetMovementGeneratorType() const { return FOLLOW_MOTION_TYPE; }
+        MovementGeneratorType GetMovementGeneratorType() const override { return FOLLOW_MOTION_TYPE; }
 
-        bool Update(T &, uint32 const&);
-        void Initialize(T &);
-        void Finalize(T &);
-        void Interrupt(T &);
-        void Reset(T &);
-        void MovementInform(T &);
+        void DoInitialize(T*);
+        void DoFinalize(T*);
+        void DoReset(T*);
 
-        static void _clearUnitStateMove(T &u) { u.ClearUnitState(UNIT_STAT_FOLLOW_MOVE); }
-        static void _addUnitStateMove(T &u)  { u.AddUnitState(UNIT_STAT_FOLLOW_MOVE); }
-        bool EnableWalking() const;
-        bool _lostTarget(T &) const { return false; }
-        void _reachTarget(T &) {}
+        void ClearUnitStateMove(T*) override;
+        void AddUnitStateMove(T*) override;
+        bool HasLostTarget(T*) const override { return false; }
+        void ReachTarget(T*) override;
+        bool EnableWalking() const override;
+        void MovementInform(T*) override;
+        float GetMaxDistanceBeforeRepositioning(T*) override;
     private:
-        void _updateSpeed(T &u);
-
-        // Needed to compile with gcc for some reason.
-        using TargetedMovementGeneratorMedium<T, FollowMovementGenerator<T> >::i_target;
-        using TargetedMovementGeneratorMedium<T, FollowMovementGenerator<T> >::m_fAngle;
-        using TargetedMovementGeneratorMedium<T, FollowMovementGenerator<T> >::m_fOffset;
-        using TargetedMovementGeneratorMedium<T, FollowMovementGenerator<T> >::m_fTargetLastX;
-        using TargetedMovementGeneratorMedium<T, FollowMovementGenerator<T> >::m_fTargetLastY;
-        using TargetedMovementGeneratorMedium<T, FollowMovementGenerator<T> >::m_fTargetLastZ;
-        using TargetedMovementGeneratorMedium<T, FollowMovementGenerator<T> >::m_checkDistanceTimer;
-        using TargetedMovementGeneratorMedium<T, FollowMovementGenerator<T> >::m_bTargetOnTransport;
-        using TargetedMovementGeneratorMedium<T, FollowMovementGenerator<T> >::m_bRecalculateTravel;
-        using TargetedMovementGeneratorMedium<T, FollowMovementGenerator<T> >::m_bTargetReached;
+        void UpdateSpeed(T* owner);
 };
 
 #endif

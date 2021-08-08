@@ -18,17 +18,11 @@
 #include "GameObjectAI.h"
 #include "CreatureAI.h"
 #include "GameObject.h"
-#include "LootMgr.h"
 #include "QuestDef.h"
 
 int32 GameObjectAI::Permissible(GameObject const* /*go*/)
 {
     return PERMIT_BASE_NO;
-}
-
-void GameObjectAI::QuestReward(Player* player, Quest const* quest, uint32 opt)
-{
-    QuestReward(player, quest, LootItemType::Item, opt);
 }
 
 Optional<QuestGiverStatus> GameObjectAI::GetDialogStatus(Player* /*player*/)

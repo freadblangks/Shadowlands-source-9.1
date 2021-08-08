@@ -136,17 +136,10 @@ public:
 
     // Charges
     bool ConsumeCharge(uint32 chargeCategoryId);
-    void ForceSendSpellCharges();
-    void ForceSendSpellCharge(SpellCategoryEntry const* chargeCategoryEntry);
     void ModifyChargeRecoveryTime(uint32 chargeCategoryId, Clock::duration cooldownMod);
-    void ReduceChargeCooldown(uint32 chargeCategoryId, uint32 reductionTime);
-    void ReduceChargeCooldown(SpellCategoryEntry const* chargeCategoryEntry, uint32 reductionTime);
     void RestoreCharge(uint32 chargeCategoryId);
     void ResetCharges(uint32 chargeCategoryId);
     void ResetAllCharges();
-    void UpdateCharges();
-    void UpdateCharge(SpellCategoryEntry const* chargeCategoryEntry);
-    void ForceSendSetSpellCharges(SpellCategoryEntry const* chargeCategoryEntry);
     bool HasCharge(uint32 chargeCategoryId) const;
     int32 GetMaxCharges(uint32 chargeCategoryId) const;
     int32 GetChargeRecoveryTime(uint32 chargeCategoryId) const;

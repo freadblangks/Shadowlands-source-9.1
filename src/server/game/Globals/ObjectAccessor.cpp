@@ -257,18 +257,6 @@ Player* ObjectAccessor::FindPlayer(ObjectGuid const& guid)
     return player && player->IsInWorld() ? player : nullptr;
 }
 
-GameObject* ObjectAccessor::FindGameObject(ObjectGuid const& guid)
-{
-    GameObject* gameObject = HashMapHolder<GameObject>::Find(guid);
-    return gameObject && gameObject->IsInWorld() ? gameObject : nullptr;
-}
-
-Creature* ObjectAccessor::FindCreature(ObjectGuid const& guid)
-{
-    Creature* creature = HashMapHolder<Creature>::Find(guid);
-    return creature && creature->IsInWorld() ? creature : nullptr;
-}
-
 Player* ObjectAccessor::FindPlayerByName(std::string const& name)
 {
     Player* player = PlayerNameMapHolder::Find(name);

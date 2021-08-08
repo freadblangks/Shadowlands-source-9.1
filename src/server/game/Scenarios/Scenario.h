@@ -58,7 +58,6 @@ class TC_GAME_API Scenario : public CriteriaHandler
 
         virtual void CompleteStep(ScenarioStepEntry const* step);
         virtual void CompleteScenario();
-        void CompleteCurrStep();
 
         virtual void OnPlayerEnter(Player* player);
         virtual void OnPlayerExit(Player* player);
@@ -70,12 +69,10 @@ class TC_GAME_API Scenario : public CriteriaHandler
         ScenarioStepState GetStepState(ScenarioStepEntry const* step);
         ScenarioStepEntry const* GetStep() const { return _currentstep; }
         ScenarioStepEntry const* GetFirstStep() const;
+        ScenarioStepEntry const* GetLastStep() const;
 
         void SendScenarioState(Player* player);
         void SendBootPlayer(Player* player);
-        void SendScenarioEvent(Player* player, uint32 eventId);
-        void SendScenarioEventToPlayers(uint32 eventId);
-
 
     protected:
         GuidUnorderedSet _players;

@@ -32,34 +32,34 @@
 
 namespace
 {
-    PhaseShift const Empty;
+PhaseShift const Empty;
 
-    inline PhaseFlags GetPhaseFlags(uint32 phaseId)
+inline PhaseFlags GetPhaseFlags(uint32 phaseId)
+{
+    if (PhaseEntry const* phase = sPhaseStore.LookupEntry(phaseId))
     {
-        if (PhaseEntry const* phase = sPhaseStore.LookupEntry(phaseId))
-        {
-            if (phase->Flags & PHASE_FLAG_COSMETIC)
-                return PhaseFlags::Cosmetic;
+        if (phase->Flags & PHASE_FLAG_COSMETIC)
+            return PhaseFlags::Cosmetic;
 
-            if (phase->Flags & PHASE_FLAG_PERSONAL)
-                return PhaseFlags::Personal;
-        }
-
-        return PhaseFlags::None;
+        if (phase->Flags & PHASE_FLAG_PERSONAL)
+            return PhaseFlags::Personal;
     }
 
-    template<typename Func>
-    inline void ForAllControlled(Unit* unit, Func&& func)
-    {
-        for (Unit* controlled : unit->m_Controlled)
-            if (controlled->GetTypeId() != TYPEID_PLAYER)
-                func(controlled);
+    return PhaseFlags::None;
+}
 
-        for (ObjectGuid summonGuid : unit->m_SummonSlot)
-            if (!summonGuid.IsEmpty())
-                if (Creature* summon = unit->GetMap()->GetCreature(summonGuid))
-                    func(summon);
-    }
+template<typename Func>
+inline void ForAllControlled(Unit* unit, Func&& func)
+{
+    for (Unit* controlled : unit->m_Controlled)
+        if (controlled->GetTypeId() != TYPEID_PLAYER)
+            func(controlled);
+
+    for (ObjectGuid summonGuid : unit->m_SummonSlot)
+        if (!summonGuid.IsEmpty())
+            if (Creature* summon = unit->GetMap()->GetCreature(summonGuid))
+                func(summon);
+}
 }
 
 void PhasingHandler::AddPhase(WorldObject* object, uint32 phaseId, bool updateVisibility)
@@ -527,6 +527,8 @@ void PhasingHandler::SetAlwaysVisible(WorldObject* object, bool apply, bool upda
         object->GetPhaseShift().Flags |= PhaseShiftFlags::AlwaysVisible;
     else
         object->GetPhaseShift().Flags &= ~PhaseShiftFlags::AlwaysVisible;
+
+    UpdateVisibilityIfNeeded(object, updateVisibility, true);
 }
 
 void PhasingHandler::SetInversed(WorldObject* object, bool apply, bool updateVisibility)

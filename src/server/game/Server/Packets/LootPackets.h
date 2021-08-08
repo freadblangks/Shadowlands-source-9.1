@@ -304,38 +304,6 @@ namespace WorldPackets
 
             WorldPacket const* Write() override { return &_worldPacket; }
         };
-
-        class DisplayToast final : public ServerPacket
-        {
-        public:
-            DisplayToast() : ServerPacket(SMSG_DISPLAY_TOAST) { }
-
-            WorldPacket const* Write() override;
-
-            Item::ItemInstance Loot;
-            uint64 Quantity = 1;
-            uint32 CurrencyID = 0;
-            uint32 ToastType = 0;
-            uint32 SpecID = 0;
-            uint32 ItemQuantity = 0;
-            int32 RandomPropertiesID = 0;
-            uint32 QuestID = 0;
-            uint8 ToastMethod = 1; // TOAST_METHOD_POPUP
-            bool IsBonusRoll = false;
-            bool Mailed = false;
-            std::vector<int32> bonusListIDs;
-        };
-
-        class DoMasterLootRoll final : public ClientPacket
-        {
-        public:
-            DoMasterLootRoll(WorldPacket&& packet) : ClientPacket(CMSG_DO_MASTER_LOOT_ROLL, std::move(packet)) { }
-
-            void Read() override;
-
-            ObjectGuid LootObj;
-            uint8 LootListID = 0;
-        };
     }
 }
 

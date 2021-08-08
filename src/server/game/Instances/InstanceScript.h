@@ -20,11 +20,7 @@
 
 #include "ZoneScript.h"
 #include "Common.h"
-#include "CriteriaHandler.h"
-#include "CreatureGroups.h"
-#include "TemporarySummon.h"
-#include "Optional.h"
-#include "Position.h"
+#include <iosfwd>
 #include <map>
 #include <memory>
 #include <set>
@@ -44,7 +40,7 @@ class Player;
 class Unit;
 struct InstanceSpawnGroupInfo;
 enum CriteriaTypes : uint8;
-enum CriteriaTimedTypes : uint8;
+enum class CriteriaStartEvent : uint8;
 enum EncounterCreditType : uint8;
 namespace WorldPackets
 {
@@ -202,12 +198,8 @@ class TC_GAME_API InstanceScript : public ZoneScript
         Creature* GetCreature(uint32 type);
         GameObject* GetGameObject(uint32 type);
 
-        void GetPlayersCount();
         // Called when a player successfully enters the instance.
         virtual void OnPlayerEnter(Player* /*player*/) { }
-
-        virtual void OnCompletedCriteriaTree(CriteriaTree const* /*tree*/) { }
-        virtual void OnCreatureGroupWipe(uint32 /*creatureGroupId*/) { }
 
         // Handle open / close objects
         // * use HandleGameObject(0, boolen, GO); in OnObjectCreate in instance scripts
@@ -230,11 +222,9 @@ class TC_GAME_API InstanceScript : public ZoneScript
         // Update Achievement Criteria for all players in instance
         void DoUpdateCriteria(CriteriaTypes type, uint32 miscValue1 = 0, uint32 miscValue2 = 0, Unit* unit = nullptr);
 
-        void DoCompleteAchievement(uint32 achievement);
-
         // Start/Stop Timed Achievement Criteria for all players in instance
-        void DoStartCriteriaTimer(CriteriaTimedTypes type, uint32 entry);
-        void DoStopCriteriaTimer(CriteriaTimedTypes type, uint32 entry);
+        void DoStartCriteriaTimer(CriteriaStartEvent startEvent, uint32 entry);
+        void DoStopCriteriaTimer(CriteriaStartEvent startEvent, uint32 entry);
 
         // Remove Auras due to Spell on all players in instance
         void DoRemoveAurasDueToSpellOnPlayers(uint32 spell);
@@ -244,10 +234,6 @@ class TC_GAME_API InstanceScript : public ZoneScript
 
         // Return wether server allow two side groups or not
         static bool ServerAllowsTwoSideGroups();
-
-        CreatureGroup* SummonCreatureGroup(uint32 creatureGroupID, std::list<TempSummon*>* list = nullptr);
-        CreatureGroup* GetCreatureGroup(uint32 creatureGroupID);
-        void DespawnCreatureGroup(uint32 creatureGroupID);
 
         virtual bool SetBossState(uint32 id, EncounterState state);
         EncounterState GetBossState(uint32 id) const { return id < bosses.size() ? bosses[id].state : TO_BE_DECIDED; }
@@ -296,10 +282,6 @@ class TC_GAME_API InstanceScript : public ZoneScript
         // ReCheck PhaseTemplate related conditions
         void UpdatePhasing();
 
-        //scenario thordekk
-        void CompleteScenario();
-        void CompleteCurrStep();
-
         uint32 GetEncounterCount() const { return uint32(bosses.size()); }
 
         void InitializeCombatResurrections(uint8 charges = 1, uint32 interval = 0);
@@ -308,39 +290,6 @@ class TC_GAME_API InstanceScript : public ZoneScript
         void ResetCombatResurrections();
         uint8 GetCombatResurrectionCharges() const { return _combatResurrectionCharges; }
         uint32 GetCombatResurrectionChargeInterval() const;
-
-        //Thordekk
-        void AddTimedDelayedOperation(uint32 timeout, std::function<void()>&& function)
-        {
-            emptyWarned = false;
-            timedDelayedOperations.push_back(std::pair<uint32, std::function<void()>>(timeout, function));
-        }
-
-        std::vector<std::pair<int32, std::function<void()>>>    timedDelayedOperations;   ///< Delayed operations
-        bool                                                    emptyWarned;              ///< Warning when there are no more delayed operations
-
-        
-        // Execute the parameter function for all players in instance
-        void DoOnPlayers(std::function<void(Player*)>&& function);
-
-        void DoAddAuraOnPlayers(uint32 spell);
-
-        void DoPlayScenePackageIdOnPlayers(uint32 scenePackageId);
-
-        void DoStartMovie(uint32 movieId);
-
-        void DoPlayConversation(uint32 conversationId);
-
-        //Scenarios
-        void DoSendScenarioEvent(uint32 eventId);
-        void GetScenarioByID(Player* p_Player, uint32 p_ScenarioId);
-
-        void DoNearTeleportPlayers(const Position pos, bool casting);
-
-        void DoTeleportPlayers(uint32 mapId, const Position pos);
-
-        void SetCheckPointPos(Position pos) { _checkPointPosition = pos; }
-        Optional<Position> GetCheckPoint() { return _checkPointPosition; }
 
     protected:
         void SetHeaders(std::string const& dataHeaders);
@@ -380,7 +329,6 @@ class TC_GAME_API InstanceScript : public ZoneScript
         static void LoadObjectData(ObjectData const* creatureData, ObjectInfoMap& objectInfo);
         void UpdateEncounterState(EncounterCreditType type, uint32 creditEntry, Unit* source);
 
-        std::map<uint32, std::list<ObjectGuid>> summonBySummonGroupIDs;
         std::vector<char> headers;
         std::vector<BossInfo> bosses;
         DoorInfoMap doors;
@@ -396,12 +344,13 @@ class TC_GAME_API InstanceScript : public ZoneScript
         uint32 _combatResurrectionTimer;
         uint8 _combatResurrectionCharges; // the counter for available battle resurrections
         bool _combatResurrectionTimerStarted;
-        Optional<Position> _checkPointPosition;
 
     #ifdef TRINITY_API_USE_DYNAMIC_LINKING
         // Strong reference to the associated script module
         std::shared_ptr<ModuleReference> module_reference;
     #endif // #ifndef TRINITY_API_USE_DYNAMIC_LINKING
+
+        friend class debug_commandscript;
 };
 
 #endif // TRINITY_INSTANCE_DATA_H

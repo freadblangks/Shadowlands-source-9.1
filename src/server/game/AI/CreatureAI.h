@@ -20,6 +20,7 @@
 
 #include "UnitAI.h"
 #include "Common.h"
+#include "LootItemType.h"
 #include "ObjectDefines.h"
 #include "Optional.h"
 #include "QuestDef.h"
@@ -32,7 +33,6 @@ class GameObject;
 class PlayerAI;
 class WorldObject;
 struct Position;
-enum class LootItemType : uint8;
 enum class QuestGiverStatus : uint32;
 
 typedef std::vector<AreaBoundary const*> CreatureBoundary;
@@ -52,9 +52,6 @@ class TC_GAME_API CreatureAI : public UnitAI
         Creature* const me;
 
         bool UpdateVictim();
-        bool UpdateVictimWithGaze();
-
-        void SetGazeOn(Unit* target);
 
         Creature* DoSummon(uint32 entry, Position const& pos, uint32 despawnTime = 30000, TempSummonType summonType = TEMPSUMMON_CORPSE_TIMED_DESPAWN);
         Creature* DoSummon(uint32 entry, WorldObject* obj, float radius = 5.0f, uint32 despawnTime = 30000, TempSummonType summonType = TEMPSUMMON_CORPSE_TIMED_DESPAWN);
@@ -190,7 +187,6 @@ class TC_GAME_API CreatureAI : public UnitAI
         virtual void QuestAccept(Player* /*player*/, Quest const* /*quest*/) { }
 
         // Called when a player completes a quest and is rewarded, opt is the selected item's index or 0
-        virtual void QuestReward(Player* player, Quest const* quest, uint32 opt);
         virtual void QuestReward(Player* /*player*/, Quest const* /*quest*/, LootItemType /*type*/, uint32 /*opt*/) { }
 
         /// == Waypoints system =============================
@@ -223,7 +219,6 @@ class TC_GAME_API CreatureAI : public UnitAI
         void SetBoundary(CreatureBoundary const* boundary, bool negativeBoundaries = false);
 
         static bool IsInBounds(CreatureBoundary const& boundary, Position const* who);
-
 
     protected:
         virtual void MoveInLineOfSight(Unit* /*who*/);

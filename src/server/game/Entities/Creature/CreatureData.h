@@ -352,8 +352,7 @@ struct TC_GAME_API CreatureTemplate
     std::unordered_map<Difficulty, CreatureLevelScaling> scalingStore;
     int32   HealthScalingExpansion;
     uint32  RequiredExpansion;
-    uint32  VignetteID;
-    uint32  TrackingQuestID;
+    uint32  VignetteID;                                     /// @todo Read Vignette.db2
     uint32  faction;
     uint64  npcflag;
     float   speed_walk;

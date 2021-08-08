@@ -120,9 +120,3 @@ WorldPacket const* WorldPackets::EquipmentSet::UseEquipmentSetResult::Write()
 
     return &_worldPacket;
 }
-
-void WorldPackets::EquipmentSet::AssignEquipmentSetSpec::Read()
-{
-    _worldPacket >> GUID;
-    _worldPacket >> SpecID;
-}

@@ -88,4 +88,3 @@ void WorldPackets::Battlenet::ChangeRealmTicket::Read()
     _worldPacket >> Token;
     _worldPacket.read(Secret.data(), Secret.size());
 }
-

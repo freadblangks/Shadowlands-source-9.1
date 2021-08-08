@@ -50,46 +50,46 @@ class TC_GAME_API LanguageMgr
     typedef std::unordered_multimap<uint32, LanguageDesc> LanguagesMap;
 
     // Constructors
-private:
-    LanguageMgr();
-    ~LanguageMgr();
+    private:
+        LanguageMgr();
+        ~LanguageMgr();
 
     // Accessors (const or static functions)
-public:
-    static LanguageMgr* instance();
+    public:
+        static LanguageMgr* instance();
 
-    //
-    std::string Translate(std::string const& msg, uint32 language, LocaleConstant locale) const;
+        //
+        std::string Translate(std::string const& msg, uint32 language, LocaleConstant locale) const;
 
-    bool IsLanguageExist(uint32 languageId) const;
-    Trinity::IteratorPair<LanguagesMap::const_iterator> GetLanguageDescById(Language languageId) const;
+        bool IsLanguageExist(uint32 languageId) const;
+        Trinity::IteratorPair<LanguagesMap::const_iterator> GetLanguageDescById(Language languageId) const;
 
-    /* Calls a callback for each available language.
-     * Callback signature: bool callback(uint32 lang, LanguageDesc const& languageDesc)
-     */
-    template <typename T>
-    bool ForEachLanguage(T callback)
-    {
-        for (LanguagesMap::value_type const& pair : _langsMap)
-            if (!callback(pair.first, pair.second))
-                return false;
-        return true;
-    }
+        /* Calls a callback for each available language.
+         * Callback signature: bool callback(uint32 lang, LanguageDesc const& languageDesc)
+         */
+        template <typename T>
+        bool ForEachLanguage(T callback)
+        {
+            for (LanguagesMap::value_type const& pair : _langsMap)
+                if (!callback(pair.first, pair.second))
+                    return false;
+            return true;
+        }
 
-private:
-    /* Create assosiation between language and spell id
-     * Language is taken from effect value.
-     * Assuming Effect == SPELL_EFFECT_LANGUAGE
-     */
-    void LoadSpellEffectLanguage(SpellEffectEntry const* spellEffect);
+    private:
+        /* Create assosiation between language and spell id
+         * Language is taken from effect value.
+         * Assuming Effect == SPELL_EFFECT_LANGUAGE
+         */
+        void LoadSpellEffectLanguage(SpellEffectEntry const* spellEffect);
 
-    void LoadLanguagesWords();
-    void LoadLanguages();
+        void LoadLanguagesWords();
+        void LoadLanguages();
 
-    WordList const* FindWordGroup(uint32 language, uint32 wordLen) const;
+        WordList const* FindWordGroup(uint32 language, uint32 wordLen) const;
 
-    LanguagesMap _langsMap;
-    WordsMap _wordsMap;
+        LanguagesMap _langsMap;
+        WordsMap _wordsMap;
 };
 
 #define sLanguageMgr LanguageMgr::instance()

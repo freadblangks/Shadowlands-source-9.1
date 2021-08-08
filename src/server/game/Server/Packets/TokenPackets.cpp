@@ -53,18 +53,3 @@ WorldPacket const* WorldPackets::Token::CommerceTokenGetMarketPriceResponse::Wri
 
     return &_worldPacket;
 }
-
-void WorldPackets::Token::ConsumableTokenCanVeteranBuy::Read()
-{
-    _worldPacket >> UnkInt; // always 0
-}
-
-
-WorldPacket const* WorldPackets::Token::ConsumableTokenCanVeteranBuyResponse::Write()
-{
-    _worldPacket << UnkLong; // always 0
-    _worldPacket << UnkInt; // always 0
-    _worldPacket << UnkInt2; // always 1
-
-    return &_worldPacket;
-}
