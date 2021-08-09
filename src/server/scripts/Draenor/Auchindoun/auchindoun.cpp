@@ -6,6 +6,9 @@
 #include "SpellScript.h"
 #include "GameObject.h"
 #include "auchindoun.h"
+#include "instance_auchindoun.cpp"
+#include <AI/SmartScripts/SmartScriptMgr.h>
+#include <Metric/Metric.cpp>
 
 enum eEmotes
 {
@@ -94,12 +97,12 @@ struct auchindoun_mob_tuulani : public ScriptedAI
         case eventTuulaniIntro::EVENT_TUULANI_INTRO_2:
             Talk(eAuchindounTalks::TUULANITALK3);
             me->CastSpell(me, eAuchindounSpells::SpellTuulaniUnlock);
-            AddTimedDelayedOperation(2500, [this]() -> void
+            //AddTimedDelayedOperation(2500, [this]() -> void
             {
                 if (GameObject* door = me->FindNearestGameObject(GameobjectDoorBarrier, 100.0f))
                     door->Delete();
                 me->GetMotionMaster()->MovePoint(eAuchindounMovementInforms::MovementInformTuulani03, g_PositionTuulaniMovements[2]);
-            });           
+            };           
             break;
         case eventTuulaniIntro::EVENT_TUULANI_INTRO_3:
             if (Creature* l_Guard = me->FindNearestCreature(CreatureAucheniDefender, 50.0f, true))
@@ -138,11 +141,11 @@ struct auchindoun_mob_tuulani : public ScriptedAI
             me->GetMotionMaster()->MovePoint(eAuchindounMovementInforms::MovementInformTuulani08, g_PositionTuulaniMovements[8]);
             break;
         case eventTuulaniIntro::EVENT_TUULANI_INTRO_11:
-            if (instance)
+          //  if (instance)
             {
-                instance->DoNearTeleportPlayers(me->GetPosition());
-                instance->DoPlayScenePackageIdOnPlayers(SpellAuchindounSceneTulaaniReachNyami);
-            }
+            //    instance->DoNearTeleportPlayers(me->GetPosition());
+              //  instance->DoPlayScenePackageIdOnPlayers(SpellAuchindounSceneTulaaniReachNyami);
+            };
             me->GetMotionMaster()->MovePoint(eAuchindounMovementInforms::MovementInformTuulani09, g_PositionTuulaniMovements[9]);
             events.ScheduleEvent(eventTuulaniIntro::EVENT_TUULANI_INTRO_12, 5 * TimeConstants::IN_MILLISECONDS);
             //events.ScheduleEvent(eventTuulaniIntro::EVENT_TUULANI_INTRO_14, 12 * TimeConstants::IN_MILLISECONDS);
@@ -203,7 +206,7 @@ struct auchindoun_mob_tuulani : public ScriptedAI
 
     void MovementInform(uint32 /*p_Type*/, uint32 p_Id)
     {
-        if (instance)
+        //if(instance)
         {
             switch (p_Id)
             {
@@ -739,8 +742,8 @@ struct auchindoun_mob_sargerei_defender : public ScriptedAI
         switch (events.ExecuteEvent())
         {
         case eSargereiDefenderEvents::EventAvengersShield:
-            if (Unit* l_Random = SelectTarget(SelectAggroTarget::SELECT_TARGET_FARTHEST, 0, 50.0f, true))
-                me->CastSpell(l_Random, eSargereiDefenderSpells::SpellAvengersShield);
+           // if (Unit* l_Random = SelectTarget(SelectAggroTarget::SELECT_TARGET_FARTHEST, 0, 50.0f, true))
+             //   me->CastSpell(l_Random, eSargereiDefenderSpells::SpellAvengersShield);
             events.ScheduleEvent(eSargereiDefenderEvents::EventAvengersShield, urand(10 * TimeConstants::IN_MILLISECONDS, 16 * TimeConstants::IN_MILLISECONDS));
             break;
         case eSargereiDefenderEvents::EventCrusaderStirke:
@@ -831,7 +834,7 @@ struct auchindoun_mob_sargerei_magus : public ScriptedAI
         {
             for (Creature* l_Itr : l_mobsPrisoners)
             {
-                l_Itr->Kill(l_Itr);
+         //       l_Itr->Kill(l_Itr);
                 l_Itr->RemoveAllAuras();
                 l_Itr->GetMotionMaster()->MoveFall(eAuchindounMovementInforms::MovementInformFallMagusPrisoners);
                 l_Itr->DespawnOrUnsummon(1 * TimeConstants::IN_MILLISECONDS);
@@ -1072,8 +1075,8 @@ struct auchindoun_mob_felborne_abyssal : public ScriptedAI
         {
             if (!m_FixatedTargetGUID)//???
             {
-                if (Unit* l_Target = ObjectAccessor::GetUnit(*me, m_FixatedTargetGUID))
-                    me->AddThreat(l_Target, 500.0f);
+                if (Unit* l_Target = ObjectAccessor::GetUnit(*me, m_FixatedTargetGUID));
+                    // me->AddThreat(l_Target, 500.0f);
             }
         }
 
@@ -1477,7 +1480,7 @@ class auchindoun_spell_void_shift : public SpellScript
         int32 l_CalcDamage = 8000;
 
         std::list<Creature*> l_ListPlayers;
-        l_Caster->GetCreatureListInGrid(l_ListPlayers, 30.0f);
+       // l_Caster->GetCreatureListInGrid(l_ListPlayers, 30.0f);
         //l_Caster->GetPlayerListInGrid(l_ListPlayers, 30.0f);
         //l_Caster->VisitNearbyObject(30.0f, searcher);
         if (!l_ListPlayers.empty())
@@ -1487,10 +1490,10 @@ class auchindoun_spell_void_shift : public SpellScript
                 if (!(*l_It))
                     continue;
 
-                if ((*l_It)->GetTypeId() == TypeID::TYPEID_PLAYER)
-                    GetCaster()->CastCustomSpell((*l_It), eAuchindounSpells::SpellVoidShiftDamage, &l_CalcDamage, nullptr, true, nullptr);
-                else
-                    GetCaster()->CastCustomSpell((*l_It), eAuchindounSpells::SpellVoidShiftHeal, &l_CalcDamage, nullptr, true, nullptr);
+         //       if ((*l_It)->GetTypeId() == TypeID::TYPEID_PLAYER)
+     //               GetCaster()->CastSpell((*l_It), eAuchindounSpells::SpellVoidShiftDamage, &l_CalcDamage, nullptr, true, nullptr);
+       //         else
+     //               GetCaster()->CastCSpell((*l_It), eAuchindounSpells::SpellVoidShiftHeal, &l_CalcDamage, nullptr, true, nullptr);
             }
         }
     }
@@ -1516,7 +1519,7 @@ class auchindoun_spell_void_shell_filter : public SpellScript
         Unit* l_Caster = GetCaster();
 
         std::list<Creature*> l_TargetList;
-        l_Caster->GetCreatureListInGrid(l_TargetList, 10.0f);
+        //l_Caster->GetCreatureListInGrid(l_TargetList, 10.0f);
         // l_Caster->VisitNearbyObject(10.0f, searcher);
         if (!l_TargetList.empty())
         {
@@ -1658,7 +1661,7 @@ public:
 
     auchindoun_gob_talador_portal() : GameObjectScript("auchindoun_gob_talador_portal") { }
 
-    bool OnGossipHello(Player* p_Player, GameObject* p_Gameobject) override
+    bool OnGossipHello(Player* p_Player, GameObject* p_Gameobject)
     {
         p_Player->TeleportTo(1116, 1488.52f, 3077.65f, 108.920f, 4.653427f);
         return true;
@@ -1723,7 +1726,7 @@ void AddSC_auchindoun()
     RegisterSpellScript(auchindoun_spell_tuulani_unlock);          ///< 160415
     RegisterAuraScript(auchindoun_spell_arcane_bolt);             ///< 157505
     new auchindoun_at_arcane_bomb();                ///< 157793//???
-    new auchindoun_gob_talador_portal();            ///< 236689
+   // new auchindoun_gob_talador_portal();            ///< 236689
     RegisterAuraScript(auchindoun_warden_chain_aura);
     RegisterSpellScript(auchindoun_spell_void_beam);///156920
 }

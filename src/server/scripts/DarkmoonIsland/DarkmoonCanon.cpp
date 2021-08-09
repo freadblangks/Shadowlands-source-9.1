@@ -19,6 +19,9 @@
 #include "ScriptMgr.h"
 #include "ScriptedGossip.h"
 #include "DarkmoonIsland.h"
+#include "AchievementPackets.h"
+#include <AchievementPackets.cpp>
+#include <DB2Stores.h>
 
 enum eSpells
 {
@@ -41,7 +44,7 @@ class npc_canon_maxima : public CreatureScript
     public:
         npc_canon_maxima() : CreatureScript("npc_canon_maxima") { }
 
-        bool OnGossipHello(Player* player, Creature* creature) override
+        bool OnGossipHello(Player* player, Creature* creature)
         {
             if (creature->IsQuestGiver())
                 player->PrepareQuestMenu(creature->GetGUID());
@@ -53,7 +56,7 @@ class npc_canon_maxima : public CreatureScript
             return true;
         }
 
-        bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 /*action*/) override
+        bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 /*action*/)
         {
             if (!player->HasItemCount(ITEM_DARKMOON_TOKEN))
             {
@@ -78,7 +81,7 @@ class npc_darkmoon_canon_target : public CreatureScript
     public:
         npc_darkmoon_canon_target() : CreatureScript("npc_darkmoon_canon_target") { }
 
-        CreatureAI* GetAI(Creature* pCreature) const override
+        CreatureAI* GetAI(Creature* pCreature) const 
         {
             return new npc_darkmoon_canon_targetAI(pCreature);
         }
@@ -88,11 +91,11 @@ class npc_darkmoon_canon_target : public CreatureScript
             npc_darkmoon_canon_targetAI(Creature* pCreature) : ScriptedAI(pCreature)
             {}
 
-            void Reset() override
+            void Reset()
             {
             }
 
-            void UpdateAI(uint32 /*diff*/) override
+            void UpdateAI(uint32 /*diff*/) 
             {
                 std::list<Player*> playerList;
                 me->GetPlayerListInGrid(playerList, 30.0f);
@@ -115,8 +118,8 @@ class npc_darkmoon_canon_target : public CreatureScript
 
                     if (dist <= 3.0f)
                     {
-                        if (AchievementEntry const* achievementEntry = sAchievementStore.LookupEntry(ACHIEVEMENT_BLASTENHEIMER_BULLSEYE))
-                            player->CompletedAchievement(achievementEntry);
+                        //if (AchievementEntry const* achievementAuras)
+                          //  (player->CompletedAchievement(achievementEntry)
                         me->AddAura(SPELL_TARGET_CENTER, player);
                         creditCount = 5;
                     }
@@ -140,7 +143,7 @@ class npc_canon_fozlebub : public CreatureScript
     public:
         npc_canon_fozlebub() : CreatureScript("npc_canon_fozlebub") { }
 
-        bool OnGossipHello(Player* player, Creature* creature) override
+        bool OnGossipHello(Player* player, Creature* creature)
         {
             if (creature->IsQuestGiver())
                 player->PrepareQuestMenu(creature->GetGUID());
@@ -152,7 +155,7 @@ class npc_canon_fozlebub : public CreatureScript
             return true;
         }
 
-        bool OnGossipSelect(Player* player, Creature* /*creature*/, uint32 /*sender*/, uint32 /*action*/) override
+        bool OnGossipSelect(Player* player, Creature* /*creature*/, uint32 /*sender*/, uint32 /*action*/)
         {
             player->ModifyMoney(-3000);
             player->TeleportTo(974, -4019.00f, 6286.58f, 12.49f, 1.39f);
@@ -182,13 +185,13 @@ class spell_darkmoon_canon_preparation : public SpellScriptLoader
                 }
             }
 
-            void Register() override
+            void Register()
             {
                 OnEffectPeriodic += AuraEffectPeriodicFn(spell_darkmoon_canon_preparation_AuraScript::HandleTriggerSpell, EFFECT_2, SPELL_AURA_PERIODIC_TRIGGER_SPELL);
             }
         };
 
-        AuraScript* GetAuraScript() const override
+        AuraScript* GetAuraScript() const 
         {
             return new spell_darkmoon_canon_preparation_AuraScript();
         }
@@ -196,8 +199,8 @@ class spell_darkmoon_canon_preparation : public SpellScriptLoader
 
 void AddSC_darkmoon_canon()
 {
-    new npc_canon_maxima();
+    //new npc_canon_maxima();
     new npc_darkmoon_canon_target();
-    new npc_canon_fozlebub();
+    //new npc_canon_fozlebub();
     new spell_darkmoon_canon_preparation();
 };

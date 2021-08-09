@@ -31,7 +31,7 @@
 #include "ScriptedEscortAI.h"
 #include "SpellScript.h"
 #include "TemporarySummon.h"
-#include "WodGarrison.h"
+//#include "WodGarrison.h"
 
 enum
 {
@@ -57,7 +57,7 @@ class npc_velen_shadowmoon_begin : public CreatureScript
 public:
     npc_velen_shadowmoon_begin() : CreatureScript("npc_velen_shadowmoon_begin") { }
 
-    bool OnQuestAccept(Player* player, Creature* creature, Quest const* quest) override
+    bool OnQuestAccept(Player* player, Creature* creature, Quest const* quest)
     {
         if (quest->GetQuestId() == QUEST_FINDING_A_FOOTHOLD)
         {
@@ -106,7 +106,7 @@ public:
             playerGuid = ObjectGuid::Empty;
         }
 
-        void SetGUID(ObjectGuid guid, int32 /*id*/) override
+        void SetGUID(ObjectGuid guid, int32 /*id*/)
         {
             playerGuid = guid;
             Start(false, true, guid);
@@ -136,7 +136,7 @@ public:
     {
         npc_velen_shadowmoon_followerAI(Creature* creature) : EscortAI(creature) { }
 
-        void SetGUID(ObjectGuid guid, int32 /*id*/) override
+        void SetGUID(ObjectGuid guid, int32 /*id*/)
         {
             Start(true, true, guid);
         }
