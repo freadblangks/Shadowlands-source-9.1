@@ -106,9 +106,9 @@ class boss_ragnaros : public CreatureScript
                 me->SetEmoteState(EMOTE_ONESHOT_NONE);
             }
 
-            void JustEngagedWith(Unit* victim) override
+            void EnterCombat(Unit* victim) override
             {
-                BossAI::JustEngagedWith(victim);
+                BossAI::EnterCombat(victim);
                 events.ScheduleEvent(EVENT_ERUPTION, 15000);
                 events.ScheduleEvent(EVENT_WRATH_OF_RAGNAROS, 30000);
                 events.ScheduleEvent(EVENT_HAND_OF_RAGNAROS, 25000);
@@ -157,7 +157,7 @@ class boss_ragnaros : public CreatureScript
                         case EVENT_INTRO_4:
                             Talk(SAY_ARRIVAL5_RAG);
                             if (Creature* executus = ObjectAccessor::GetCreature(*me, instance->GetGuidData(BOSS_MAJORDOMO_EXECUTUS)))
-                                Unit::Kill(me, executus);
+                                me->Kill(executus);
                             break;
                         case EVENT_INTRO_5:
                             me->SetReactState(REACT_AGGRESSIVE);
@@ -176,7 +176,7 @@ class boss_ragnaros : public CreatureScript
                     {
                         //Become unbanished again
                         me->SetReactState(REACT_AGGRESSIVE);
-                        me->SetFaction(FACTION_MONSTER);
+                        me->SetFaction(14);
                         me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                         me->SetEmoteState(EMOTE_ONESHOT_NONE);
                         me->HandleEmoteCommand(EMOTE_ONESHOT_EMERGE);
@@ -254,7 +254,7 @@ class boss_ragnaros : public CreatureScript
                                     me->InterruptNonMeleeSpells(false);
                                     //Root self
                                     //DoCast(me, 23973);
-                                    me->SetFaction(FACTION_FRIENDLY);
+                                    me->SetFaction(35);
                                     me->AddUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                                     me->SetEmoteState(EMOTE_STATE_SUBMERGED);
                                     me->HandleEmoteCommand(EMOTE_ONESHOT_SUBMERGE);

@@ -17,6 +17,7 @@
 
 #include "ScriptMgr.h"
 #include "blackfathom_deeps.h"
+#include "GameObject.h"
 #include "InstanceScript.h"
 #include "GameObject.h"
 #include "GameObjectAI.h"
@@ -38,51 +39,35 @@ const Position HomePosition = {-815.817f, -145.299f, -25.870f, 0};
 
 class go_blackfathom_altar : public GameObjectScript
 {
-    public:
-        go_blackfathom_altar() : GameObjectScript("go_blackfathom_altar") { }
+public:
+    go_blackfathom_altar() : GameObjectScript("go_blackfathom_altar") { }
 
-        struct go_blackfathom_altarAI : public GameObjectAI
-        {
-            go_blackfathom_altarAI(GameObject* go) : GameObjectAI(go) { }
-
-            bool GossipHello(Player* player) override
-            {
-                if (!player->HasAura(SPELL_BLESSING_OF_BLACKFATHOM))
-                    player->AddAura(SPELL_BLESSING_OF_BLACKFATHOM, player);
-                return true;
-            }
-        };
-
-        GameObjectAI* GetAI(GameObject* go) const override
-        {
-            return GetBlackfathomDeepsAI<go_blackfathom_altarAI>(go);
-        }
+    bool OnGossipHello(Player* player, GameObject* /*go*/) override
+    {
+        if (!player->HasAura(SPELL_BLESSING_OF_BLACKFATHOM))
+            player->AddAura(SPELL_BLESSING_OF_BLACKFATHOM, player);
+        return true;
+    }
 };
 
 class go_blackfathom_fire : public GameObjectScript
 {
-    public:
-        go_blackfathom_fire() : GameObjectScript("go_blackfathom_fire") { }
+public:
+    go_blackfathom_fire() : GameObjectScript("go_blackfathom_fire") { }
 
-        struct go_blackfathom_fireAI : public GameObjectAI
+    bool OnGossipHello(Player* /*player*/, GameObject* go) override
+    {
+        InstanceScript* instance = go->GetInstanceScript();
+
+        if (instance)
         {
-            go_blackfathom_fireAI(GameObject* go) : GameObjectAI(go), instance(go->GetInstanceScript()) { }
-
-            InstanceScript* instance;
-
-            bool GossipHello(Player* /*player*/) override
-            {
-                me->SetGoState(GO_STATE_ACTIVE);
-                me->AddFlag(GO_FLAG_NOT_SELECTABLE);
-                instance->SetData(DATA_FIRE, instance->GetData(DATA_FIRE) + 1);
-                return true;
-            }
-        };
-
-        GameObjectAI* GetAI(GameObject* go) const override
-        {
-            return GetBlackfathomDeepsAI<go_blackfathom_fireAI>(go);
+            go->SetGoState(GO_STATE_ACTIVE);
+            go->AddFlag(GO_FLAG_NOT_SELECTABLE);
+            instance->SetData(DATA_FIRE, instance->GetData(DATA_FIRE) + 1);
+            return true;
         }
+        return false;
+    }
 };
 
 class npc_blackfathom_deeps_event : public CreatureScript
@@ -216,7 +201,7 @@ public:
             {
                 case 4:
                     SetEscortPaused(true);
-                    me->SetFacingTo(1.775791f);
+                    me->SetFacingTo(1.775791f, true);
                     me->AddNpcFlag(UNIT_NPC_FLAG_GOSSIP);
                     Talk(SAY_MORRIDUNE_2);
                     break;

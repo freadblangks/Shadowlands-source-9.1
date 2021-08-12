@@ -355,24 +355,25 @@ class npc_jaina_or_sylvanas_intro_hor : public CreatureScript
     public:
         npc_jaina_or_sylvanas_intro_hor() : CreatureScript("npc_jaina_or_sylvanas_intro_hor") { }
 
-        struct npc_jaina_or_sylvanas_intro_horAI : public ScriptedAI
+        bool OnGossipHello(Player* player, Creature* creature) override
         {
-            npc_jaina_or_sylvanas_intro_horAI(Creature* creature) : ScriptedAI(creature)
-            {
-                _instance = me->GetInstanceScript();
-            }
-
-            bool GossipHello(Player* player) override
-            {
-                // override default gossip
-                if (_instance->GetData(DATA_QUEL_DELAR_EVENT) == IN_PROGRESS || _instance->GetData(DATA_QUEL_DELAR_EVENT) == SPECIAL)
+            // override default gossip
+            if (InstanceScript* instance = creature->GetInstanceScript())
+                if (instance->GetData(DATA_QUEL_DELAR_EVENT) == IN_PROGRESS || instance->GetData(DATA_QUEL_DELAR_EVENT) == SPECIAL)
                 {
                     ClearGossipMenuFor(player);
                     return true;
                 }
 
-                // load default gossip
-                return false;
+            // load default gossip
+            return false;
+        }
+
+        struct npc_jaina_or_sylvanas_intro_horAI : public ScriptedAI
+        {
+            npc_jaina_or_sylvanas_intro_horAI(Creature* creature) : ScriptedAI(creature)
+            {
+                _instance = me->GetInstanceScript();
             }
 
             bool GossipSelect(Player* player, uint32 /*menuId*/, uint32 gossipListId) override
@@ -394,6 +395,7 @@ class npc_jaina_or_sylvanas_intro_hor : public CreatureScript
                     default:
                         break;
                 }
+
                 return false;
             }
 
@@ -802,6 +804,21 @@ class npc_jaina_or_sylvanas_escape_hor : public CreatureScript
     public:
         npc_jaina_or_sylvanas_escape_hor() : CreatureScript("npc_jaina_or_sylvanas_escape_hor") { }
 
+        bool OnGossipHello(Player* player, Creature* creature) override
+        {
+            // override default gossip
+            if (InstanceScript* instance = creature->GetInstanceScript())
+                if (instance->GetBossState(DATA_THE_LICH_KING_ESCAPE) == DONE)
+                {
+                    player->PrepareGossipMenu(creature, creature->GetEntry() == NPC_JAINA_ESCAPE ? GOSSIP_MENU_JAINA_FINAL : GOSSIP_MENU_SYLVANAS_FINAL, true);
+                    player->SendPreparedGossip(creature);
+                    return true;
+                }
+
+            // load default gossip
+            return false;
+        }
+
         struct npc_jaina_or_sylvanas_escape_horAI : public ScriptedAI
         {
             npc_jaina_or_sylvanas_escape_horAI(Creature* creature) : ScriptedAI(creature),
@@ -812,7 +829,7 @@ class npc_jaina_or_sylvanas_escape_hor : public CreatureScript
                 _events.Reset();
                 _icewall = 0;
                 _events.ScheduleEvent(EVENT_ESCAPE, 1000);
-                _instance->DoStopCriteriaTimer(CriteriaStartEvent::SendEvent, ACHIEV_NOT_RETREATING_EVENT);
+                _instance->DoStopCriteriaTimer(CRITERIA_TIMED_TYPE_EVENT, ACHIEV_NOT_RETREATING_EVENT);
             }
 
             void JustDied(Unit* /*killer*/) override
@@ -855,20 +872,6 @@ class npc_jaina_or_sylvanas_escape_hor : public CreatureScript
                 }
             }
 
-            bool GossipHello(Player* player) override
-            {
-                // override default gossip
-                if (_instance->GetBossState(DATA_THE_LICH_KING_ESCAPE) == DONE)
-                {
-                    player->PrepareGossipMenu(me, me->GetEntry() == NPC_JAINA_ESCAPE ? GOSSIP_MENU_JAINA_FINAL : GOSSIP_MENU_SYLVANAS_FINAL, true);
-                    player->SendPreparedGossip(me);
-                    return true;
-                }
-
-                // load default gossip
-                return false;
-            }
-
             bool GossipSelect(Player* player, uint32 /*menuId*/, uint32 gossipListId) override
             {
                 ClearGossipMenuFor(player);
@@ -883,6 +886,7 @@ class npc_jaina_or_sylvanas_escape_hor : public CreatureScript
                     default:
                         break;
                 }
+
                 return false;
             }
 
@@ -1061,7 +1065,7 @@ class npc_jaina_or_sylvanas_escape_hor : public CreatureScript
                                 }
                             }
                             _invincibility = false;
-                            _instance->DoStartCriteriaTimer(CriteriaStartEvent::SendEvent, ACHIEV_NOT_RETREATING_EVENT);
+                            _instance->DoStartCriteriaTimer(CRITERIA_TIMED_TYPE_EVENT, ACHIEV_NOT_RETREATING_EVENT);
                             _events.ScheduleEvent(EVENT_ESCAPE_7, 1000);
                             break;
                         case EVENT_ESCAPE_7:
@@ -1338,11 +1342,10 @@ class npc_the_lich_king_escape_hor : public CreatureScript
                 if (!me->HasReactState(REACT_PASSIVE))
                 {
                     if (Unit* victim = me->SelectVictim())
-                        if (!me->IsFocusing(nullptr, true) && victim != me->GetVictim())
-                            AttackStart(victim);
+                        AttackStart(victim);
                     return me->GetVictim() != nullptr;
                 }
-                else if (me->GetCombatManager().GetPvECombatRefs().size() < 2 && me->HasAura(SPELL_REMORSELESS_WINTER))
+                else if (me->GetThreatManager().GetThreatListSize() < 2 && me->HasAura(SPELL_REMORSELESS_WINTER))
                 {
                     EnterEvadeMode(EVADE_REASON_OTHER);
                     return false;
@@ -1484,7 +1487,7 @@ class npc_ghostly_priest : public CreatureScript
         {
             npc_ghostly_priestAI(Creature* creature) : npc_gauntlet_trash(creature) { }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
                 _events.ScheduleEvent(EVENT_SHADOW_WORD_PAIN, urand(6000, 15000));
                 _events.ScheduleEvent(EVENT_CIRCLE_OF_DESTRUCTION, 12000);
@@ -1561,7 +1564,7 @@ class npc_phantom_mage : public CreatureScript
                     npc_gauntlet_trash::EnterEvadeMode(why);
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
                 _events.ScheduleEvent(EVENT_FIREBALL, 3000);
                 _events.ScheduleEvent(EVENT_FLAMESTRIKE, 6000);
@@ -1662,7 +1665,7 @@ class npc_shadowy_mercenary : public CreatureScript
         {
             npc_shadowy_mercenaryAI(Creature* creature) : npc_gauntlet_trash(creature) { }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
                 _events.ScheduleEvent(EVENT_SHADOW_STEP, 23000);
                 _events.ScheduleEvent(EVENT_DEADLY_POISON, 5000);
@@ -1723,7 +1726,7 @@ class npc_spectral_footman : public CreatureScript
         {
             npc_spectral_footmanAI(Creature* creature) : npc_gauntlet_trash(creature) { }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
                 _events.ScheduleEvent(EVENT_SPECTRAL_STRIKE, 14000);
                 _events.ScheduleEvent(EVENT_SHIELD_BASH, 10000);
@@ -1777,7 +1780,7 @@ class npc_tortured_rifleman : public CreatureScript
         {
             npc_tortured_riflemanAI(Creature* creature) : npc_gauntlet_trash(creature) { }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
                 _events.ScheduleEvent(EVENT_SHOOT, 1);
                 _events.ScheduleEvent(EVENT_CURSED_ARROW, 7000);
@@ -1877,7 +1880,7 @@ class npc_frostsworn_general : public CreatureScript
                 _instance->SetData(DATA_FROSTSWORN_GENERAL, DONE);
             }
 
-            void JustEngagedWith(Unit* /*victim*/) override
+            void EnterCombat(Unit* /*victim*/) override
             {
                 Talk(SAY_AGGRO);
                 DoZoneInCombat();
@@ -1963,7 +1966,7 @@ class npc_spiritual_reflection : public CreatureScript
                 _events.Reset();
             }
 
-            void JustEngagedWith(Unit* /*victim*/) override
+            void EnterCombat(Unit* /*victim*/) override
             {
                 _events.ScheduleEvent(EVENT_BALEFUL_STRIKE, 3000);
             }
@@ -2599,7 +2602,7 @@ class npc_quel_delar_sword : public CreatureScript
                     me->SetImmuneToAll(false);
             }
 
-            void JustEngagedWith(Unit* /*victim*/) override
+            void EnterCombat(Unit* /*victim*/) override
             {
                 _events.ScheduleEvent(EVENT_QUEL_DELAR_HEROIC_STRIKE, 4000);
                 _events.ScheduleEvent(EVENT_QUEL_DELAR_BLADESTORM, 6000);

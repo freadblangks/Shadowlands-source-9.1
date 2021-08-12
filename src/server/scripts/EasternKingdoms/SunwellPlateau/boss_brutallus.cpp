@@ -115,7 +115,7 @@ public:
             instance->SetBossState(DATA_BRUTALLUS, NOT_STARTED);
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
             Talk(YELL_AGGRO);
 
@@ -152,7 +152,6 @@ public:
             {
                 Madrigosa->Respawn();
                 Madrigosa->setActive(true);
-                Madrigosa->SetFarVisible(true);
                 IsIntro = true;
                 Madrigosa->SetMaxHealth(me->GetMaxHealth());
                 Madrigosa->SetHealth(me->GetMaxHealth());
@@ -234,7 +233,7 @@ public:
                     ++IntroPhase;
                     break;
                 case 7:
-                    Unit::Kill(me, Madrigosa);
+                    me->Kill(Madrigosa);
                     Madrigosa->AI()->Talk(YELL_MADR_DEATH);
                     me->SetFullHealth();
                     me->AttackStop();

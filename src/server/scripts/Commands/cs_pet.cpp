@@ -114,7 +114,7 @@ public:
         }
 
         // prepare visual effect for levelup
-        pet->SetLevel(creatureTarget->getLevel() - 1);
+        pet->SetLevel(creatureTarget->getLevel()-1);
 
         pet->GetCharmInfo()->SetPetNumber(sObjectMgr->GeneratePetNumber(), true);
         // this enables pet details window (Shift+P)

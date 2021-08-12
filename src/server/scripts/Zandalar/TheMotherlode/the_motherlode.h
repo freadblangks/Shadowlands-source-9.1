@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HellgarveCore
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -33,9 +33,15 @@ enum EncounterData
 enum CreatureIds
 {
 	NPC_COIN_OPERATED_CROWD_PUMMELER	= 129214,
-    NPC_AZEROKK							= 129227,
-    NPC_RIXXA_FLUXFLAME					= 129231,
-    NPC_MOGUL_RAZDUNK					= 129232,
+	NPC_AZEROKK							= 129227,
+	NPC_RIXXA_FLUXFLAME					= 129231,
+	NPC_MOGUL_RAZDUNK					= 131227,
+
+};
+
+enum GameObjectIds
+{
+
 };
 
 #endif // THE_MOTHERLODE_H

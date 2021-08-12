@@ -260,7 +260,7 @@ class boss_blood_council_controller : public CreatureScript
                 _DespawnAtEvade();
             }
 
-            void JustEngagedWith(Unit* who) override
+            void EnterCombat(Unit* who) override
             {
                 if (instance->GetBossState(DATA_BLOOD_PRINCE_COUNCIL) == IN_PROGRESS)
                     return;
@@ -330,7 +330,7 @@ class boss_blood_council_controller : public CreatureScript
                         // Make sure looting is allowed
                         if (me->IsDamageEnoughForLootingAndReward())
                             prince->LowerPlayerDamageReq(prince->GetMaxHealth());
-                        Unit::Kill(killer, prince);
+                        killer->Kill(prince);
                     }
                 }
             }
@@ -458,7 +458,7 @@ struct BloodPrincesBossAI : public BossAI
         instance->SetData(DATA_ORB_WHISPERER_ACHIEVEMENT, uint32(true));
     }
 
-    void JustEngagedWith(Unit* /*who*/) override
+    void EnterCombat(Unit* /*who*/) override
     {
         me->SetCombatPulseDelay(5);
         me->setActive(true);
@@ -805,7 +805,7 @@ class boss_prince_valanar_icc : public CreatureScript
                 {
                     case NPC_KINETIC_BOMB_TARGET:
                         summon->SetReactState(REACT_PASSIVE);
-                        summon->CastSpell(summon, SPELL_KINETIC_BOMB, me->GetGUID());
+                        summon->CastSpell(summon, SPELL_KINETIC_BOMB, true, nullptr, nullptr, me->GetGUID());
                         break;
                     case NPC_KINETIC_BOMB:
                     {
@@ -992,7 +992,7 @@ class npc_ball_of_flame : public CreatureScript
                 }
             }
 
-            void SetGUID(ObjectGuid const& guid, int32 /*id*/) override
+            void SetGUID(ObjectGuid guid, int32 /*type*/) override
             {
                 _chaseGUID = guid;
             }
@@ -1122,7 +1122,7 @@ class npc_dark_nucleus : public CreatureScript
                 DoCastSelf(SPELL_SHADOW_RESONANCE_AURA, true);
             }
 
-            void JustEngagedWith(Unit* who) override
+            void EnterCombat(Unit* who) override
             {
                 _scheduler.Schedule(Seconds(1), [this](TaskContext targetAuraCheck)
                 {
@@ -1472,7 +1472,7 @@ class spell_blood_council_shadow_prison : public SpellScriptLoader
             void HandleDummyTick(AuraEffect const* aurEff)
             {
                 if (GetTarget()->isMoving())
-                    GetTarget()->CastSpell(GetTarget(), SPELL_SHADOW_PRISON_DAMAGE, aurEff);
+                    GetTarget()->CastSpell(GetTarget(), SPELL_SHADOW_PRISON_DAMAGE, true, nullptr, aurEff);
             }
 
             void Register() override
@@ -1497,16 +1497,16 @@ class spell_blood_council_shadow_prison_damage : public SpellScriptLoader
         {
             PrepareSpellScript(spell_blood_council_shadow_prison_SpellScript);
 
-            void AddExtraDamage(SpellEffIndex /*effIndex*/)
+            void AddExtraDamage()
             {
                 if (Aura* aur = GetHitUnit()->GetAura(GetSpellInfo()->Id))
                     if (AuraEffect const* eff = aur->GetEffect(EFFECT_1))
-                        SetEffectValue(GetEffectValue() + eff->GetAmount());
+                        SetHitDamage(GetHitDamage() + eff->GetAmount());
             }
 
             void Register() override
             {
-                OnEffectLaunchTarget += SpellEffectFn(spell_blood_council_shadow_prison_SpellScript::AddExtraDamage, EFFECT_0, SPELL_EFFECT_SCHOOL_DAMAGE);
+                OnHit += SpellHitFn(spell_blood_council_shadow_prison_SpellScript::AddExtraDamage);
             }
         };
 

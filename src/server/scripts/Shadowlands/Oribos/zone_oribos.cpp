@@ -45,7 +45,7 @@ private:
         }
     }
 
-    void OnUpdateArea(Player* player, uint32 /*newArea*/, uint32 /*oldArea*/) override
+    void OnUpdateArea(Player* player, uint32 /*newArea*/, uint32 /*oldArea*/)
     {
         if (player->GetAreaId() == 13437) //Ve'nari's Refuge
             if (player->GetQuestStatus(QUEST_INTO_THE_MAW) == QUEST_STATUS_INCOMPLETE)

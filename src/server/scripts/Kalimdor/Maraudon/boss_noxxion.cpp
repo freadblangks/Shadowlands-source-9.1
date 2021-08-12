@@ -69,7 +69,7 @@ public:
             Initialize();
         }
 
-        void JustEngagedWith(Unit* /*who*/) override { }
+        void EnterCombat(Unit* /*who*/) override { }
 
         void SummonAdds(Unit* victim)
         {
@@ -82,7 +82,7 @@ public:
             if (Invisible && InvisibleTimer <= diff)
             {
                 //Become visible again
-                me->SetFaction(FACTION_MONSTER);
+                me->SetFaction(14);
                 me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                 //Noxxion model
                 me->SetDisplayId(11172);
@@ -122,7 +122,7 @@ public:
                 //Interrupt any spell casting
                 //me->m_canMove = true;
                 me->InterruptNonMeleeSpells(false);
-                me->SetFaction(FACTION_FRIENDLY);
+                me->SetFaction(35);
                 me->AddUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                 // Invisible Model
                 me->SetDisplayId(11686);

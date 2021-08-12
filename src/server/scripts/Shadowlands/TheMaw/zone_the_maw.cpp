@@ -19,13 +19,13 @@
 #include "GameObject.h"
 #include "GameObjectAI.h"
 #include "torghast_tower_of_the_damned.h"
-#include "instance_torgast_tower_of_the_damned"
-#include "Scenario_Coldheart_Interstitia"
-#include "Scenario_Mort'regar"
-#include "Scenario_Skoldus_Hall"
-#include "Scenario_The_Fracture_Chambers"
-#include "Scenario_The_Soulforges"
-#include "Scenario_The_Upper_Reaches"
+//#include "instance_torgast_tower_of_the_damned"
+//#include "Scenario_Coldheart_Interstitia"
+//#include "Scenario_Mort'regar"
+//#include "Scenario_Skoldus_Hall"
+//#include "Scenario_The_Fracture_Chambers"
+//#include "Scenario_The_Soulforges"
+//#include "Scenario_The_Upper_Reaches"
 
 enum TheMaw
 {
@@ -161,21 +161,21 @@ struct npc_lady_jaina_proudmoore_166980 : public ScriptedAI
         return true;
     }
 
-    void QuestAccept(Player* player, Quest const* quest) override
-    {
-        if (quest->ID == QUEST_ON_BLACKENED_WINGS)
-        {
-            player->GetScheduler().Schedule(15s, [this, player](TaskContext /*context*/)
-            {
-                if (me && player)
-                {
-                    player->KilledMonsterCredit(166980);
-                    player->GetSceneMgr().PlaySceneByPackageId(2814);
-                }                
-            });
-        }
+   // void QuestAccept(Player* player, Quest const* quest)
+   // {
+    //    if (quest->GetQuestId == QUEST_ON_BLACKENED_WINGS)
+      //  {
+   //         player->GetScheduler().Schedule(15s, [this, player](TaskContext /*context*/)
+     //       {
+       //         if (me && player)
+         //       {
+           //         player->KilledMonsterCredit(166980);
+            //        player->GetSceneMgr().PlaySceneByPackageId(2814);
+              //  }                
+           // });
+        //}
     };
-};
+//}
 
 //326260
 struct spell_dominating : public SpellScript
@@ -255,11 +255,11 @@ struct go_portal_to_torghast : public GameObjectAI
 
     void Reset() override
     {
-        go->GetScheduler().CancelAll();
-        go->GetScheduler().Schedule(1s, [this] (TaskContext context)
+  //      go->GetScheduler().CancelAll();
+    //    go->GetScheduler().Schedule(1s, [this] (TaskContext context)
         {
             std::list<Player*> playerList;
-            go->GetPlayerListInGrid(playerList, 3.0f);
+      //      go->GetPlayerListInGrid(playerList, 3.0f);
             if (playerList.empty())
                 return;
 
@@ -269,9 +269,9 @@ struct go_portal_to_torghast : public GameObjectAI
                     players->TeleportTo(2162, 1646.942f, 2315.244f, 383.060f, 4.733f);
             }
 
-            if (go->IsInWorld())
-                context.Repeat(3s);
-        });
+        //    if (go->IsInWorld())
+          //      context.Repeat(3s);
+       // });
     }
 };
 

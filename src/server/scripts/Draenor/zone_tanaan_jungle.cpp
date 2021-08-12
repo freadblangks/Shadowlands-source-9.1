@@ -1,5 +1,5 @@
 /*
-* Copyright 2021 ShadowCore
+* Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
 *
 * This program is free software; you can redistribute it and/or modify it
 * under the terms of the GNU General Public License as published by the
@@ -67,10 +67,8 @@ public:
     void OnPlayerExit(Player* player) override
     {
         if (!player->IsBeingTeleportedFar())
-        {
             if (player->GetMapId() == TANAAN_JUNGLE_100_PHASE_MAP)
                 player->SeamlessTeleportToMap(MAP_DRAENOR);
-        }
     }
 };
 

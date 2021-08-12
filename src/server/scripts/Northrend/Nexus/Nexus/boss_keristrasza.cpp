@@ -91,11 +91,11 @@ class boss_keristrasza : public CreatureScript
                 _Reset();
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
                 Talk(SAY_AGGRO);
                 DoCastAOE(SPELL_INTENSE_COLD);
-                _JustEngagedWith();
+                _EnterCombat();
 
                 events.ScheduleEvent(EVENT_CRYSTAL_FIRE_BREATH, 14000);
                 events.ScheduleEvent(EVENT_CRYSTAL_CHAINS_CRYSTALIZE, DUNGEON_MODE(30000, 11000));
@@ -116,7 +116,7 @@ class boss_keristrasza : public CreatureScript
 
             bool CheckContainmentSpheres(bool removePrison = false)
             {
-                for (uint32 i = ANOMALUS_CONTAINMENT_SPHERE; i < (ANOMALUS_CONTAINMENT_SPHERE + DATA_CONTAINMENT_SPHERES); ++i)
+                for (uint32 i = ANOMALUS_CONTAINMET_SPHERE; i < (ANOMALUS_CONTAINMET_SPHERE + DATA_CONTAINMENT_SPHERES); ++i)
                 {
                     GameObject* containmentSpheres = ObjectAccessor::GetGameObject(*me, instance->GetGuidData(i));
                     if (!containmentSpheres || containmentSpheres->GetGoState() != GO_STATE_ACTIVE)
@@ -144,7 +144,7 @@ class boss_keristrasza : public CreatureScript
                 }
             }
 
-            void SetGUID(ObjectGuid const& guid, int32 id) override
+            void SetGUID(ObjectGuid guid, int32 id/* = 0 */) override
             {
                 if (id == DATA_INTENSE_COLD)
                     _intenseColdList.push_back(guid);
@@ -221,31 +221,22 @@ class containment_sphere : public GameObjectScript
 public:
     containment_sphere() : GameObjectScript("containment_sphere") { }
 
-    struct containment_sphereAI : public GameObjectAI
+    bool OnGossipHello(Player* /*player*/, GameObject* go) override
     {
-        containment_sphereAI(GameObject* go) : GameObjectAI(go), instance(go->GetInstanceScript()) { }
+        InstanceScript* instance = go->GetInstanceScript();
 
-        InstanceScript* instance;
-
-        bool GossipHello(Player* /*player*/) override
+        Creature* pKeristrasza = ObjectAccessor::GetCreature(*go, instance->GetGuidData(DATA_KERISTRASZA));
+        if (pKeristrasza && pKeristrasza->IsAlive())
         {
-            Creature* keristrasza = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_KERISTRASZA));
-            if (keristrasza && keristrasza->IsAlive())
-            {
-                // maybe these are hacks :(
-                me->AddFlag(GO_FLAG_NOT_SELECTABLE);
-                me->SetGoState(GO_STATE_ACTIVE);
+            // maybe these are hacks :(
+            go->AddFlag(GO_FLAG_NOT_SELECTABLE);
+            go->SetGoState(GO_STATE_ACTIVE);
 
-                ENSURE_AI(boss_keristrasza::boss_keristraszaAI, keristrasza->AI())->CheckContainmentSpheres(true);
-            }
-            return true;
+            ENSURE_AI(boss_keristrasza::boss_keristraszaAI, pKeristrasza->AI())->CheckContainmentSpheres(true);
         }
-    };
-
-    GameObjectAI* GetAI(GameObject* go) const override
-    {
-        return GetNexusAI<containment_sphereAI>(go);
+        return true;
     }
+
 };
 
 class spell_intense_cold : public SpellScriptLoader

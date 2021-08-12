@@ -122,9 +122,9 @@ struct boss_teron_gorefiend : public BossAI
         }
     }
 
-    void JustEngagedWith(Unit* /*who*/) override
+    void EnterCombat(Unit* /*who*/) override
     {
-        _JustEngagedWith();
+        _EnterCombat();
         Talk(SAY_AGGRO);
         events.SetPhase(PHASE_COMBAT);
         events.ScheduleEvent(EVENT_ENRAGE, Minutes(10));
@@ -170,10 +170,10 @@ struct boss_teron_gorefiend : public BossAI
         if (!events.IsInPhase(PHASE_INTRO) && !UpdateVictim())
             return;
 
-        events.Update(diff);
-
         if (me->HasUnitState(UNIT_STATE_CASTING))
             return;
+
+        events.Update(diff);
 
         while (uint32 eventId = events.ExecuteEvent())
         {
@@ -199,7 +199,7 @@ struct boss_teron_gorefiend : public BossAI
                     events.Repeat(Seconds(30), Seconds(35));
                     break;
                 case EVENT_CRUSHING_SHADOWS:
-                    DoCastSelf(SPELL_CRUSHING_SHADOWS, { SPELLVALUE_MAX_TARGETS, 5 });
+                    me->CastCustomSpell(SPELL_CRUSHING_SHADOWS, SPELLVALUE_MAX_TARGETS, 5, me);
                     Talk(SAY_CRUSHING);
                     events.Repeat(Seconds(18), Seconds(30));
                     break;
@@ -233,7 +233,7 @@ struct npc_doom_blossom : public NullCreatureAI
 
         DoCast(SPELL_SUMMON_BLOSSOM_MOVE_TARGET);
         _scheduler.CancelAll();
-        DoZoneInCombat();
+        me->SetInCombatWithZone();
         _scheduler.Schedule(Seconds(12), [this](TaskContext shadowBolt)
         {
             if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))

@@ -59,7 +59,7 @@ public:
 
         void Reset() override { }
 
-        void JustEngagedWith(Unit* /*who*/) override { }
+        void EnterCombat(Unit* /*who*/) override { }
 
         void AttackStart(Unit* /*who*/) override { }
 
@@ -67,9 +67,6 @@ public:
 
         void JustDied(Unit* killer) override
         {
-            if (!killer)
-                return;
-
             uint32 spawnCreatureID = 0;
 
             switch (urand(0, 2))
@@ -253,7 +250,7 @@ public:
             me->SetDisplayFromModel(1);
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
             _events.ScheduleEvent(EVENT_UPPERCUT,      15 * IN_MILLISECONDS);
             _events.ScheduleEvent(EVENT_IMMOLATE,      10 * IN_MILLISECONDS);
@@ -264,18 +261,18 @@ public:
         {
             me->SetObjectScale(1.0f);
             _events.Reset();
-
-            if (!killer)
-                return;
-
             if (Creature* legoso = me->FindNearestCreature(NPC_LEGOSO, SIZE_OF_GRIDS))
             {
-                Group* group = me->GetLootRecipientGroup();
-
-                if (killer->GetGUID() == legoso->GetGUID() ||
-                    (group && group->IsMember(killer->GetGUID())) ||
-                    killer->GetGUID() == legoso->AI()->GetGUID(DATA_EVENT_STARTER_GUID))
-                    legoso->AI()->DoAction(ACTION_LEGOSO_SIRONAS_KILLED);
+                for (Group* group : me->GetLootRecipientGroups())
+                {
+                    if (killer->GetGUID() == legoso->GetGUID() ||
+                        (group && group->IsMember(killer->GetGUID())) ||
+                        killer->GetGUID() == legoso->AI()->GetGUID(DATA_EVENT_STARTER_GUID))
+                    {
+                        legoso->AI()->DoAction(ACTION_LEGOSO_SIRONAS_KILLED);
+                        break;
+                    }
+                }
             }
         }
 
@@ -387,7 +384,7 @@ public:
             return ObjectGuid::Empty;
         }
 
-        void SetGUID(ObjectGuid const& guid, int32 type) override
+        void SetGUID(ObjectGuid guid, int32 type) override
         {
             switch (type)
             {
@@ -506,7 +503,7 @@ public:
                             _explosivesGuids.clear();
                             for (uint8 i = 0; i != MAX_EXPLOSIVES; ++i)
                             {
-                                if (GameObject* explosive = me->SummonGameObject(GO_DRAENEI_EXPLOSIVES_1, ExplosivesPos[0][i], QuaternionData::fromEulerAnglesZYX(ExplosivesPos[0][i].GetOrientation(), 0.0f, 0.0f), 0))
+                                if (GameObject* explosive = me->SummonGameObject(GO_DRAENEI_EXPLOSIVES_1, ExplosivesPos[0][i], QuaternionData(), 0))
                                     _explosivesGuids.push_back(explosive->GetGUID());
                             }
                             me->HandleEmoteCommand(EMOTE_ONESHOT_NONE); // reset anim state
@@ -602,7 +599,7 @@ public:
                             _explosivesGuids.clear();
                             for (uint8 i = 0; i != MAX_EXPLOSIVES; ++i)
                             {
-                                if (GameObject* explosive = me->SummonGameObject(GO_DRAENEI_EXPLOSIVES_2, ExplosivesPos[1][i], QuaternionData::fromEulerAnglesZYX(ExplosivesPos[1][i].GetOrientation(), 0.0f, 0.0f), 0))
+                                if (GameObject* explosive = me->SummonGameObject(GO_DRAENEI_EXPLOSIVES_2, ExplosivesPos[1][i], QuaternionData(), 0))
                                     _explosivesGuids.push_back(explosive->GetGUID());
                             }
                             Talk(SAY_LEGOSO_15);

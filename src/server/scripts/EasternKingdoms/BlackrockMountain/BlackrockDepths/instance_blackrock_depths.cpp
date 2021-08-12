@@ -379,7 +379,7 @@ public:
                         boss->CombatStop(true);
                         boss->LoadCreaturesAddon();
                         boss->GetMotionMaster()->MoveTargetedHome();
-                        boss->SetLootRecipient(nullptr);
+                        boss->ResetLootRecipients();
                     }
                     boss->SetFaction(FACTION_FRIENDLY);
                 }

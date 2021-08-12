@@ -157,7 +157,6 @@ public:
                 Talk(EMOTE_SUMMON);
                 events.SetPhase(PHASE_INTRO);
                 me->setActive(true);
-                me->SetFarVisible(true);
                 me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                 me->GetMotionMaster()->MoveAlongSplineChain(POINT_INTRO_START, SPLINE_CHAIN_INTRO_START, false);
                 HandleTerraceDoors(false);
@@ -181,9 +180,9 @@ public:
             instance->HandleGameObject(instance->GetGuidData(DATA_MASTERS_TERRACE_DOOR_2), open);
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
-            _JustEngagedWith();
+            _EnterCombat();
             Talk(YELL_AGGRO);
             SetupGroundPhase();
         }
@@ -300,7 +299,7 @@ public:
                     break;
                 case EVENT_INTRO_LANDING:
                     me->SetImmuneToPC(false);
-                    DoZoneInCombat();
+                    me->SetInCombatWithZone();
                     break;
                 case EVENT_LAND:
                     Talk(YELL_LAND_PHASE);

@@ -150,7 +150,7 @@ class instance_uldaman : public InstanceMapScript
 
             void SetFrozenState(Creature* creature)
             {
-                creature->SetFaction(FACTION_FRIENDLY);
+                creature->SetFaction(35);
                 creature->RemoveAllAuras();
                 creature->AddUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                 creature->SetControlled(true, UNIT_STATE_ROOT);
@@ -185,7 +185,7 @@ class instance_uldaman : public InstanceMapScript
                         if (!target || !target->IsAlive())
                             continue;
                         target->SetControlled(false, UNIT_STATE_ROOT);
-                        target->SetFaction(FACTION_MONSTER);
+                        target->SetFaction(14);
                         target->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                         target->RemoveAura(SPELL_MINION_FREEZE_ANIM);
 
@@ -206,11 +206,11 @@ class instance_uldaman : public InstanceMapScript
                 for (GuidVector::const_iterator i = archaedasWallMinions.begin(); i != archaedasWallMinions.end(); ++i)
                 {
                     Creature* target = instance->GetCreature(*i);
-                    if (!target || !target->IsAlive() || target->GetFaction() == FACTION_MONSTER)
+                    if (!target || !target->IsAlive() || target->GetFaction() == 14)
                         continue;
                     target->SetControlled(false, UNIT_STATE_ROOT);
                     target->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
-                    target->SetFaction(FACTION_MONSTER);
+                    target->SetFaction(14);
                     target->RemoveAura(SPELL_MINION_FREEZE_ANIM);
                     archaedas->CastSpell(target, SPELL_AWAKEN_VAULT_WALKER, true);
                     target->CastSpell(target, SPELL_ARCHAEDAS_AWAKEN, true);
@@ -260,8 +260,6 @@ class instance_uldaman : public InstanceMapScript
                 {
                     archaedas->RemoveAura(SPELL_FREEZE_ANIM);
                     archaedas->CastSpell(archaedas, SPELL_ARCHAEDAS_AWAKEN, false);
-                    archaedas->SetFaction(FACTION_TITAN);
-                    archaedas->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                     whoWokeuiArchaedasGUID = target;
                 }
             }
@@ -272,7 +270,7 @@ class instance_uldaman : public InstanceMapScript
                 if (!ironaya)
                     return;
 
-                ironaya->SetFaction(FACTION_TITAN);
+                ironaya->SetFaction(415);
                 ironaya->SetControlled(false, UNIT_STATE_ROOT);
                 ironaya->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
 

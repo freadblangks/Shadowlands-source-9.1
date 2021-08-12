@@ -83,7 +83,7 @@ struct boss_tunk : public BossAI
         me->GetPlayerListInGrid(playerList, 100.0f);
         for (auto& players : playerList)
         {
-            me->SetLootRecipient(players);
+           // me->SetLootRecipient(players);
         }
     }
 };

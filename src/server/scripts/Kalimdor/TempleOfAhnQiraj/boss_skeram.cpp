@@ -130,9 +130,9 @@ class boss_skeram : public CreatureScript
                     me->DespawnOrUnsummon();
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
-                _JustEngagedWith();
+                _EnterCombat();
                 events.Reset();
 
                 events.ScheduleEvent(EVENT_ARCANE_EXPLOSION, urand(6000, 12000));
@@ -242,7 +242,7 @@ public:
     class spell_skeram_true_fulfillment_SpellScript : public SpellScript
     {
         PrepareSpellScript(spell_skeram_true_fulfillment_SpellScript);
-        
+
         bool Validate(SpellInfo const* /*spellInfo*/) override
         {
             return ValidateSpellInfo({ SPELL_TRUE_FULFILLMENT_2, SPELL_GENERIC_DISMOUNT });

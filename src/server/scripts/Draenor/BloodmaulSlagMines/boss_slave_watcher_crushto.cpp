@@ -1,5 +1,6 @@
 /*
- * Copyright 2021 ShadowCore
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -145,6 +146,17 @@ namespace Instances
                         if (target == nullptr)
                             return;
 
+                        /// Handling Earth Crush damages.
+                        if (spellInfo->Id == uint32(Spells::EarthCrush3) && target->GetEntry() == uint32(MobEntries::EarthCrushStalker))
+                        {
+                            /*MS::ScriptUtils::ApplyOnEveryPlayer(me, [&](Unit* p_Me, Player* p_Plr)
+                            {
+                                /// We check if players are in not behind the boss and if they are in the line.
+                                if (p_Me->isInFront(p_Plr) && DistanceFromLine(*p_Me, m_LastEarthCrushStalkerPosition, *p_Plr) < 2.0f && p_Me->GetExactDist2d(p_Plr) < 40.0f)
+                                    p_Me->CastSpell(p_Plr, uint32(Spells::EarthCrush3), true);
+                            });*/
+                        }
+
                         /// Handling fear after Ferocious Yell.
                         if (spellInfo->Id == uint32(Spells::FerociousYell))
                         {
@@ -156,7 +168,7 @@ namespace Instances
                             else
                             {
                                 if (Unit* target = me->GetVictim())
-                                    target->AddThreat(target, 10000.0f);
+                                    AddThreat(target, 10000.0f);
                             }
                         }
                     }

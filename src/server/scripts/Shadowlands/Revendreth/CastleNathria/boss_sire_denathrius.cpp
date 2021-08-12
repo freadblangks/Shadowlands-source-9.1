@@ -152,7 +152,7 @@ private:
         me->SetPowerType(POWER_ENERGY);
         me->SetMaxPower(POWER_ENERGY, 100);
         me->SetPower(POWER_ENERGY, 0);
-        me->AddAura(AURA_OVERRIDE_POWER_COLOR_RAGE);
+       // me->AddAura(AURA_OVERRIDE_POWER_COLOR_RAGE);
         introConversation = false;
         intermission = false;
         stage_two = false;
@@ -305,17 +305,17 @@ private:
         case SPELL_SHATTERING_PAIN_TRIGGER:
             me->AddAura(SPELL_SHATTERING_PAIN_ALLOW_CAST);
             me->CastSpell(nullptr, SPELL_SHATTERING_PAIN_TRIGGER);
-            if (Unit* target = SelectTarget(SELECT_TARGET_TOPAGGRO, 0, 25.0f, true))
-            {
-                me->CastSpell(target, SPELL_SHATTERING_PAIN_DAMAGE, true);
-                me->GetScheduler().Schedule(3100ms, [this](TaskContext /*context*/)
-                {
-                    me->CastSpell(nullptr, SPELL_SHATTERING_PAIN_DAMAGE_KNOCK, true);
-                });
-            }
-            events.Repeat(25s);
-            break;
-
+         //   if (Unit* target = SelectTarget(SELECT_TARGET_TOPAGGRO, 0, 25.0f, true))
+           // {
+             //   me->CastSpell(target, SPELL_SHATTERING_PAIN_DAMAGE, true);
+              //  me->GetScheduler().Schedule(3100ms, [this](TaskContext /*context*/)
+               // {
+                 //   me->CastSpell(nullptr, SPELL_SHATTERING_PAIN_DAMAGE_KNOCK, true);
+               // });
+           // }
+           // events.Repeat(25s);
+           // break;
+            
         case SPELL_FATAL_FINESSE_PERIODIC_DAMAGE:
             UnitList targetList;
             SelectTargetList(targetList, (urand(3, 4)), SELECT_TARGET_RANDOM, 100.0f, true);
@@ -339,7 +339,7 @@ private:
         }
     }
 
-    void DoAction(int32 action) override
+    void DoAction(int32 action)
     {
         switch (action)
         {
@@ -534,22 +534,22 @@ struct at_massacre : public AreaTriggerAI
     void OnCreate() override
     {
         at->SetDuration(5000);
-        at->SetPeriodicProcTimer(250);
+        //at->SetPeriodicProcTimer(250);
         at->GetCaster()->GetScheduler().Schedule(1500ms, [this](TaskContext /*context*/)
         {
             Position castPos = at->GetCaster()->GetPosition();
             at->MovePosition(castPos, 60.0f, 0.0f);
-            at->SetDestination(castPos, 6000);
+          //  at->SetDestination(castPos, 6000);
         });
     }
 
     void OnPeriodicProc() override
     {
-        VALIDATE_CASTER();
-        GuidUnorderedSet const& getPlayers = at->GetInsidePlayers();
-        if (Unit* target = ObjectAccessor::GetUnit(*caster, *getPlayers.begin()))
-            if (target->IsPlayer() && target != caster)
-                at->GetCaster()->Kill(target, true);
+        //VALIDATE_CASTER();
+        //GuidUnorderedSet const& getPlayers = at->GetInsidePlayers();
+        //if (Unit* target = ObjectAccessor::GetUnit(*caster, *getPlayers.begin()))
+          //  if (target->IsPlayer() && target != caster)
+            //    at->GetCaster()->Kill(target, true);
     }
 };
 

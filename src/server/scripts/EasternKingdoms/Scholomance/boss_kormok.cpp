@@ -65,7 +65,7 @@ public:
             events.Reset();
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
             events.ScheduleEvent(EVENT_SHADOWBOLT_VOLLEY, 10000);
             events.ScheduleEvent(EVENT_BONE_SHIELD, 2000);

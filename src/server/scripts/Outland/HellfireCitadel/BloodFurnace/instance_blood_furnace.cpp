@@ -294,7 +294,7 @@ class instance_blood_furnace : public InstanceMapScript
                     {
                         prisoner->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
                         prisoner->SetImmuneToAll(false);
-                        prisoner->AI()->DoZoneInCombat();
+                        prisoner->SetInCombatWithZone();
                     }
             }
 

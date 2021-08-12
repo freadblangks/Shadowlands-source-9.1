@@ -234,7 +234,7 @@ public:
             me->AddAura(id, me);
         }
 
-        void JustEngagedWith(Unit* who) override
+        void EnterCombat(Unit* who) override
         {
             if (gatherOthersWhenAggro)
                 GetOtherSentinels(who);

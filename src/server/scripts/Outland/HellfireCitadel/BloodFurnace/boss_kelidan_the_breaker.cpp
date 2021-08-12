@@ -100,9 +100,9 @@ class boss_kelidan_the_breaker : public CreatureScript
                 me->SetImmuneToAll(true);
             }
 
-            void JustEngagedWith(Unit* who) override
+            void EnterCombat(Unit* who) override
             {
-                _JustEngagedWith();
+                _EnterCombat();
                 Talk(SAY_WAKE);
                 if (me->IsNonMeleeSpellCast(false))
                     me->InterruptNonMeleeSpells(true);
@@ -301,7 +301,7 @@ class npc_shadowmoon_channeler : public CreatureScript
                     me->InterruptNonMeleeSpells(true);
             }
 
-            void JustEngagedWith(Unit* who) override
+            void EnterCombat(Unit* who) override
             {
                 if (Creature* Kelidan = me->FindNearestCreature(ENTRY_KELIDAN, 100))
                     ENSURE_AI(boss_kelidan_the_breaker::boss_kelidan_the_breakerAI, Kelidan->AI())->ChannelerEngaged(who);
@@ -312,11 +312,8 @@ class npc_shadowmoon_channeler : public CreatureScript
 
             void JustDied(Unit* killer) override
             {
-                if (!killer)
-                    return;
-
-                if (Creature* Kelidan = me->FindNearestCreature(ENTRY_KELIDAN, 100))
-                    ENSURE_AI(boss_kelidan_the_breaker::boss_kelidan_the_breakerAI, Kelidan->AI())->ChannelerDied(killer);
+               if (Creature* Kelidan = me->FindNearestCreature(ENTRY_KELIDAN, 100))
+                   ENSURE_AI(boss_kelidan_the_breaker::boss_kelidan_the_breakerAI, Kelidan->AI())->ChannelerDied(killer);
             }
 
             void UpdateAI(uint32 diff) override

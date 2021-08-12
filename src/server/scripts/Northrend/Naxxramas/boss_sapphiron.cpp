@@ -175,9 +175,9 @@ class boss_sapphiron : public CreatureScript
                 damage = me->GetHealth()-1; // don't die during air phase
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
-                _JustEngagedWith();
+                _EnterCombat();
 
                 me->CastSpell(me, SPELL_FROST_AURA, true);
 
@@ -440,9 +440,9 @@ struct npc_sapphiron_blizzard : public ScriptedAI
         return data == DATA_BLIZZARD_TARGET ? _targetGuid : ObjectGuid::Empty;
     }
 
-    void SetGUID(ObjectGuid const& guid, int32 id) override
+    void SetGUID(ObjectGuid guid, int32 data)  override
     {
-        if (id == DATA_BLIZZARD_TARGET)
+        if (data == DATA_BLIZZARD_TARGET)
             _targetGuid = guid;
     }
 

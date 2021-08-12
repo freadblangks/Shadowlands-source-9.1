@@ -1,5 +1,6 @@
 /*
- * Copyright 2021 ShadowCore
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -51,7 +52,7 @@ namespace Instances { namespace Bloodmaul
                 Magmolatus          = 74475,
                 ForgemasterGogduh   = 74366
             };
-                
+
             enum Yells
             {
                 Aggro           = 0,
@@ -354,7 +355,7 @@ namespace Instances { namespace Bloodmaul
                             break;
                         default:
                             break;
-                                
+
                     }
                 }
 
@@ -891,7 +892,7 @@ namespace Instances { namespace Bloodmaul
     {
         public:
             spell_withering_flames() : SpellScriptLoader("spell_withering_flames") { }
- 
+
             enum Spells
             {
                 ChokingAshes = 150034
@@ -910,7 +911,7 @@ namespace Instances { namespace Bloodmaul
                     if (Unit* target = caster->SelectNearbyTarget(GetOwner()->ToUnit(), VISIBLE_RANGE/*, (uint32)Spells::ChokingAshes*/))
                         caster->CastSpell(target, (uint32)Spells::ChokingAshes, true);
                 }
- 
+
                 void Register() override
                 {
                     OnEffectPeriodic += AuraEffectPeriodicFn(spell_withering_flames_AuraScript::OnPeriodic, EFFECT_0, SPELL_AURA_PERIODIC_DAMAGE);
@@ -1074,7 +1075,7 @@ namespace Instances { namespace Bloodmaul
                 destinationPosition.m_positionZ = at->GetPositionZ();
                 at->GetCaster()->UpdateGroundPositionZ(destinationPosition.m_positionX, destinationPosition.m_positionY, destinationPosition.m_positionZ);
                 destinationPosition.SetOrientation(orientation);
-                at->SetDestination(destinationPosition, 2000);
+                //at->SetDestination(destinationPosition, 2000);
             }
 
             void OnUpdate(uint32 /*diff*/) override
@@ -1147,7 +1148,7 @@ namespace Instances { namespace Bloodmaul
                 destinationPosition.m_positionZ = at->GetPositionZ();
                 at->GetCaster()->UpdateGroundPositionZ(destinationPosition.m_positionX, destinationPosition.m_positionY, destinationPosition.m_positionZ);
                 destinationPosition.SetOrientation(orientation);
-                at->SetDestination(destinationPosition, 2000);
+                //at->SetDestination(destinationPosition, 2000);
             }
 
             void OnUpdate(uint32 /*diff*/) override

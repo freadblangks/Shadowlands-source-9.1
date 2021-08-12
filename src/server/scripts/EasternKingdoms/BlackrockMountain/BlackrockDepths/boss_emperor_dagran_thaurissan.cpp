@@ -56,7 +56,7 @@ class boss_emperor_dagran_thaurissan : public CreatureScript
                 _events.Reset();
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
                 Talk(SAY_AGGRO);
                 me->CallForHelp(VISIBLE_RANGE);
@@ -75,7 +75,7 @@ class boss_emperor_dagran_thaurissan : public CreatureScript
                 if (Creature* moira = ObjectAccessor::GetCreature(*me, _instance->GetGuidData(DATA_MOIRA)))
                 {
                     moira->AI()->EnterEvadeMode();
-                    moira->SetFaction(FACTION_FRIENDLY);
+                    moira->SetFaction(35);
                 }
             }
 

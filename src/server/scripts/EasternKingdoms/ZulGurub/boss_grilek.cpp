@@ -47,7 +47,7 @@ class boss_grilek : public CreatureScript
             {
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
             }
 

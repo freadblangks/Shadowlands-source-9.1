@@ -69,7 +69,7 @@ public:
             }
         }
 
-        void JustEngagedWith(Unit* /*who*/) override { }
+        void EnterCombat(Unit* /*who*/) override { }
 
         void Reset() override { }
 
@@ -80,7 +80,7 @@ public:
                 player->FailQuest(QUEST_BITTER_DEPARTURE);
         }
 
-        void UpdateAI(uint32 uiDiff) override
+       void UpdateAI(uint32 uiDiff) override
         {
             EscortAI::UpdateAI(uiDiff);
             if (!UpdateVictim())
@@ -88,27 +88,30 @@ public:
             DoMeleeAttackIfReady();
         }
 
-        bool GossipSelect(Player* player, uint32 menuId, uint32 gossipListId) override
+       bool GossipSelect(Player* player, uint32 menuId, uint32 gossipListId) override
         {
             if (menuId == GOSSIP_ID && gossipListId == GOSSIP_OPTION_ID)
             {
                 CloseGossipMenuFor(player);
-                me->SetFaction(FACTION_ESCORTEE_N_NEUTRAL_PASSIVE);
+                me->SetFaction(113);
                 Start(true, true, player->GetGUID());
             }
-            return false;
-        }
 
-        void QuestAccept(Player* /*player*/, Quest const* quest) override
-        {
-            if (quest->GetQuestId() == QUEST_BITTER_DEPARTURE)
-                Talk(SAY_QUEST_ACCEPT);
+            return false;
         }
     };
 
     CreatureAI* GetAI(Creature* creature) const override
     {
         return new npc_injured_goblinAI(creature);
+    }
+
+    bool OnQuestAccept(Player* /*player*/, Creature* creature, Quest const* quest) override
+    {
+        if (quest->GetQuestId() == QUEST_BITTER_DEPARTURE)
+            creature->AI()->Talk(SAY_QUEST_ACCEPT);
+
+        return false;
     }
 };
 
@@ -128,49 +131,38 @@ class npc_roxi_ramrocket : public CreatureScript
 public:
     npc_roxi_ramrocket() : CreatureScript("npc_roxi_ramrocket") { }
 
-    struct npc_roxi_ramrocketAI : public ScriptedAI
+    bool OnGossipHello(Player* player, Creature* creature) override
     {
-        npc_roxi_ramrocketAI(Creature* creature) : ScriptedAI(creature) { }
+        //Quest Menu
+        if (creature->IsQuestGiver())
+            player->PrepareQuestMenu(creature->GetGUID());
 
-        bool GossipHello(Player* player) override
-        {
-            //Quest Menu
-            if (me->IsQuestGiver())
-                player->PrepareQuestMenu(me->GetGUID());
+        //Trainer Menu
+        if (creature->IsTrainer())
+            AddGossipItemFor(player, GOSSIP_ICON_TRAINER, GOSSIP_TEXT_TRAIN, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_TRAIN);
 
-            //Trainer Menu
-            if (me->IsTrainer())
-                AddGossipItemFor(player, GOSSIP_ICON_TRAINER, GOSSIP_TEXT_TRAIN, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_TRAIN);
+        //Vendor Menu
+        if (creature->IsVendor())
+            if (player->HasSpell(SPELL_MECHANO_HOG) || player->HasSpell(SPELL_MEKGINEERS_CHOPPER))
+                AddGossipItemFor(player, GOSSIP_ICON_VENDOR, GOSSIP_TEXT_BROWSE_GOODS, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_TRADE);
 
-            //Vendor Menu
-            if (me->IsVendor())
-                if (player->HasSpell(SPELL_MECHANO_HOG) || player->HasSpell(SPELL_MEKGINEERS_CHOPPER))
-                    AddGossipItemFor(player, GOSSIP_ICON_VENDOR, GOSSIP_TEXT_BROWSE_GOODS, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_TRADE);
+        SendGossipMenuFor(player, player->GetGossipTextId(creature), creature->GetGUID());
+        return true;
+    }
 
-            SendGossipMenuFor(player, player->GetGossipTextId(me), me->GetGUID());
-            return true;
-        }
-
-        bool GossipSelect(Player* player, uint32 /*menuId*/, uint32 gossipListId) override
-        {
-            uint32 const action = player->PlayerTalkClass->GetGossipOptionAction(gossipListId);
-            ClearGossipMenuFor(player);
-            switch (action)
-            {
-                case GOSSIP_ACTION_TRAIN:
-                    player->GetSession()->SendTrainerList(me, TRAINER_ID_ROXI_RAMROCKET);
-                    break;
-                case GOSSIP_ACTION_TRADE:
-                    player->GetSession()->SendListInventory(me->GetGUID());
-                    break;
-            }
-            return true;
-        }
-    };
-
-    CreatureAI* GetAI(Creature* creature) const override
+    bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action) override
     {
-        return new npc_roxi_ramrocketAI(creature);
+        ClearGossipMenuFor(player);
+        switch (action)
+        {
+        case GOSSIP_ACTION_TRAIN:
+            player->GetSession()->SendTrainerList(creature, TRAINER_ID_ROXI_RAMROCKET);
+            break;
+        case GOSSIP_ACTION_TRADE:
+            player->GetSession()->SendListInventory(creature->GetGUID());
+            break;
+        }
+        return true;
     }
 };
 
@@ -255,8 +247,6 @@ enum FreedProtoDrake
 {
     NPC_DRAKE                           = 29709,
 
-    AREA_VALLEY_OF_ANCIENT_WINTERS      = 4437,
-
     TEXT_EMOTE                          = 0,
 
     SPELL_KILL_CREDIT_PRISONER          = 55144,
@@ -301,7 +291,7 @@ public:
             switch (events.ExecuteEvent())
             {
                 case EVENT_CHECK_AREA:
-                    if (me->GetAreaId() == AREA_VALLEY_OF_ANCIENT_WINTERS)
+                    if (me->GetAreaId() == AREA_STORM_PEAKS_VALLEY_ANCIENT_WINTERS)
                     {
                         if (Vehicle* vehicle = me->GetVehicleKit())
                             if (Unit* passenger = vehicle->GetPassenger(0))
@@ -352,7 +342,7 @@ public:
         npc_icefangAI(Creature* creature) : EscortAI(creature) { }
 
         void AttackStart(Unit* /*who*/) override { }
-        void JustEngagedWith(Unit* /*who*/) override { }
+        void EnterCombat(Unit* /*who*/) override { }
         void EnterEvadeMode(EvadeReason /*why*/) override { }
 
         void PassengerBoarded(Unit* who, int8 /*seatId*/, bool apply) override
@@ -509,7 +499,7 @@ public:
                     case EVENT_SCRIPT_1:
                         if (Player* player = ObjectAccessor::GetPlayer(*me, playerGUID))
                             Talk(SAY_BRANN_1, player);
-                        me->RemoveUnitFlag(UnitFlags(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER));
+                        me->RemoveNpcFlag(NPCFlags(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER));
                         if (Creature* voice = me->SummonCreature(NPC_A_DISTANT_VOICE, 7863.43f, -1396.585f, 1538.076f, 2.949606f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 49000))
                             voiceGUID = voice->GetGUID();
                         events.ScheduleEvent(EVENT_SCRIPT_2, 4000);
@@ -829,7 +819,7 @@ public:
             if (seatId != SEAT_INITIAL)
                 return;
 
-            me->CastSpell(nullptr, SPELL_GRIP, CastSpellExtraArgs().AddSpellMod(SPELLVALUE_AURA_STACK, 50));
+            me->CastCustomSpell(SPELL_GRIP, SPELLVALUE_AURA_STACK, 50);
             DoCastAOE(SPELL_CLAW_SWIPE_PERIODIC);
 
             _scheduler.Async([this]

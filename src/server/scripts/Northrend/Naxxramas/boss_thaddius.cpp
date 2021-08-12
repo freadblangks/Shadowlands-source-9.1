@@ -208,17 +208,10 @@ struct boss_thaddius : public BossAI
         {
             _JustDied();
             me->setActive(false);
-            me->SetFarVisible(false);
             if (Creature* stalagg = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_STALAGG)))
-            {
                 stalagg->setActive(false);
-                stalagg->SetFarVisible(false);
-            }
             if (Creature* feugen = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_FEUGEN)))
-            {
                 feugen->setActive(false);
-                feugen->SetFarVisible(false);
-            }
             Talk(SAY_DEATH);
         }
 
@@ -247,18 +240,11 @@ struct boss_thaddius : public BossAI
                     instance->SetBossState(BOSS_THADDIUS, IN_PROGRESS);
 
                     me->setActive(true);
-                    me->SetFarVisible(true);
                     DoZoneInCombat();
                     if (Creature* stalagg = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_STALAGG)))
-                    {
                         stalagg->setActive(true);
-                        stalagg->SetFarVisible(true);
-                    }
                     if (Creature* feugen = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_FEUGEN)))
-                    {
                         feugen->setActive(true);
-                        feugen->SetFarVisible(true);
-                    }
                     break;
                 case ACTION_FEUGEN_DIED:
                     if (Creature* feugen = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_FEUGEN)))
@@ -319,7 +305,6 @@ struct boss_thaddius : public BossAI
             me->AddUnitFlag(UnitFlags(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_STUNNED));
             me->SetImmuneToPC(true);
             me->setActive(false);
-            me->SetFarVisible(false);
             if (Creature* feugen = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_FEUGEN)))
                 feugen->AI()->DoAction(ACTION_BEGIN_RESET_ENCOUNTER);
             if (Creature* stalagg = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_STALAGG)))
@@ -511,7 +496,6 @@ public:
                     coil->SetGoState(GO_STATE_READY);
                 me->DespawnOrUnsummon(0, Hours(24*7)); // will be force respawned by thaddius
                 me->setActive(false);
-                me->SetFarVisible(false);
             }
 
             void ResetEncounter()
@@ -579,7 +563,7 @@ public:
                     Talk(SAY_STALAGG_SLAY);
             }
 
-            void JustEngagedWith(Unit* who) override
+            void EnterCombat(Unit* who) override
             {
                 Talk(SAY_STALAGG_AGGRO);
 
@@ -775,7 +759,6 @@ public:
                     coil->SetGoState(GO_STATE_READY);
                 me->DespawnOrUnsummon(0, Hours(24*7)); // will be force respawned by thaddius
                 me->setActive(false);
-                me->SetFarVisible(false);
             }
 
             void DoAction(int32 action) override
@@ -838,7 +821,7 @@ public:
                     Talk(SAY_FEUGEN_SLAY);
             }
 
-            void JustEngagedWith(Unit* who) override
+            void EnterCombat(Unit* who) override
             {
                 Talk(SAY_FEUGEN_AGGRO);
 
@@ -998,7 +981,7 @@ public:
 
         void EnterEvadeMode(EvadeReason /*why*/) override { } // never stop casting due to evade
         void UpdateAI(uint32 /*diff*/) override { } // never do anything unless told
-        void JustEngagedWith(Unit* /*who*/) override { }
+        void EnterCombat(Unit* /*who*/) override { }
         void DamageTaken(Unit* /*who*/, uint32& damage) override { damage = 0; } // no, you can't kill it
     };
 };

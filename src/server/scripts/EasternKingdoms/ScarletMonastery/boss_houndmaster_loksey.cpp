@@ -49,10 +49,10 @@ class boss_houndmaster_loksey : public CreatureScript
                 _Reset();
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
                 Talk(SAY_AGGRO);
-                _JustEngagedWith();
+                _EnterCombat();
                 events.ScheduleEvent(EVENT_BLOODLUST, 20000);
             }
 

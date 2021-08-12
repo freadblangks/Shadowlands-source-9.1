@@ -105,6 +105,7 @@ public:
                 events.Reset();
                 events.ScheduleEvent(EVENT_INTRO_1, 1000);
             }
+
             return false;
         }
 
@@ -200,6 +201,7 @@ public:
                 events.Reset();
                 events.ScheduleEvent(EVENT_INTRO_1, 1000);
             }
+
             return false;
         }
 

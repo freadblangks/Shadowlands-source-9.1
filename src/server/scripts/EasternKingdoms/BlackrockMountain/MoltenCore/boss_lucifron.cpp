@@ -52,9 +52,9 @@ class boss_lucifron : public CreatureScript
             {
             }
 
-            void JustEngagedWith(Unit* victim) override
+            void EnterCombat(Unit* victim) override
             {
-                BossAI::JustEngagedWith(victim);
+                BossAI::EnterCombat(victim);
                 events.ScheduleEvent(EVENT_IMPENDING_DOOM, 10000);
                 events.ScheduleEvent(EVENT_LUCIFRON_CURSE, 20000);
                 events.ScheduleEvent(EVENT_SHADOW_SHOCK, 6000);

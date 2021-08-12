@@ -83,10 +83,15 @@ class boss_vexallus : public CreatureScript
                 Talk(SAY_KILL);
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void JustDied(Unit* /*killer*/) override
+            {
+                _JustDied();
+            }
+
+            void EnterCombat(Unit* /*who*/) override
             {
                 Talk(SAY_AGGRO);
-                _JustEngagedWith();
+                _EnterCombat();
 
                 events.ScheduleEvent(EVENT_CHAIN_LIGHTNING, 8000);
                 events.ScheduleEvent(EVENT_ARCANE_SHOCK, 5000);
@@ -203,8 +208,7 @@ class npc_pure_energy : public CreatureScript
 
             void JustDied(Unit* killer) override
             {
-                if (killer)
-                    killer->CastSpell(killer, SPELL_ENERGY_FEEDBACK, true);
+                killer->CastSpell(killer, SPELL_ENERGY_FEEDBACK, true);
                 me->RemoveAurasDueToSpell(SPELL_PURE_ENERGY_PASSIVE);
             }
         };

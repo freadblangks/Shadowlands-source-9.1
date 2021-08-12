@@ -1,7 +1,20 @@
 /*
-    Dungeon : Shandopan Monastery 87-89
-    Instance General Script
-*/
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef SHADOPAN_MONASTERY_H_
 #define SHADOPAN_MONASTERY_H_
@@ -67,7 +80,7 @@ enum CreaturesIds
 
     NPC_RESIDUAL_OF_HATRED      = 58803,
     NPC_VESTIGE_OF_HATRED       = 58807,
-    NPC_FRAGMENT_OF_HATRED      = 58810,
+    NPC_FRAGMENT_OF_HATRED      = 58810
 };
 
 enum ObjectsIds
@@ -90,14 +103,14 @@ enum ObjectsIds
 enum SharedActions
 {
     ACTION_NOVICE_DONE          = 1,
-    ACTION_MINIBOSS_DONE        = 2,
+    ACTION_MINIBOSS_DONE        = 2
 };
 
 enum SharedSpells
 {
     SPELL_HATE                  = 107085,
     SPELL_HAZE_OF_HATE          = 107087,
-    SPELL_HAZE_OF_HATE_VISUAL   = 107217,
+    SPELL_HAZE_OF_HATE_VISUAL   = 107217
 };
 
 #endif // SHADOPAN_MONASTERY_H_

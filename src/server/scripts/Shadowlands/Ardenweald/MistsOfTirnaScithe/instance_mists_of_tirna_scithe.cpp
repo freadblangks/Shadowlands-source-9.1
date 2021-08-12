@@ -17,6 +17,10 @@
 #include "ScriptMgr.h"
 #include "Player.h"
 #include "InstanceScript.h"
+#include <SmartAI.h>
+#include <DungeonFinding/LFGMgr.h>
+#include <OutdoorPvP/OutdoorPvP.h>
+#include <Globals/ObjectMgr.h>
 
 struct instance_mists_of_tirna_scithe : public InstanceScript
 {
@@ -30,9 +34,10 @@ void AddSC_instance_mists_of_tirna_scithe()
 
 struct mist_of_tirna_scithe : public InstanceScript
 {
-	mist_of_tirna_scithe(InstanceMap*) : InstanceScript(map) { }
+  //  mist_of_tirna_scithe(InstanceMap*) : InstanceScript(mist_of_tirna_scithe()) { }
 };	
 void AddSC_mist_of_tirna_scithe()
 {
-	RegisterInstanceScript(mists_of_tirna_scithe,2291);
+    void AddSC_mist_of_tirna_scithe();
+//	RegisterInstanceScript(mists_of_tirna_scithe,2291);
 };

@@ -1,5 +1,6 @@
 /*
- * Copyright 2021 ShadowCore
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -118,7 +119,7 @@ public:
                 if (chargeTimer <= diff)
                 {
                     chargeTimer = 5000;
-                    if (Unit* target = SelectTarget(SELECT_TARGET_NEAREST, 0, 500.0f))
+                    if (Unit* target = SelectTarget(SELECT_TARGET_MINDISTANCE, 0, 500.0f))
                     {
                         if (me->GetMotionMaster()->GetCurrentMovementGeneratorType() == POINT_MOTION_TYPE)
                             me->GetMotionMaster()->MovementExpired();
@@ -525,7 +526,7 @@ public:
             swipeTimer = 1000;
         }
 
-        void MoveInLineOfSight(Unit* who) override 
+        void MoveInLineOfSight(Unit* who) override
         {
             CreatureAI::MoveInLineOfSight(who);
         }

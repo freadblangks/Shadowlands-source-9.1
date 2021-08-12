@@ -73,7 +73,7 @@ class npc_jadespine_basilisk : public CreatureScript
                 Initialize();
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
             }
 
@@ -112,26 +112,16 @@ class npc_jadespine_basilisk : public CreatureScript
 
 class go_keystone_chamber : public GameObjectScript
 {
-    public:
-        go_keystone_chamber() : GameObjectScript("go_keystone_chamber") { }
+public:
+    go_keystone_chamber() : GameObjectScript("go_keystone_chamber") { }
 
-        struct go_keystone_chamberAI : public GameObjectAI
-        {
-            go_keystone_chamberAI(GameObject* go) : GameObjectAI(go), instance(go->GetInstanceScript()) { }
+    bool OnGossipHello(Player* /*player*/, GameObject* go) override
+    {
+        if (InstanceScript* instance = go->GetInstanceScript())
+            instance->SetData(DATA_IRONAYA_SEAL, IN_PROGRESS); //door animation and save state.
 
-            InstanceScript* instance;
-
-            bool GossipHello(Player* /*player*/) override
-            {
-                instance->SetData(DATA_IRONAYA_SEAL, IN_PROGRESS); //door animation and save state.
-                return false;
-            }
-        };
-
-        GameObjectAI* GetAI(GameObject* go) const override
-        {
-            return GetUldamanAI<go_keystone_chamberAI>(go);
-        }
+        return false;
+    }
 };
 
 /*######

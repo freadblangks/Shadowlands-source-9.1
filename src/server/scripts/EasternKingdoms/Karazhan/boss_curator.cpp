@@ -77,9 +77,9 @@ public:
             Talk(SAY_DEATH);
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
-            _JustEngagedWith();
+            _EnterCombat();
             Talk(SAY_AGGRO);
 
             events.ScheduleEvent(EVENT_HATEFUL_BOLT, Seconds(12));

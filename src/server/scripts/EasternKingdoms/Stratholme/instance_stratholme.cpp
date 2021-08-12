@@ -377,11 +377,22 @@ class instance_stratholme : public InstanceMapScript
                         }
                         if (data == DONE)
                         {
-                            HandleGameObject(portGauntletGUID, true);
-                            if (GetData(TYPE_BARON_RUN) == IN_PROGRESS)
+                           HandleGameObject(portGauntletGUID, true);
+                           if (GetData(TYPE_BARON_RUN) == IN_PROGRESS)
+                           { 
                                 DoRemoveAurasDueToSpellOnPlayers(SPELL_BARON_ULTIMATUM);
 
-                            SetData(TYPE_BARON_RUN, DONE);
+                                DoOnPlayers([](Player* player)
+                                {
+                                    if (player->GetQuestStatus(QUEST_DEAD_MAN_PLEA) == QUEST_STATUS_INCOMPLETE)
+                                    {
+                                        player->AreaExploredOrEventHappens(QUEST_DEAD_MAN_PLEA);
+                                        player->KilledMonsterCredit(NPC_YSIDA);
+                                    }
+                                });
+
+                                SetData(TYPE_BARON_RUN, DONE);
+                            }
                         }
                         EncounterState[5] = data;
                         break;

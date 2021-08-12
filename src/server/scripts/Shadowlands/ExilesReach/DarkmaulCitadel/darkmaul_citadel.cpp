@@ -138,7 +138,7 @@ struct npc_captain_garrick_161350 : public ScriptedAI
     {
         if (quest->GetQuestId() == 55992)
         {
-            instance->DoTeleportPlayers(MAP_NPE, exile_reach_after_darkmaul_pos);
+           // instance->DoTeleportPlayers(MAP_NPE, exile_reach_after_darkmaul_pos);
         }
     }
 
@@ -156,38 +156,38 @@ struct npc_captain_garrick_161350 : public ScriptedAI
 
     void ExecuteEvent(uint32 eventId)
     {
-        switch (eventId)
-        {
-            case SPELL_GARRICK_CHARGE:
-            {
-                if (Unit* target = SelectTarget(SELECT_TARGET_FARTHEST, 0, 20.0f, false))
-                    me->CastSpell(target, SPELL_GARRICK_CHARGE, true);
+      //  switch (eventId)
+        //{
+            //case SPELL_GARRICK_CHARGE:
+            //{
+              //  if (Unit* target = SelectTarget(SELECT_TARGET_FARTHEST, 0, 20.0f, false))
+                //    me->CastSpell(target, SPELL_GARRICK_CHARGE, true);
 
-                events.Repeat(15s);
-                break;
-            }
+               // events.Repeat(15s);
+               // break;
+       // }
 
-            case SPELL_GARRICK_SHIELD_SLAM:
-            {
-                if (Unit* target = SelectTarget(SELECT_TARGET_NEAREST, 0, 10.0f, false))
-                {
-                    me->CastSpell(target, SPELL_GARRICK_SHIELD_SLAM, true);
-                    std::list<Creature*> creTargets;
-                    me->GetCreatureListInGrid(creTargets, 25.0f);
-                    for (auto& targets : creTargets)
-                    {
-                        if (Unit* player = me->GetOwner()) // this should never return false... but apparently it has happened (no owner) and caused a crash -Varjgard
-                            if (!targets->IsFriendlyTo(player))
-                            {
-                                me->CastSpell(targets, SPELL_GARRICK_TAUNT, true);
-                                me->AddThreat(targets, 1000.0f, SPELL_SCHOOL_MASK_HOLY);
-                            }
-                    }
-                }
-                events.Repeat(20s);
-                break;
-            }
-        }
+            //case SPELL_GARRICK_SHIELD_SLAM:
+            //{
+            //    if (Unit* target = SelectTarget(SELECT_TARGET_NEAREST, 0, 10.0f, false))
+              //  {
+                //    me->CastSpell(target, SPELL_GARRICK_SHIELD_SLAM, true);
+                  //  std::list<Creature*> creTargets;
+                   // me->GetCreatureListInGrid(creTargets, 25.0f);
+                   // for (auto& targets : creTargets)
+                   // {
+                     //   if (Unit* player = me->GetOwner()) // this should never return false... but apparently it has happened (no owner) and caused a crash -Varjgard
+                       //     if (!targets->IsFriendlyTo(player))
+                     //       {
+                         //       me->CastSpell(targets, SPELL_GARRICK_TAUNT, true);
+          //                      me->AddThreat(targets, 1000.0f, SPELL_SCHOOL_MASK_HOLY);
+                       //     }
+                   // }
+               // }
+               // events.Repeat(20s);
+               // break;
+            //}
+       // }
     }
 };
 

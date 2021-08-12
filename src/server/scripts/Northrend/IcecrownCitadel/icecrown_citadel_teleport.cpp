@@ -68,7 +68,7 @@ class icecrown_citadel_teleport : public GameObjectScript
                     return true;
                 }
 
-                player->CastSpell(player, spell->Id, true);
+                player->CastSpell(player, spell, true);
                 return true;
             }
         };

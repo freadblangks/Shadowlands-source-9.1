@@ -71,8 +71,8 @@ public:
         void LockRageclaw(Creature* rageclaw)
         {
             // pointer check not needed
-            me->SetFacingToObject(rageclaw);
-            rageclaw->SetFacingToObject(me);
+            me->SetInFront(rageclaw);
+            rageclaw->SetInFront(me);
 
             DoCast(rageclaw, SPELL_LEFT_CHAIN, true);
             DoCast(rageclaw, SPELL_RIGHT_CHAIN, true);
@@ -139,7 +139,7 @@ public:
 
         void Reset() override
         {
-            me->SetFaction(FACTION_FRIENDLY);
+            me->SetFaction(35);
             DoCast(me, SPELL_KNEEL, true); // Little Hack for kneel - Thanks Illy :P
         }
 
@@ -308,29 +308,20 @@ class go_scourge_enclosure : public GameObjectScript
 public:
     go_scourge_enclosure() : GameObjectScript("go_scourge_enclosure") { }
 
-    struct go_scourge_enclosureAI : public GameObjectAI
+    bool OnGossipHello(Player* player, GameObject* go) override
     {
-        go_scourge_enclosureAI(GameObject* go) : GameObjectAI(go) { }
-
-        bool GossipHello(Player* player) override
+        go->UseDoorOrButton();
+        if (player->GetQuestStatus(QUEST_OUR_ONLY_HOPE) == QUEST_STATUS_INCOMPLETE)
         {
-            me->UseDoorOrButton();
-            if (player->GetQuestStatus(QUEST_OUR_ONLY_HOPE) == QUEST_STATUS_INCOMPLETE)
+            Creature* gymerDummy = go->FindNearestCreature(NPC_GYMER_DUMMY, 20.0f);
+            if (gymerDummy)
             {
-                if (Creature* gymerDummy = me->FindNearestCreature(NPC_GYMER_DUMMY, 20.0f))
-                {
-                    player->KilledMonsterCredit(gymerDummy->GetEntry(), gymerDummy->GetGUID());
-                    gymerDummy->CastSpell(gymerDummy, SPELL_GYMER_LOCK_EXPLOSION, true);
-                    gymerDummy->DespawnOrUnsummon(4 * IN_MILLISECONDS);
-                }
+                player->KilledMonsterCredit(gymerDummy->GetEntry(), gymerDummy->GetGUID());
+                gymerDummy->CastSpell(gymerDummy, SPELL_GYMER_LOCK_EXPLOSION, true);
+                gymerDummy->DespawnOrUnsummon(4 * IN_MILLISECONDS);
             }
-            return true;
         }
-    };
-
-    GameObjectAI* GetAI(GameObject* go) const override
-    {
-        return new go_scourge_enclosureAI(go);
+        return true;
     }
 };
 
@@ -593,20 +584,10 @@ class go_finklesteins_cauldron : public GameObjectScript
 public:
     go_finklesteins_cauldron() : GameObjectScript("go_finklesteins_cauldron") { }
 
-    struct go_finklesteins_cauldronAI : public GameObjectAI
+    bool OnGossipHello(Player* player, GameObject* /*go*/) override
     {
-        go_finklesteins_cauldronAI(GameObject* go) : GameObjectAI(go) { }
-
-        bool GossipHello(Player* player) override
-        {
-            player->CastSpell(player, SPELL_POT_CHECK);
-            return true;
-        }
-    };
-
-    GameObjectAI* GetAI(GameObject* go) const override
-    {
-        return new go_finklesteins_cauldronAI(go);
+        player->CastSpell(player, SPELL_POT_CHECK);
+        return true;
     }
 };
 
@@ -746,7 +727,7 @@ class spell_random_ingredient : public SpellScriptLoader
 
                     if (Creature* finklestein = GetClosestCreatureWithEntry(player, NPC_FINKLESTEIN, 25.0f))
                     {
-                        finklestein->CastSpell(player, FetchIngredients[ingredient][0], true);
+                        finklestein->CastSpell(player, FetchIngredients[ingredient][0], true, nullptr);
                         finklestein->AI()->Talk(FetchIngredients[ingredient][3], player);
                     }
                 }

@@ -1,5 +1,6 @@
 /*
- * Copyright 2021 ShadowCore
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -27,7 +28,7 @@ enum eWitherbarkTalks
 {
     WitherbarkAggro   = 4, ///< So... Thirsty(45108)
     WitherbarkKill01  = 5, ///< Return to the earth...(45110)
-    WitherbarkKill02  = 6, ///< Feed my roots.(45111) 
+    WitherbarkKill02  = 6, ///< Feed my roots.(45111)
     WitherbarkSpell01 = 7, ///< Refreshed.(45112)
     WitherbarkSpell02 = 8, ///< I Cannot Be Stopped.(45113)
     WitherbarkDeath   = 9 ///< Arghh...(45109)
@@ -48,6 +49,7 @@ enum WitherbarkEnums
     SPELL_PETRIFIED_BARK            = 164713,
     SPELL_CANCEL_PETRIFIED_BARK     = 164719,
     SPELL_ENERGIZE                  = 164438,
+    SPELL_AGITATED_WATER_1          = 177733,
     SPELL_PARCHED_GASP              = 164357,
     SPELL_BRITTLE_BARK              = 164275,
     SPELsummon_AQUEOUS_GLOBULE      = 164437,
@@ -126,6 +128,14 @@ public:
             if (!UpdateVictim() || !intro)
                 return;
 
+            if (AgitatedWaterTimer <= diff)
+            {
+                AgitatedWaterTimer = urand (6000, 7000);
+                DoCast(me, SPELL_AGITATED_WATER_1);
+            }
+            else
+                AgitatedWaterTimer -= diff;
+
             if (ParchedGaspTimer <= diff)
             {
                 ParchedGaspTimer = 12000;
@@ -190,6 +200,11 @@ public:
     }
 };
 
+enum EnchantedWaterEnums
+{
+    SPELL_AGITATED_WATER_2 = 177732,
+};
+
 /// Enchanted Waters - 88862
 class mob_enchanted_water : public CreatureScript
 {
@@ -220,6 +235,69 @@ public:
     CreatureAI* GetAI(Creature* creature) const override
     {
         return new mob_enchanted_waterAI(creature);
+    }
+};
+
+class spell_agitated_water_trig : public SpellScriptLoader
+{
+public:
+    spell_agitated_water_trig() : SpellScriptLoader("spell_agitated_water_trig") { }
+
+    class spell_agitated_water_trig_SpellScript : public SpellScript
+    {
+        PrepareSpellScript(spell_agitated_water_trig_SpellScript);
+
+        void HandleForceCast(SpellEffIndex effIndex)
+        {
+            PreventHitDefaultEffect(effIndex);
+            if (GetHitUnit())
+                GetHitUnit()->CastSpell(GetHitUnit(), SPELL_AGITATED_WATER_2, true);
+        }
+
+        void Register() override
+        {
+            OnEffectHitTarget += SpellEffectFn(spell_agitated_water_trig_SpellScript::HandleForceCast, EFFECT_0, SPELL_EFFECT_FORCE_CAST);
+        }
+    };
+
+    SpellScript* GetSpellScript() const override
+    {
+        return new spell_agitated_water_trig_SpellScript;
+    }
+};
+
+class spell_agitated_water : public SpellScriptLoader
+{
+public:
+    spell_agitated_water() : SpellScriptLoader("spell_agitated_water") { }
+
+    class spell_agitated_water_SpellScript : public SpellScript
+    {
+        PrepareSpellScript(spell_agitated_water_SpellScript);
+
+        void SelectTarget(std::list<WorldObject*>& targets)
+        {
+            targets.clear();
+
+            if (Unit* target = GetCaster()->ToCreature()->AI()->SelectTarget(SELECT_TARGET_RANDOM, 0, 50000.0f, true))
+                targets.push_back(target);
+        }
+
+        void HandleDummy(SpellEffIndex effIndex)
+        {
+            GetCaster()->CastSpell(GetHitUnit(), GetSpellValue()->EffectBasePoints[effIndex]);
+        }
+
+        void Register() override
+        {
+            OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_agitated_water_SpellScript::SelectTarget, EFFECT_0, TARGET_UNIT_SRC_AREA_ENTRY);
+            OnEffectHitTarget += SpellEffectFn(spell_agitated_water_SpellScript::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
+        }
+    };
+
+    SpellScript* GetSpellScript() const override
+    {
+        return new spell_agitated_water_SpellScript;
     }
 };
 
@@ -478,6 +556,8 @@ void AddSC_boss_witherbark()
 {
     new boss_witherbark();
     new mob_enchanted_water();
+    new spell_agitated_water_trig();
+    new spell_agitated_water();
     new npc_aqueous_globule_witherbark();
     new npc_unchecked_growth();
     new spell_unchecked_growth();

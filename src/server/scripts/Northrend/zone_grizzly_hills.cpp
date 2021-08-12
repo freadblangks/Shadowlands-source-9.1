@@ -103,7 +103,7 @@ public:
                     Talk(SAY_WORGRAGGRO3);
                     if (Creature* RWORG = me->SummonCreature(NPC_RAVENOUS_WORG, me->GetPositionX()+10, me->GetPositionY()+8, me->GetPositionZ()+2, 3.229f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 120000))
                     {
-                        RWORG->SetFaction(FACTION_FRIENDLY);
+                        RWORG->SetFaction(35);
                         _RavenousworgGUID = RWORG->GetGUID();
                     }
                     break;
@@ -134,9 +134,9 @@ public:
                     {
                         if (Creature* RWORG = ObjectAccessor::GetCreature(*me, _RavenousworgGUID))
                         {
-                            Unit::Kill(RWORG, Mrfloppy);
+                            RWORG->Kill(Mrfloppy);
                             Mrfloppy->ExitVehicle();
-                            RWORG->SetFaction(FACTION_MONSTER);
+                            RWORG->SetFaction(14);
                             RWORG->GetMotionMaster()->MovePoint(0, RWORG->GetPositionX()+10, RWORG->GetPositionY()+80, RWORG->GetPositionZ());
                             Talk(SAY_VICTORY2);
                         }
@@ -172,7 +172,7 @@ public:
             }
         }
 
-        void JustEngagedWith(Unit* /*Who*/) override
+        void EnterCombat(Unit* /*Who*/) override
         {
             Talk(SAY_RANDOMAGGRO);
         }
@@ -183,22 +183,24 @@ public:
             _RavenousworgGUID.Clear();
         }
 
-        void QuestAccept(Player* player, Quest const* quest) override
-        {
-            if (quest->GetQuestId() == QUEST_PERILOUS_ADVENTURE)
-            {
-                Talk(SAY_QUEST_ACCEPT);
-                if (Creature* Mrfloppy = GetClosestCreatureWithEntry(me, NPC_MRFLOPPY, 180.0f))
-                    Mrfloppy->GetMotionMaster()->MoveFollow(me, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
-
-                Start(true, false, player->GetGUID());
-            }
-        }
-
         private:
             ObjectGuid   _RavenousworgGUID;
             ObjectGuid   _mrfloppyGUID;
     };
+
+    bool OnQuestAccept(Player* player, Creature* creature, Quest const* quest) override
+    {
+        if (quest->GetQuestId() == QUEST_PERILOUS_ADVENTURE)
+        {
+            creature->AI()->Talk(SAY_QUEST_ACCEPT);
+            if (Creature* Mrfloppy = GetClosestCreatureWithEntry(creature, NPC_MRFLOPPY, 180.0f))
+                Mrfloppy->GetMotionMaster()->MoveFollow(creature, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
+
+            if (EscortAI* pEscortAI = CAST_AI(npc_emily::npc_emilyAI, (creature->AI())))
+                pEscortAI->Start(true, false, player->GetGUID());
+        }
+        return true;
+    }
 
     CreatureAI* GetAI(Creature* creature) const override
     {
@@ -218,7 +220,7 @@ public:
 
         void Reset() override { }
 
-        void JustEngagedWith(Unit* Who) override
+        void EnterCombat(Unit* Who) override
         {
             if (Creature* Emily = GetClosestCreatureWithEntry(me, NPC_EMILY, 50.0f))
             {
@@ -559,7 +561,7 @@ public:
     {
         npc_venture_co_stragglerAI(Creature* creature) : ScriptedAI(creature) { }
 
-    void JustEngagedWith(Unit* /*who*/) override
+    void EnterCombat(Unit* /*who*/) override
     {
         _events.ScheduleEvent(EVENT_CHOP, Seconds(3), Seconds(6));
     }

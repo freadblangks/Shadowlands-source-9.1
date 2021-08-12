@@ -123,7 +123,7 @@ public:
             }
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
             // ### TODO Check combat timing ###
             events.ScheduleEvent(EVENT_FIRENOVA,    6000);
@@ -368,7 +368,7 @@ public:
                 _events.ScheduleEvent(EVENT_ENCAGED_EMBERSEER, 1000);
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
             // Used to close doors
             if (Creature* Emberseer = me->FindNearestCreature(NPC_PYROGAURD_EMBERSEER, 30.0f, true))
@@ -380,7 +380,7 @@ public:
             for (std::list<Creature*>::iterator itr = creatureList.begin(); itr != creatureList.end(); ++itr)
             {
                 if (Creature* creature = *itr)
-                    DoZoneInCombat(creature);    // AI()->AttackStart(me->GetVictim());
+                    creature->SetInCombatWithZone();    // AI()->AttackStart(me->GetVictim());
             }
 
             _events.ScheduleEvent(EVENT_STRIKE, urand(8000, 16000));

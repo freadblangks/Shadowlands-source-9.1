@@ -1,5 +1,6 @@
 /*
- * Copyright 2021 ShadowCore
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -159,7 +160,7 @@ enum eShekzeerEvents
 
     // Dissonance Field
     EVENT_CHECK_CAST,
-    
+
     // Sha of Fear
     EVENT_LEAVING,
 
@@ -1391,7 +1392,7 @@ class mob_dissonance_field : public CreatureScript
                 me->AddUnitFlag(UnitFlags(UNIT_FLAG_IMMUNE_TO_PC | UNIT_FLAG_IMMUNE_TO_NPC | UNIT_FLAG_NON_ATTACKABLE));
                 me->SetReactState(REACT_PASSIVE);
                 events.ScheduleEvent(EVENT_CHECK_CAST, 1000);
-                me->DisableHealthRegen();
+                me->SetRegenerateHealth(false);
 
                 std::list<Player*> playerList;
                 GetPlayerListInGrid(playerList, me, 200.0f);

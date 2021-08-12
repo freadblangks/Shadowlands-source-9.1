@@ -60,7 +60,7 @@ public:
                 (*itr)->Respawn();
         };
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
             _events.ScheduleEvent(EVENT_BRUTAL_STRIKE, 5 * IN_MILLISECONDS);
             _events.ScheduleEvent(EVENT_DAGGER_THROW,  7 * IN_MILLISECONDS);
@@ -71,7 +71,7 @@ public:
         void SpellHit(Unit* caster, SpellInfo const* /*spell*/) override
         {
             if (caster->IsVehicle())
-                Unit::Kill(me, caster);
+                me->Kill(caster);
         }
 
         void UpdateAI(uint32 diff) override
@@ -79,10 +79,10 @@ public:
             if (!UpdateVictim())
                 return;
 
-            _events.Update(diff);
-
             if (me->HasUnitState(UNIT_STATE_CASTING))
                 return;
+
+            _events.Update(diff);
 
             while (uint32 eventId = _events.ExecuteEvent())
             {
@@ -120,7 +120,7 @@ public:
         EventMap _events;
     };
 
-    CreatureAI* GetAI(Creature* creature) const
+    CreatureAI* GetAI(Creature* creature) const override
     {
         return new boss_ioc_horde_allianceAI(creature);
     }

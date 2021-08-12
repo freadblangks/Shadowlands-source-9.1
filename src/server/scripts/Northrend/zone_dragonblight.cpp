@@ -174,7 +174,7 @@ class npc_commander_eligor_dawnbringer : public CreatureScript
                 {
                     if (id == 1)
                     {
-                        me->SetFacingTo(PosTalkLocations[talkWing].GetOrientation());
+                        me->SetFacingTo(PosTalkLocations[talkWing].GetOrientation(), true);
                         TurnAudience();
 
                         switch (talkWing)
@@ -379,7 +379,9 @@ enum StrengthenAncientsMisc
     SPELL_CREATE_ITEM_BARK      = 47550,
     SPELL_CONFUSED              = 47044,
 
-    NPC_LOTHALOR                = 26321
+    NPC_LOTHALOR                = 26321,
+
+    FACTION_WALKER_ENEMY        = 14,
 };
 
 class spell_q12096_q12092_dummy : public SpellScriptLoader // Strengthen the Ancients: On Interact Dummy to Woodlands Walker
@@ -412,7 +414,7 @@ public:
             else // enemy version
             {
                 tree->AI()->Talk(SAY_WALKER_ENEMY, player);
-                tree->SetFaction(FACTION_MONSTER);
+                tree->SetFaction(FACTION_WALKER_ENEMY);
                 tree->Attack(player, true);
             }
         }
@@ -492,6 +494,33 @@ class npc_wyrmrest_defender : public CreatureScript
     public:
         npc_wyrmrest_defender() : CreatureScript("npc_wyrmrest_defender") { }
 
+        bool OnGossipHello(Player* player, Creature* creature) override
+        {
+            if (player->GetQuestStatus(QUEST_DEFENDING_WYRMREST_TEMPLE) == QUEST_STATUS_INCOMPLETE)
+            {
+                AddGossipItemFor(player, GOSSIP_ICON_CHAT, GOSSIP_ITEM_1, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF+1);
+                SendGossipMenuFor(player, GOSSIP_TEXTID_DEF1, creature->GetGUID());
+            }
+            else
+                SendGossipMenuFor(player, player->GetGossipTextId(creature), creature->GetGUID());
+
+            return true;
+        }
+
+        bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action) override
+        {
+            ClearGossipMenuFor(player);
+            if (action == GOSSIP_ACTION_INFO_DEF+1)
+            {
+                SendGossipMenuFor(player, GOSSIP_TEXTID_DEF2, creature->GetGUID());
+                // Makes player cast trigger spell for 49207 on self
+                player->CastSpell(player, SPELL_CHARACTER_SCRIPT, true);
+                // The gossip should not auto close
+            }
+
+            return true;
+        }
+
         struct npc_wyrmrest_defenderAI : public VehicleAI
         {
             npc_wyrmrest_defenderAI(Creature* creature) : VehicleAI(creature)
@@ -563,34 +592,6 @@ class npc_wyrmrest_defender : public CreatureScript
                         break;
                 }
             }
-
-            bool GossipHello(Player* player) override
-            {
-                if (player->GetQuestStatus(QUEST_DEFENDING_WYRMREST_TEMPLE) == QUEST_STATUS_INCOMPLETE)
-                {
-                    AddGossipItemFor(player, GOSSIP_ICON_CHAT, GOSSIP_ITEM_1, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
-                    SendGossipMenuFor(player, GOSSIP_TEXTID_DEF1, me->GetGUID());
-                }
-                else
-                    SendGossipMenuFor(player, player->GetGossipTextId(me), me->GetGUID());
-
-                return true;
-            }
-
-            bool GossipSelect(Player* player, uint32 /*menuId*/, uint32 gossipListId) override
-            {
-                uint32 const action = player->PlayerTalkClass->GetGossipOptionAction(gossipListId);
-                ClearGossipMenuFor(player);
-                if (action == GOSSIP_ACTION_INFO_DEF + 1)
-                {
-                    SendGossipMenuFor(player, GOSSIP_TEXTID_DEF2, me->GetGUID());
-                    // Makes player cast trigger spell for 49207 on self
-                    player->CastSpell(player, SPELL_CHARACTER_SCRIPT, true);
-                    // The gossip should not auto close
-                }
-
-                return true;
-            }
         };
 
         CreatureAI* GetAI(Creature* creature) const override
@@ -631,7 +632,7 @@ class npc_torturer_lecraft : public CreatureScript
                 _playerGUID.Clear();
             }
 
-            void JustEngagedWith(Unit* who) override
+            void EnterCombat(Unit* who) override
             {
                 _events.ScheduleEvent(EVENT_HEMORRHAGE, urand(5000, 8000));
                 _events.ScheduleEvent(EVENT_KIDNEY_SHOT, urand(12000, 15000));

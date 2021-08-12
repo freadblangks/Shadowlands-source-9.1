@@ -35,22 +35,12 @@ enum GNOCreatureIds
     NPC_BLASTMASTER_EMI_SHORTFUSE   = 7998,
     NPC_CAVERNDEEP_AMBUSHER         = 6207,
     NPC_GRUBBIS                     = 7361,
-    NPC_VICIOUS_FALLOUT             = 7079,
-    NPC_CHOMPER                     = 6215,
-    NPC_ELECTROCUTIONER             = 6235,
-    NPC_CROWD_PUMMELER              = 6229,
-    NPC_MEKGINEER                   = 7800,
+    NPC_CHOMPER                     = 6215
 };
 
 enum GNOData
 {
-    DATA_BLASTMASTER_EVENT = 0,
-    DATA_VICIOUS_FALLOUT   = 1,
-    DATA_ELECTROCUTIONER   = 2,
-    DATA_CROWD_PUMMELER    = 3,
-    DATA_THERMAPLUGG       = 4,
-
-    MAX_ENCOUNTER
+    TYPE_EVENT = 1
 };
 
 enum GNOData64

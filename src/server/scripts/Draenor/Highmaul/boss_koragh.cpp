@@ -1,5 +1,6 @@
 /*
- * Copyright 2021 ShadowCore
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -366,7 +367,7 @@ class boss_koragh : public CreatureScript
 
                                 AddTimedDelayedOperation(2 * TimeConstants::IN_MILLISECONDS, [this]() -> void
                                 {
-                                    if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_TOPAGGRO))
+                                    if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_MAXTHREAT))
                                     {
                                         me->GetMotionMaster()->Clear();
                                         me->GetMotionMaster()->MoveChase(target);
@@ -425,7 +426,7 @@ class boss_koragh : public CreatureScript
 
                         AddTimedDelayedOperation(2 * TimeConstants::IN_MILLISECONDS, [this]() -> void
                         {
-                            if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_TOPAGGRO))
+                            if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_MAXTHREAT))
                             {
                                 me->GetMotionMaster()->Clear();
                                 me->GetMotionMaster()->MoveChase(target);
@@ -639,7 +640,7 @@ class boss_koragh : public CreatureScript
 
                         me->GetMotionMaster()->Clear();
 
-                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_TOPAGGRO))
+                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_MAXTHREAT))
                             me->GetMotionMaster()->MoveChase(target);
 
                         if (Creature* l_Grounding = ObjectAccessor::GetCreature(*me, m_FloorRune))
@@ -671,7 +672,7 @@ class boss_koragh : public CreatureScript
                     }
                     case eEvents::EventExpelMagicArcane:
                     {
-                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_TOPAGGRO))
+                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_MAXTHREAT))
                             me->CastSpell(target, eSpells::ExpelMagicArcaneAura, false);
                         Talk(eTalks::ExpelMagic);
                         m_Events.ScheduleEvent(eEvents::EventExpelMagicArcane, 30 * TimeConstants::IN_MILLISECONDS);
@@ -704,7 +705,7 @@ class boss_koragh : public CreatureScript
                     {
                         Unit* victim;
 
-                        victim = SelectTarget(SELECT_TARGET_FARTHEST, 0, 50.f, true);
+                        victim = SelectTarget(SELECT_TARGET_MAXDISTANCE, 0, 50.f, true);
                         if (victim == nullptr)
                             victim = SelectTarget(SELECT_TARGET_RANDOM, 0, 50.f, true);
 
@@ -1150,7 +1151,7 @@ class go_highmaul_chain : public GameObjectScript
 
             void Reset() override
             {
-                go->SetAnimKitId(eAnimID::AnimKit, false);
+                me->SetAnimKitId(eAnimID::AnimKit, false);
             }
         };
 
@@ -2151,7 +2152,7 @@ class areatrigger_highmaul_overflowing_energy : public AreaTriggerAI
             };
 
             at->GetCaster()->CastSpell(dest, eSpells::GroundMarker, true);
-            at->SetDestination(dest, 10000);
+            //at->SetDestination(dest, 10000);
         }
 
         void OnUpdate(uint32 /*diff*/) override
@@ -2178,7 +2179,7 @@ class areatrigger_highmaul_overflowing_energy : public AreaTriggerAI
                 uint32 l_Time = 8 * TimeConstants::IN_MILLISECONDS;
                 uint32 l_OldTime = 8 * TimeConstants::IN_MILLISECONDS;
 
-                at->SetDestination(pos, l_Time + l_OldTime);
+                //at->SetDestination(pos, l_Time + l_OldTime);
 
                 if (Unit* l_Boss = at->GetCaster())
                     l_Boss->SendPlaySpellVisual(pos, 6.5f, eVisual::OverflowingVisual);

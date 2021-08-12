@@ -29,10 +29,9 @@ Position const EventLeaderPos2 = {1054.368f, 107.14620f, 628.4467f, 0.0f};
 
 DoorData const Doors[] =
 {
-    { GO_ICE_WALL,                       DATA_GARFROST,  DOOR_TYPE_PASSAGE },
-    { GO_ICE_WALL,                       DATA_ICK,       DOOR_TYPE_PASSAGE },
-    { GO_HALLS_OF_REFLECTION_PORTCULLIS, DATA_TYRANNUS,  DOOR_TYPE_PASSAGE },
-    { 0,                                 0,              DOOR_TYPE_ROOM    } // END
+    {GO_ICE_WALL,   DATA_GARFROST,  DOOR_TYPE_PASSAGE },
+    {GO_ICE_WALL,   DATA_ICK,       DOOR_TYPE_PASSAGE },
+    {GO_HALLS_OF_REFLECTION_PORTCULLIS,   DATA_TYRANNUS,       DOOR_TYPE_PASSAGE },
 };
 
 class instance_pit_of_saron : public InstanceMapScript

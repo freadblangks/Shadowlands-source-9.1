@@ -1,5 +1,6 @@
 /*
- * Copyright 2021 ShadowCore
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -457,15 +458,11 @@ namespace Instances
 
                         if (m_CheckZPosTimer <= diff)
                         {
-                            Map::PlayerList const& playerList = instance->GetPlayers();
-                            for (Map::PlayerList::const_iterator itr = playerList.begin(); itr != playerList.end(); ++itr)
+                            DoOnPlayers([](Player* player)
                             {
-                                if (Player* player = itr->GetSource())
-                                {
-                                    if (player->GetPositionZ() <= 150.0f)
-                                        player->Kill(player);
-                                }
-                            }
+                                if (player->GetPositionZ() <= 150.0f)
+                                    player->Kill(player);
+                            });
 
                             m_CheckZPosTimer = 1000;
                         }

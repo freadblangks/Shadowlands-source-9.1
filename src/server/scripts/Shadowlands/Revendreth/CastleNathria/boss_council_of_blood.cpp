@@ -106,7 +106,7 @@ private:
         me->SetPowerType(POWER_ENERGY);
         me->SetMaxPower(POWER_ENERGY, 100);
         me->SetPower(POWER_ENERGY, 100);
-        me->AddAura(AURA_OVERRIDE_POWER_COLOR_DEMONIC);
+        //me->AddAura(AURA_OVERRIDE_POWER_COLOR_DEMONIC);
         me->SetReactState(REACT_AGGRESSIVE);
     }
 
@@ -210,14 +210,14 @@ private:
             break;
         }
 
-        case SPELL_EVASIVE_LUNGE_TELEPORT:
-            if (Unit* target = SelectTarget(SELECT_TARGET_TOPAGGRO, 0, 100.0f, true))
-            {
-                me->CastSpell(target, SPELL_EVASIVE_LUNGE_TELEPORT, false);
-                me->CastSpell(target, SPELL_EVASIVE_LUNGE_DAMAGE, true);
-            }
-            events.Repeat(20s);
-            break;
+         // case SPELL_EVASIVE_LUNGE_TELEPORT:
+          //  if (Unit* target = SelectTarget(SELECT_TARGET_TOPAGGRO, 0, 100.0f, true))
+         //   {
+           //     me->CastSpell(target, SPELL_EVASIVE_LUNGE_TELEPORT, false);
+             //   me->CastSpell(target, SPELL_EVASIVE_LUNGE_DAMAGE, true);
+           // }
+           // events.Repeat(20s);
+           // break;
 
         case SPELL_DARK_RECITAL:
             me->CastSpell(nullptr, SPELL_DARK_RECITAL, false);
@@ -243,15 +243,15 @@ private:
             events.Repeat(35s);
             break;
 
-        case SPELL_SOUL_SPIKES_PERIODIC_DUMMY:
-            if (Unit* target = SelectTarget(SELECT_TARGET_TOPAGGRO, 0, 100.0f, true))
-            {
-                me->CastSpell(target, SPELL_SOUL_SPIKES_PERIODIC_DUMMY, false);
-                me->CastSpell(target, SPELL_SOUL_SPIKES_DAMAGE, true);
-                me->CastSpell(target, SPELL_SOUL_SPIKES_DEBUFF, true);
-            }
-            events.Repeat(40s);
-            break;
+         //case SPELL_SOUL_SPIKES_PERIODIC_DUMMY:
+          //  if (Unit* target = SelectTarget(SELECT_TARGET_TOPAGGRO, 0, 100.0f, true))
+           // {
+             //   me->CastSpell(target, SPELL_SOUL_SPIKES_PERIODIC_DUMMY, false);
+               // me->CastSpell(target, SPELL_SOUL_SPIKES_DAMAGE, true);
+               // me->CastSpell(target, SPELL_SOUL_SPIKES_DEBUFF, true);
+             //}
+         //   events.Repeat(40s);
+           // break;
         }
     }
 

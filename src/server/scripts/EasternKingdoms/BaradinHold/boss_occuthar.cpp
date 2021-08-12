@@ -66,9 +66,9 @@ class boss_occuthar : public CreatureScript
                 ASSERT(_vehicle);
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
-                _JustEngagedWith();
+                _EnterCombat();
                 instance->SendEncounterUnit(ENCOUNTER_FRAME_ENGAGE, me);
                 events.ScheduleEvent(EVENT_SEARING_SHADOWS, 8 * IN_MILLISECONDS);
                 events.ScheduleEvent(EVENT_FOCUSED_FIRE, 15 * IN_MILLISECONDS);
@@ -212,7 +212,7 @@ class FocusedFireTargetSelector : public std::unary_function<Unit *, bool>
 
         bool operator() (WorldObject* target)
         {
-            if (target == _victim && _me->GetThreatManager().GetThreatListSize() > 1)
+            if (target == _victim && _me->GetThreatManager().getThreatList().size() > 1)
                 return true;
 
             if (target->GetTypeId() != TYPEID_PLAYER)
@@ -241,9 +241,11 @@ class spell_occuthar_focused_fire : public SpellScriptLoader
                     return;
 
                 targets.remove_if(FocusedFireTargetSelector(GetCaster()->ToCreature(), GetCaster()->GetVictim()));
-                WorldObject* target = Trinity::Containers::SelectRandomContainerElement(targets);
-                targets.clear();
-                targets.push_back(target);
+                if (WorldObject* target = Trinity::Containers::SelectRandomContainerElement(targets))
+                {
+                    targets.clear();
+                    targets.push_back(target);
+                }
             }
 
             void Register() override
@@ -364,7 +366,7 @@ class spell_occuthar_occuthars_destruction : public SpellScriptLoader
                 if (Unit* caster = GetCaster())
                 {
                     if (IsExpired())
-                        caster->CastSpell(nullptr, SPELL_OCCUTHARS_DESTUCTION, aurEff);
+                        caster->CastSpell(nullptr, SPELL_OCCUTHARS_DESTUCTION, true, nullptr, aurEff);
 
                     caster->ToCreature()->DespawnOrUnsummon(500);
                 }

@@ -1,5 +1,6 @@
 /*
- * Copyright 2021 ShadowCore
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -202,7 +203,7 @@ public:
 
         bool playersInThreat()
         {
-            const std::list<HostileReference*>& threatList = me->getThreatManager().getThreatList();
+            const std::list<HostileReference*>& threatList = me->GetThreatManager().getThreatList();
             if (threatList.empty())
                 return false;
 
@@ -1202,8 +1203,8 @@ public:
 
     void OnCreate() override
     {
-        if (Creature* yalnu = GetClosestCreatureWithEntry(at, NPC_YALNU, 100.0f))
-            at->SetDestination(yalnu->GetPosition(), 2000);
+        //if (Creature* yalnu = GetClosestCreatureWithEntry(at, NPC_YALNU, 100.0f))
+        //    at->SetDestination(yalnu->GetPosition(), 2000);
     }
 
     void OnUnitEnter(Unit* unit) override

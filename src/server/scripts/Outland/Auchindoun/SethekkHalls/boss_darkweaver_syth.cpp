@@ -88,9 +88,9 @@ public:
             _Reset();
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
-            _JustEngagedWith();
+            _EnterCombat();
             events.ScheduleEvent(EVENT_FLAME_SHOCK, 2000);
             events.ScheduleEvent(EVENT_ARCANE_SHOCK, 4000);
             events.ScheduleEvent(EVENT_FROST_SHOCK, 6000);

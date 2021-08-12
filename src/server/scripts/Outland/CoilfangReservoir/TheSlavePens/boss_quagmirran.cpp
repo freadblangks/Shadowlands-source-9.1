@@ -61,9 +61,9 @@ class boss_quagmirran : public CreatureScript
                 _JustDied();
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
-                _JustEngagedWith();
+                _EnterCombat();
                 events.ScheduleEvent(EVENT_ACID_SPRAY, 25000);
                 events.ScheduleEvent(EVENT_CLEAVE, 9000);
                 events.ScheduleEvent(EVENT_UPPERCUT, 20000);

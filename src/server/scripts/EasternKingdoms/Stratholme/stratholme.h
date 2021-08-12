@@ -102,10 +102,10 @@ enum STRMisc
     MAX_ENCOUNTER                       = 6
 };
 
-template <class AI, class T>
-inline AI* GetStratholmeAI(T* obj)
+template<typename AI>
+inline AI* GetStratholmeAI(Creature* creature)
 {
-    return GetInstanceAI<AI>(obj, StratholmeScriptName);
+    return GetInstanceAI<AI>(creature, StratholmeScriptName);
 }
 
 #endif

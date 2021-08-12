@@ -100,7 +100,7 @@ class boss_archaedas : public CreatureScript
                 Initialize();
 
                 instance->SetData(0, 5);    // respawn any dead minions
-                me->SetFaction(FACTION_FRIENDLY);
+                me->SetFaction(35);
                 me->AddUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                 me->SetControlled(true, UNIT_STATE_ROOT);
                 me->AddAura(SPELL_FREEZE_ANIM, me);
@@ -116,14 +116,14 @@ class boss_archaedas : public CreatureScript
                     minion->CastSpell(minion, SPELL_ARCHAEDAS_AWAKEN, true);
                     minion->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                     minion->SetControlled(false, UNIT_STATE_ROOT);
-                    minion->SetFaction(FACTION_MONSTER);
+                    minion->SetFaction(14);
                     minion->RemoveAura(SPELL_MINION_FREEZE_ANIM);
                 }
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
-                me->SetFaction(FACTION_MONSTER);
+                me->SetFaction(14);
                 me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                 me->SetControlled(false, UNIT_STATE_ROOT);
             }
@@ -270,9 +270,9 @@ class npc_archaedas_minions : public CreatureScript
                 me->AddAura(SPELL_MINION_FREEZE_ANIM, me);
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
-                me->SetFaction(FACTION_MONSTER);
+                me->SetFaction (14);
                 me->RemoveAllAuras();
                 me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                 me->SetControlled(false, UNIT_STATE_ROOT);
@@ -352,16 +352,16 @@ class npc_stonekeepers : public CreatureScript
 
             void Reset() override
             {
-                me->SetFaction(FACTION_FRIENDLY);
+                me->SetFaction(35);
                 me->AddUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                 me->SetControlled(true, UNIT_STATE_ROOT);
                 me->RemoveAllAuras();
                 me->AddAura(SPELL_MINION_FREEZE_ANIM, me);
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
-                me->SetFaction(FACTION_FRIENDLY);
+                me->SetFaction(14);
                 me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                 me->SetControlled(false, UNIT_STATE_ROOT);
             }
@@ -375,7 +375,7 @@ class npc_stonekeepers : public CreatureScript
                 DoMeleeAttackIfReady();
             }
 
-            void JustDied(Unit* /*killer*/) override
+            void JustDied(Unit* /*attacker*/) override
             {
                 DoCast (me, SPELL_SELF_DESTRUCT, true);
                 instance->SetData(DATA_STONE_KEEPERS, IN_PROGRESS);    // activate next stonekeeper
@@ -398,26 +398,22 @@ EndScriptData */
 class go_altar_of_archaedas : public GameObjectScript
 {
     public:
-        go_altar_of_archaedas() : GameObjectScript("go_altar_of_archaedas") { }
 
-        struct go_altar_of_archaedasAI : public GameObjectAI
+        go_altar_of_archaedas()
+            : GameObjectScript("go_altar_of_archaedas")
         {
-            go_altar_of_archaedasAI(GameObject* go) : GameObjectAI(go), instance(go->GetInstanceScript()) { }
+        }
 
-            InstanceScript* instance;
-
-            bool GossipHello(Player* player) override
-            {
-                player->CastSpell(player, SPELL_BOSS_OBJECT_VISUAL, false);
-
-                instance->SetGuidData(0, player->GetGUID());     // activate archaedas
+        bool OnGossipHello(Player* player, GameObject* /*go*/) override
+        {
+            InstanceScript* instance = player->GetInstanceScript();
+            if (!instance)
                 return false;
-            }
-        };
 
-        GameObjectAI* GetAI(GameObject* go) const override
-        {
-            return GetUldamanAI<go_altar_of_archaedasAI>(go);
+            player->CastSpell (player, SPELL_BOSS_OBJECT_VISUAL, false);
+
+            instance->SetGuidData(0, player->GetGUID());     // activate archaedas
+            return false;
         }
 };
 

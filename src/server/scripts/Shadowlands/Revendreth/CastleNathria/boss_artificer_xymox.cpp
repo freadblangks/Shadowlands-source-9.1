@@ -160,12 +160,12 @@ struct boss_artificer_xymox : public BossAI
             events.Repeat(40s);
             break;
 
-        case SPELL_GLYPH_OF_DESTRUCTION:
+        /*case SPELL_GLYPH_OF_DESTRUCTION:
             if (Unit* target = SelectTarget(SELECT_TARGET_TOPAGGRO, 0, 100.0f, true))
                 me->CastSpell(target, SPELL_GLYPH_OF_DESTRUCTION, false);
             events.Repeat(30s);
             break;
-
+            */
         case SPELL_RIFT_BLAST_CAST:
             me->CastSpell(nullptr, SPELL_RIFT_BLAST_CAST, false);
             events.Repeat(45s);
@@ -285,19 +285,19 @@ struct boss_artificer_xymox : public BossAI
             break;
         }
 
-        case SPELL_GLYPH_OF_DESTRUCTION:
+        /* case SPELL_GLYPH_OF_DESTRUCTION:
             if (Unit* target = SelectTarget(SELECT_TARGET_TOPAGGRO, 0, 100.0f, true))
             {
-                me->AddAura(SPELL_GLYPH_OF_DESTRUCTION_PERIODIC, target);
-                target->GetScheduler().Schedule(4s, [this, target](TaskContext /*context*/)
-                    {
-                        if (!target)
-                            return;
+                me->AddAura(SPELL_GLYPH_OF_DESTRUCTION_PERIODIC, target); */
+                //target->GetScheduler().Schedule(4s, [this, target](TaskContext /*context*/);
+                  //  {
+                    //    if (!target)
+                      //      return;
 
-                        me->CastSpell(target, SPELL_GLYPH_OF_DESTRUCTION_EXP, true);
-                    });
-            }
-            break;
+                        //me->CastSpell(target, SPELL_GLYPH_OF_DESTRUCTION_EXP, true);
+                   // });
+            //}
+            //break;
         }
     }
 
@@ -308,8 +308,8 @@ struct boss_artificer_xymox : public BossAI
         {
         case NPC_FLEETING_SPIRIT:
             summon->AI()->DoZoneInCombat();
-            if (Unit* target = SelectTarget(SELECT_TARGET_FARTHEST, 0, 100.0F, true))
-                me->AddThreat(target, 100.0f);
+            //if (Unit* target = SelectTarget(SELECT_TARGET_FARTHEST, 0, 100.0F, true))
+              //  me->AddThreat(target, 100.0f);
             break;
 
         case NPC_RIFT_BLAST:

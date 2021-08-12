@@ -61,9 +61,9 @@ public:
             Initialize();
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
-            _JustEngagedWith();
+            _EnterCombat();
             events.ScheduleEvent(EVENT_REND, urand(17000,20000));
             events.ScheduleEvent(EVENT_THRASH, urand(10000,12000));
         }

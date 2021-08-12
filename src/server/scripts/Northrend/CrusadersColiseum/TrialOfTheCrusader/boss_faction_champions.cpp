@@ -623,6 +623,7 @@ struct boss_faction_championsAI : public BossAI
     {
         me->RemoveAurasByType(SPELL_AURA_MOD_STUN);
         me->RemoveAurasByType(SPELL_AURA_MOD_FEAR);
+        me->RemoveAurasByType(SPELL_AURA_MOD_FEAR_2);
         me->RemoveAurasByType(SPELL_AURA_MOD_ROOT);
         me->RemoveAurasByType(SPELL_AURA_MOD_PACIFY);
         me->RemoveAurasByType(SPELL_AURA_MOD_CONFUSE);
@@ -636,7 +637,7 @@ struct boss_faction_championsAI : public BossAI
                 pChampionController->AI()->SetData(2, DONE);
     }
 
-    void JustEngagedWith(Unit* /*who*/) override
+    void EnterCombat(Unit* /*who*/) override
     {
         DoCast(me, SPELL_ANTI_AOE, true);
         me->SetCombatPulseDelay(5);
@@ -672,10 +673,14 @@ struct boss_faction_championsAI : public BossAI
 
     Unit* SelectEnemyCaster(bool /*casting*/)
     {
-        for (auto const& pair : me->GetCombatManager().GetPvECombatRefs())
-            if (Player* player = pair.second->GetOther(me)->ToPlayer())
-                if (player->GetPowerType() == POWER_MANA)
-                    return player;
+        std::list<HostileReference*> const& tList = me->GetThreatManager().getThreatList();
+        std::list<HostileReference*>::const_iterator iter;
+        for (iter = tList.begin(); iter!=tList.end(); ++iter)
+        {
+            Unit* target = ObjectAccessor::GetUnit(*me, (*iter)->getUnitGuid());
+            if (target && target->GetPowerType() == POWER_MANA)
+                return target;
+        }
         return nullptr;
     }
 
@@ -1241,9 +1246,9 @@ class npc_toc_warlock : public CreatureScript
                 SetEquipmentSlots(false, 49992, EQUIP_NO_CHANGE, EQUIP_NO_CHANGE);
             }
 
-            void JustEngagedWith(Unit* who) override
+            void EnterCombat(Unit* who) override
             {
-                boss_faction_championsAI::JustEngagedWith(who);
+                boss_faction_championsAI::EnterCombat(who);
                 DoCast(SPELL_SUMMON_FELHUNTER);
             }
 
@@ -1427,9 +1432,9 @@ class npc_toc_hunter : public CreatureScript
                 SetEquipmentSlots(false, 47156, EQUIP_NO_CHANGE, 48711);
             }
 
-            void JustEngagedWith(Unit* who) override
+            void EnterCombat(Unit* who) override
             {
-                boss_faction_championsAI::JustEngagedWith(who);
+                boss_faction_championsAI::EnterCombat(who);
                 DoCast(SPELL_CALL_PET);
             }
 
@@ -2060,9 +2065,9 @@ class npc_toc_retro_paladin : public CreatureScript
                 SetEquipmentSlots(false, 47519, EQUIP_NO_CHANGE, EQUIP_NO_CHANGE);
             }
 
-            void JustEngagedWith(Unit* who) override
+            void EnterCombat(Unit* who) override
             {
-                boss_faction_championsAI::JustEngagedWith(who);
+                boss_faction_championsAI::EnterCombat(who);
                 DoCast(SPELL_SEAL_OF_COMMAND);
             }
 
@@ -2260,7 +2265,7 @@ class spell_faction_champion_warl_unstable_affliction : public SpellScriptLoader
             void HandleDispel(DispelInfo* dispelInfo)
             {
                 if (Unit* caster = GetCaster())
-                    caster->CastSpell(dispelInfo->GetDispeller(), SPELL_UNSTABLE_AFFLICTION_DISPEL, GetEffect(EFFECT_0));
+                    caster->CastSpell(dispelInfo->GetDispeller(), SPELL_UNSTABLE_AFFLICTION_DISPEL, true, nullptr, GetEffect(EFFECT_0));
             }
 
             void Register() override

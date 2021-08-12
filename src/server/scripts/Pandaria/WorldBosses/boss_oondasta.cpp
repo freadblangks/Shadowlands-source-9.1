@@ -1,5 +1,6 @@
 /*
- * Trinity Core and update by MoPCore Forums
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -13,9 +14,7 @@
  *
  * You should have received a copy of the GNU General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * World Boss: Oondasta.
-*/
+ */
 
 #include "ObjectMgr.h"
 #include "ScriptMgr.h"
@@ -26,49 +25,26 @@
 #include "SpellAuraEffects.h"
 #include "Player.h"
 
-enum Texts
+enum eSpells
 {
-    // Dohaman the Beast Lord.
-    SAY_INTRO_1            = 0,      // How dare you interupt our preparations! The Zandalari will not be stopped! Not this time!
-    SAY_INTRO_2            = 1,      // Destroy them! I command you! No, stop, STOP!
-    SAY_INTRO_DONE         = 2       // Oondasta eats Dohaman.
-
-    // No texts for Oondasta.
+    SPELL_CRUSH             = 137504,
+    SPELL_ALPHA_MALE        = 138391, // Boss Passive Aura. Triggers 138390 Tank Threat Multiplier.
+    SPELL_FRILL_BLAST       = 137505,
+    SPELL_GROWING_FURY      = 137502,
+    SPELL_PIERCING_ROAR     = 137457,
+    SPELL_SPIRITFIRE_BEAM   = 137511  // Or 137508??
 };
 
-enum Spells
+enum eEvents
 {
-    // Oondasta.
-    SPELL_CRUSH            = 137504, // Damage + Armor reduce.
-    SPELL_ALPHA_MALE       = 138391, // Immune to Taunts, Threat multiplier trigger.
-    SPELL_ALPHA_MALE_TM    = 138390, // Threat multiplier.
-    SPELL_FRILL_BLAST      = 137505, // Damage, frontal cone.
-    SPELL_GROWING_FURY     = 137502, // Damage done increase.
-    SPELL_PIERCING_ROAR    = 137457, // Interrupt + damage.
-    SPELL_SPIRITFIRE_BEAM  = 137508, // Also 137511, damage + jump. Second spell id does exactly the same thing.
-
-    SPELL_KILL_DOHAMAN     = 138859, // "Eat" instakill.
+    EVENT_CRUSH             = 1,// 60s from start. Every 25 - 30s.
+    EVENT_FRILL_BLAST,          // 40s from start. Every 25 - 30s.
+    EVENT_GROWING_FURY,         // Every 30s.
+    EVENT_PIERCING_ROAR,        // 20s from start. Every 25 - 30s.
+    EVENT_SPIRITFIRE_BEAM       // 15s from start. Every 25 - 30s.
 };
 
-enum Events
-{
-    // Oondasta.
-    EVENT_CRUSH            = 1, // 60s from aggro, 25-30s after.
-    EVENT_PIERCING_ROAR    = 2, // 20s from aggro, 30-50s after.
-    EVENT_FRILL_BLAST      = 3, // 40s from aggro, 25-30s after.
-    EVENT_SPIRITFIRE_BEAM  = 4, // 50s from aggro, 25-30s after.
-    EVENT_GROWING_FURY     = 5, // Stacks roughly every 30s.
-
-    EVENT_INTRO_1,
-    EVENT_INTRO_2,
-    EVENT_INTRO_DONE
-};
-
-enum Npcs
-{
-    NPC_DOHAMAN_BEAST_LORD = 69926
-};
-
+// Oondasta - 69161
 class boss_oondasta : public CreatureScript
 {
     public:
@@ -76,177 +52,149 @@ class boss_oondasta : public CreatureScript
 
         struct boss_oondastaAI : public ScriptedAI
         {
-            boss_oondastaAI(Creature* creature) : ScriptedAI(creature), summons(me)
-            {
-                introDone = false;
-			}
+            boss_oondastaAI(Creature* creature) : ScriptedAI(creature) { }
 
-            EventMap events;
-            SummonList summons;
-            bool introDone;
+            EventMap _events;
 
-            void InitializeAI()
+            void InitializeAI() override
             {
-                if (!me->IsDead())
+                if (!me->isDead())
                     Reset();
             }
 
-            void Reset()
+            void Reset() override
             {
-                events.Reset();
-                summons.DespawnAll();
+                //me->ReenableEvadeMode();
+                me->RemoveAurasDueToSpell(SPELL_CRUSH);
+                me->RemoveAura(SPELL_GROWING_FURY);
 
-                // If the intro isn't done, summon Dohaman and set his Orientation.
-                if (!introDone)
-                {
-                    float x, y, z;
-                    me->GetClosePoint(x, y, z, me->GetObjectSize() / 3, 10.0f);
-                    if (Creature* Dohaman = me->SummonCreature(NPC_DOHAMAN_BEAST_LORD, x, y, z, 0.0f, TEMPSUMMON_MANUAL_DESPAWN))
-                        Dohaman->SetFacingTo(me->GetOrientation());
-                }
-            }
+                _events.Reset();
 
-            void EnterCombat(Unit* /*who*/)
-            {
-                if (!introDone)
-                {
-                    if (Creature* Dohaman = me->FindNearestCreature(NPC_DOHAMAN_BEAST_LORD, 50.0f, true))
-                    {
-                        Dohaman->SetInCombatWithZone();
-                        me->SetFacingToObject(Dohaman);
-                        me->AddUnitState(UNIT_STATE_ROOT | UNIT_STATE_CANNOT_TURN);
-                        me->SetReactState(REACT_PASSIVE);
-				    }
-
-                    events.ScheduleEvent(EVENT_INTRO_1, 1000);
-                }
-                else
-                {
-                    // Intro done, add the aura and schedule the events.
+                if (!me->HasAura(SPELL_ALPHA_MALE))
                     me->AddAura(SPELL_ALPHA_MALE, me);
-
-                    events.ScheduleEvent(EVENT_CRUSH, 60000);
-                    events.ScheduleEvent(EVENT_PIERCING_ROAR, 20000);
-                    events.ScheduleEvent(EVENT_FRILL_BLAST, 40000);
-                    events.ScheduleEvent(EVENT_SPIRITFIRE_BEAM, 50000);
-                    events.ScheduleEvent(EVENT_GROWING_FURY, 30000);
-                }
             }
 
-            void KilledUnit(Unit* victim) { }
-
-            void EnterEvadeMode()
+            void EnterCombat(Unit* /*who*/) override
             {
-                me->RemoveAllAuras();
+                _events.ScheduleEvent(EVENT_SPIRITFIRE_BEAM, 15000);
+                _events.ScheduleEvent(EVENT_PIERCING_ROAR, 20000);
+                _events.ScheduleEvent(EVENT_FRILL_BLAST, 40000);
+                _events.ScheduleEvent(EVENT_CRUSH, 60000);
+
+                _events.ScheduleEvent(EVENT_GROWING_FURY, 30000); // Soft Enrage.
+            }
+
+            void EnterEvadeMode(EvadeReason /*why*/) override
+            {
                 Reset();
-                me->DeleteThreatList();
-                me->CombatStop(true);
+                ResetThreatList();
+                me->CombatStop(false);
+
                 me->GetMotionMaster()->MoveTargetedHome();
             }
 
-            void JustDied(Unit* /*killer*/)
+            void JustReachedHome() override
             {
-                summons.DespawnAll();
+                if (!me->HasAura(SPELL_ALPHA_MALE))
+                    me->AddAura(SPELL_ALPHA_MALE, me);
             }
 
-            void JustSummoned(Creature* summon)
-            {
-                summons.Summon(summon);
-                summon->setActive(true);
-            }
-
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (!UpdateVictim())
                     return;
 
-                events.Update(diff);
+                _events.Update(diff);
 
                 if (me->HasUnitState(UNIT_STATE_CASTING))
                     return;
 
-                while (uint32 eventId = events.ExecuteEvent())
+                switch (_events.ExecuteEvent())
                 {
-                    switch (eventId)
-                    {
-                        case EVENT_INTRO_1:
-                            if (Creature* Dohaman = me->FindNearestCreature(NPC_DOHAMAN_BEAST_LORD, 50.0f, true))
-                                Dohaman->AI()->Talk(SAY_INTRO_1);
-                            events.ScheduleEvent(EVENT_INTRO_2, 8500);
-                            break;
-
-                        case EVENT_INTRO_2:
-                            if (Creature* Dohaman = me->FindNearestCreature(NPC_DOHAMAN_BEAST_LORD, 50.0f, true))
-					        {
-                                Dohaman->SetFacingToObject(me);
-                                Dohaman->AI()->Talk(SAY_INTRO_2);
-					        }
-                            events.ScheduleEvent(EVENT_INTRO_DONE, 8000);
-                            break;
-
-                        case EVENT_INTRO_DONE:
-                            if (Creature* Dohaman = me->FindNearestCreature(NPC_DOHAMAN_BEAST_LORD, 50.0f, true))
-                            {
-                                Dohaman->AI()->Talk(SAY_INTRO_DONE);
-                                me->SetFacingToObject(Dohaman);
-                                DoCast(Dohaman, SPELL_KILL_DOHAMAN, true);
-                            }
-
-                            // Intro done, add the aura and schedule the events.
-                            introDone = true;
-                            me->AddAura(SPELL_ALPHA_MALE, me);
-                            me->ClearUnitState(UNIT_STATE_ROOT | UNIT_STATE_CANNOT_TURN);
-                            me->SetReactState(REACT_AGGRESSIVE);
-
-                            events.ScheduleEvent(EVENT_CRUSH, 60000);
-                            events.ScheduleEvent(EVENT_PIERCING_ROAR, 20000);
-                            events.ScheduleEvent(EVENT_FRILL_BLAST, 40000);
-                            events.ScheduleEvent(EVENT_SPIRITFIRE_BEAM, 50000);
-                            events.ScheduleEvent(EVENT_GROWING_FURY, 30000);
-                            break;
-
-                        case EVENT_CRUSH:
-                            DoCast(me->getVictim(), SPELL_CRUSH);
-                            events.ScheduleEvent(EVENT_CRUSH, urand(25000, 30000));
-                            break;
-
-                        case EVENT_PIERCING_ROAR:
-                            DoCast(me, SPELL_PIERCING_ROAR);
-                            events.ScheduleEvent(EVENT_PIERCING_ROAR, urand(30000, 50000));
-                            break;
-
-                        case EVENT_FRILL_BLAST:
-                            DoCast(me, SPELL_FRILL_BLAST);
-                            events.ScheduleEvent(EVENT_FRILL_BLAST, urand(25000, 30000));
-                            break;
-
-                        case EVENT_SPIRITFIRE_BEAM:
-                            if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, NonTankTargetSelector(me)))
-                                DoCast(target, SPELL_SPIRITFIRE_BEAM);
-                            events.ScheduleEvent(EVENT_SPIRITFIRE_BEAM, urand(25000, 30000));
-                            break;
-
-                        case EVENT_GROWING_FURY:
-                            DoCast(me, SPELL_GROWING_FURY);
-                            events.ScheduleEvent(EVENT_GROWING_FURY, 30000);
-                            break;
-
-                        default: break;
-                    }
+                    case EVENT_CRUSH:
+                        DoCastVictim(SPELL_CRUSH);
+                        _events.ScheduleEvent(EVENT_CRUSH, urand(25000, 30000));
+                        break;
+                    case EVENT_FRILL_BLAST:
+                        DoCast(me, SPELL_FRILL_BLAST);
+                        _events.ScheduleEvent(EVENT_FRILL_BLAST, urand(25000, 30000));
+                        break;
+                    case EVENT_PIERCING_ROAR:
+                        DoCast(me, SPELL_PIERCING_ROAR);
+                        _events.ScheduleEvent(EVENT_PIERCING_ROAR, urand(25000, 30000));
+                        break;
+                    case EVENT_SPIRITFIRE_BEAM:
+                        if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, NonTankTargetSelector(me)))
+                            DoCast(target, SPELL_SPIRITFIRE_BEAM);
+                        _events.ScheduleEvent(EVENT_SPIRITFIRE_BEAM, urand(25000, 30000));
+                        break;
+                    case EVENT_GROWING_FURY: // Soft Enrage.
+                        DoCast(me, SPELL_GROWING_FURY);
+                        _events.ScheduleEvent(EVENT_GROWING_FURY, 30000);
+                        break;
+                    default:
+                        break;
                 }
 
-                if (introDone)
-                    DoMeleeAttackIfReady();
+                DoMeleeAttackIfReady();
             }
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new boss_oondastaAI(creature);
+        }
+};
+
+// Tank check for Alpha Male.
+class TankCheck : public std::unary_function<Unit*, bool>
+{
+    public:
+        bool operator()(WorldObject* object)
+        {
+            if (!object->IsPlayer())
+                return true;
+
+            if (object->ToPlayer()->GetRoleForGroup() != ROLE_TANK)
+                return true;
+
+            return false;
+        }
+};
+
+// Alpha Male - Tank Threat Multiplier 138390.
+class spell_alpha_male_threat: public SpellScriptLoader
+{
+    public:
+        spell_alpha_male_threat() : SpellScriptLoader("spell_alpha_male_threat") { }
+
+        class spell_alpha_male_threat_SpellScript : public SpellScript
+        {
+            PrepareSpellScript(spell_alpha_male_threat_SpellScript);
+
+            void FilterTargets(std::list<WorldObject*>& targets)
+            {
+                if (targets.empty())
+                    return;
+
+                // Set targets.
+                targets.remove_if(TankCheck());
+            }
+
+            void Register() override
+            {
+                OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_alpha_male_threat_SpellScript::FilterTargets, EFFECT_0, TARGET_UNIT_SRC_AREA_ENEMY);
+            }
+        };
+
+        SpellScript* GetSpellScript() const override
+        {
+            return new spell_alpha_male_threat_SpellScript();
         }
 };
 
 void AddSC_boss_oondasta()
 {
     new boss_oondasta();
+    new spell_alpha_male_threat();
 }

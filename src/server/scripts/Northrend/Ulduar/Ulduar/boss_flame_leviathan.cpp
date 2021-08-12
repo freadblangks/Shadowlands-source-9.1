@@ -36,7 +36,6 @@
 #include "ScriptedEscortAI.h"
 #include "ScriptedGossip.h"
 #include "Spell.h"
-#include "SpellAuraEffects.h"
 #include "SpellInfo.h"
 #include "SpellScript.h"
 #include "ulduar.h"
@@ -274,9 +273,9 @@ class boss_flame_leviathan : public CreatureScript
                 me->SetReactState(REACT_DEFENSIVE);
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
-                _JustEngagedWith();
+                _EnterCombat();
                 me->SetReactState(REACT_PASSIVE);
                 events.ScheduleEvent(EVENT_PURSUE, 1);
                 events.ScheduleEvent(EVENT_MISSILE, urand(1500, 4*IN_MILLISECONDS));
@@ -372,14 +371,8 @@ class boss_flame_leviathan : public CreatureScript
 
             void UpdateAI(uint32 diff) override
             {
-                if (!me->IsEngaged())
+                if (!UpdateVictim())
                     return;
-
-                if (!me->IsInCombat())
-                {
-                    EnterEvadeMode(EVADE_REASON_NO_HOSTILES);
-                    return;
-                }
 
                 events.Update(diff);
 
@@ -480,21 +473,8 @@ class boss_flame_leviathan : public CreatureScript
 
             void SpellHitTarget(Unit* target, SpellInfo const* spell) override
             {
-                if (spell->Id != SPELL_PURSUED)
-                    return;
-
-                _pursueTarget = target->GetGUID();
-                me->GetMotionMaster()->Clear();
-                me->GetMotionMaster()->MoveChase(target);
-
-                for (SeatMap::const_iterator itr = target->GetVehicleKit()->Seats.begin(); itr != target->GetVehicleKit()->Seats.end(); ++itr)
-                {
-                    if (Player* passenger = ObjectAccessor::GetPlayer(*me, itr->second.Passenger.Guid))
-                    {
-                        Talk(EMOTE_PURSUE, passenger);
-                        return;
-                    }
-                }
+                if (spell->Id == SPELL_PURSUED)
+                    _pursueTarget = target->GetGUID();
             }
 
             void DoAction(int32 action) override
@@ -553,23 +533,18 @@ class boss_flame_leviathan : public CreatureScript
                         me->SetLootMode(LOOT_MODE_DEFAULT | LOOT_MODE_HARD_MODE_1 | LOOT_MODE_HARD_MODE_2 | LOOT_MODE_HARD_MODE_3 | LOOT_MODE_HARD_MODE_4);
                         break;
                     case ACTION_MOVE_TO_CENTER_POSITION: // Triggered by 2 Collossus near door
-                        if (!me->isDead() && me->HasReactState(REACT_PASSIVE))
+                        if (!me->isDead())
                         {
                             me->SetHomePosition(Center);
-                            me->GetMotionMaster()->MoveCharge(Center.GetPositionX(), Center.GetPositionY(), Center.GetPositionZ(), 42.0f, ACTION_MOVE_TO_CENTER_POSITION); // position center
+                            me->GetMotionMaster()->MoveCharge(Center.GetPositionX(), Center.GetPositionY(), Center.GetPositionZ()); // position center
+                            me->SetReactState(REACT_AGGRESSIVE);
+                            me->RemoveUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_STUNNED));
+                            return;
                         }
                         break;
                     default:
                         break;
                 }
-            }
-
-            void MovementInform(uint32 /*type*/, uint32 id) override
-            {
-                if (id != ACTION_MOVE_TO_CENTER_POSITION)
-                    return;
-                me->SetReactState(REACT_AGGRESSIVE);
-                me->RemoveUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_STUNNED));
             }
 
             private:
@@ -581,11 +556,9 @@ class boss_flame_leviathan : public CreatureScript
                     {
                         Unit* target = ObjectAccessor::GetUnit(*me, _pursueTarget);
 
-                        if (!target)
-                        {
-                            events.RescheduleEvent(EVENT_PURSUE, 0);
-                            return;
-                        }
+                        // Pursue was unable to acquire a valid target, so get the current victim as target.
+                        if (!target && me->GetVictim())
+                            target = me->GetVictim();
 
                         if (me->IsWithinCombatRange(target, 30.0f))
                         {
@@ -741,7 +714,7 @@ class boss_flame_leviathan_defense_turret : public CreatureScript
 
             bool CanAIAttack(Unit const* who) const override
             {
-                if (!who || who->GetTypeId() != TYPEID_PLAYER || !who->GetVehicle() || who->GetVehicleBase()->GetEntry() != NPC_SEAT)
+                if (who->GetTypeId() != TYPEID_PLAYER || !who->GetVehicle() || who->GetVehicleBase()->GetEntry() != NPC_SEAT)
                     return false;
                 return true;
             }
@@ -764,9 +737,9 @@ class boss_flame_leviathan_overload_device : public CreatureScript
             {
             }
 
-            void OnSpellClick(Unit* /*clicker*/, bool spellClickHandled) override
+            void OnSpellClick(Unit* /*clicker*/, bool& result) override
             {
-                if (!spellClickHandled)
+                if (!result)
                     return;
 
                 if (me->GetVehicle())
@@ -1036,7 +1009,7 @@ public:
                 {
                     if (Creature* trigger = DoSummonFlyer(NPC_MIMIRON_TARGET_BEACON, me, 20, 0, 1000, TEMPSUMMON_TIMED_DESPAWN))
                     {
-                        trigger->CastSpell(me->GetPosition(), SPELL_MIMIRON_S_INFERNO, true);
+                        trigger->CastSpell(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), SPELL_MIMIRON_S_INFERNO, true);
                         infernoTimer = 2000;
                     }
                 }
@@ -1493,54 +1466,6 @@ class achievement_orbit_uary : public AchievementCriteriaScript
         }
 };
 
-// 62399 Overload Circuit
-class spell_overload_circuit : public AuraScript
-{
-    PrepareAuraScript(spell_overload_circuit);
-
-    bool Validate(SpellInfo const* /*spellInfo*/) override
-    {
-        return ValidateSpellInfo({ SPELL_SYSTEMS_SHUTDOWN });
-    }
-
-    void PeriodicTick(AuraEffect const* /*aurEff*/)
-    {
-        if (!GetTarget()->GetMap()->IsDungeon() || int32(GetTarget()->GetAppliedAuras().count(GetId())) < (GetTarget()->GetMap()->Is25ManRaid() ? 4 : 2))
-            return;
-
-        GetTarget()->CastSpell(nullptr, SPELL_SYSTEMS_SHUTDOWN, true);
-        if (Unit* veh = GetTarget()->GetVehicleBase())
-            veh->CastSpell(nullptr, SPELL_SYSTEMS_SHUTDOWN, true);
-    }
-
-    void Register() override
-    {
-        OnEffectPeriodic += AuraEffectPeriodicFn(spell_overload_circuit::PeriodicTick, EFFECT_1, SPELL_AURA_PERIODIC_DUMMY);
-    }
-};
-
-// 62292 Blaze
-class spell_tar_blaze : public AuraScript
-{
-    PrepareAuraScript(spell_tar_blaze);
-
-    bool Validate(SpellInfo const* spellInfo) override
-    {
-        return ValidateSpellInfo({ spellInfo->GetEffect(EFFECT_0)->TriggerSpell });
-    }
-
-    void PeriodicTick(AuraEffect const* aurEff)
-    {
-        // should we use custom damage?
-        GetTarget()->CastSpell(nullptr, GetSpellInfo()->GetEffect(aurEff->GetEffIndex())->TriggerSpell, true);
-    }
-
-    void Register() override
-    {
-        OnEffectPeriodic += AuraEffectPeriodicFn(spell_tar_blaze::PeriodicTick, EFFECT_0, SPELL_AURA_PERIODIC_DUMMY);
-    }
-};
-
 class spell_load_into_catapult : public SpellScriptLoader
 {
     enum Spells
@@ -1713,27 +1638,28 @@ class FlameLeviathanPursuedTargetSelector
             //! No players, only vehicles. Pursue is never cast on players.
             Creature* creatureTarget = target->ToCreature();
             if (!creatureTarget)
-                return false;
+                return true;
 
             //! NPC entries must match
             if (creatureTarget->GetEntry() != NPC_SALVAGED_DEMOLISHER && creatureTarget->GetEntry() != NPC_SALVAGED_SIEGE_ENGINE)
-                return false;
+                return true;
 
             //! NPC must be a valid vehicle installation
             Vehicle* vehicle = creatureTarget->GetVehicleKit();
             if (!vehicle)
-                return false;
+                return true;
 
             //! Entity needs to be in appropriate area
             if (target->GetAreaId() != AREA_FORMATION_GROUNDS)
-                return false;
+                return true;
 
             //! Vehicle must be in use by player
-            for (SeatMap::const_iterator itr = vehicle->Seats.begin(); itr != vehicle->Seats.end(); ++itr)
+            bool playerFound = false;
+            for (SeatMap::const_iterator itr = vehicle->Seats.begin(); itr != vehicle->Seats.end() && !playerFound; ++itr)
                 if (itr->second.Passenger.Guid.IsPlayer())
-                    return true;
+                    playerFound = true;
 
-            return false;
+            return !playerFound;
         }
 };
 
@@ -1746,22 +1672,24 @@ class spell_pursue : public SpellScriptLoader
         {
             PrepareSpellScript(spell_pursue_SpellScript);
 
-        private:
-            // EFFECT #0 - select target
-            void FilterTargets(std::list<WorldObject*>& targets)
+        public:
+            spell_pursue_SpellScript()
             {
-                Trinity::Containers::RandomResize(targets, FlameLeviathanPursuedTargetSelector(), 1);
-                if (targets.empty())
-                {
-                    if (Unit* caster = GetCaster())
-                        if (Creature* cCaster = caster->ToCreature())
-                            cCaster->AI()->EnterEvadeMode(CreatureAI::EVADE_REASON_NO_HOSTILES);
-                }
-                else
-                    _target = targets.front();
+                _target = nullptr;
             }
 
-            // EFFECT #1 - copy target from effect #0
+        private:
+            void FilterTargets(std::list<WorldObject*>& targets)
+            {
+                targets.remove_if(FlameLeviathanPursuedTargetSelector());
+                if (!targets.empty())
+                {
+                    //! In the end, only one target should be selected
+                    _target = Trinity::Containers::SelectRandomContainerElement(targets);
+                    FilterTargetsSubsequently(targets);
+                }
+            }
+
             void FilterTargetsSubsequently(std::list<WorldObject*>& targets)
             {
                 targets.clear();
@@ -1769,13 +1697,32 @@ class spell_pursue : public SpellScriptLoader
                     targets.push_back(_target);
             }
 
+            void HandleScript(SpellEffIndex /*eff*/)
+            {
+                Creature* caster = GetCaster()->ToCreature();
+                if (!caster)
+                    return;
+
+                caster->AI()->AttackStart(GetHitUnit());    // Chase target
+
+                for (SeatMap::const_iterator itr = caster->GetVehicleKit()->Seats.begin(); itr != caster->GetVehicleKit()->Seats.end(); ++itr)
+                {
+                    if (Player* passenger = ObjectAccessor::GetPlayer(*caster, itr->second.Passenger.Guid))
+                    {
+                        caster->AI()->Talk(EMOTE_PURSUE, passenger);
+                        return;
+                    }
+                }
+            }
+
             void Register() override
             {
                 OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_pursue_SpellScript::FilterTargets, EFFECT_0, TARGET_UNIT_SRC_AREA_ENEMY);
                 OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_pursue_SpellScript::FilterTargetsSubsequently, EFFECT_1, TARGET_UNIT_SRC_AREA_ENEMY);
+                OnEffectHitTarget += SpellEffectFn(spell_pursue_SpellScript::HandleScript, EFFECT_0, SPELL_EFFECT_APPLY_AURA);
             }
 
-            WorldObject* _target = nullptr;
+            WorldObject* _target;
         };
 
         SpellScript* GetSpellScript() const override
@@ -1877,8 +1824,6 @@ void AddSC_boss_flame_leviathan()
     new achievement_nuked_from_orbit();
     new achievement_orbit_uary();
 
-    RegisterAuraScript(spell_overload_circuit);
-    RegisterAuraScript(spell_tar_blaze);
     new spell_load_into_catapult();
     new spell_auto_repair();
     new spell_systems_shutdown();

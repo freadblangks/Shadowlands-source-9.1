@@ -100,9 +100,9 @@ class boss_ichoron : public CreatureScript
                 DoCast(me, SPELL_THREAT_PROC, true);
             }
 
-            void JustEngagedWith(Unit* who) override
+            void EnterCombat(Unit* who) override
             {
-                BossAI::JustEngagedWith(who);
+                BossAI::EnterCombat(who);
                 Talk(SAY_AGGRO);
             }
 
@@ -136,7 +136,7 @@ class boss_ichoron : public CreatureScript
                         me->LowerPlayerDamageReq(damage);
                         me->ModifyHealth(-std::min<int32>(damage, me->GetHealth() - 1));
 
-                        scheduler.DelayAll(Seconds(15));
+                        me->GetScheduler().DelayAll(Seconds(15));
                         break;
                     }
                     case ACTION_DRAINED:
@@ -164,10 +164,10 @@ class boss_ichoron : public CreatureScript
                     Talk(SAY_SLAY);
             }
 
-            void JustDied(Unit* /*killer*/) override
+            void JustDied(Unit* killer) override
             {
+                BossAI::JustDied(killer);
                 Talk(SAY_DEATH);
-                _JustDied();
             }
 
             void JustSummoned(Creature* summon) override
@@ -186,7 +186,7 @@ class boss_ichoron : public CreatureScript
                     me->RemoveAurasDueToSpell(SPELL_DRAINED, ObjectGuid::Empty, 0, AURA_REMOVE_BY_EXPIRE);
             }
 
-            void UpdateAI(uint32 diff) override
+            void UpdateAI(uint32 /*diff*/) override
             {
                 if (!UpdateVictim())
                     return;
@@ -198,25 +198,24 @@ class boss_ichoron : public CreatureScript
                     _isFrenzy = true;
                 }
 
-                scheduler.Update(diff,
-                    std::bind(&BossAI::DoMeleeAttackIfReady, this));
+                DoMeleeAttackIfReady();
             }
 
             void ScheduleTasks() override
             {
-                scheduler.Async([this]
+                me->GetScheduler().Async([this]
                 {
                     DoCast(me, SPELL_SHRINK);
                     DoCast(me, SPELL_PROTECTIVE_BUBBLE);
                 });
 
-                scheduler.Schedule(Seconds(10), Seconds(15), [this](TaskContext task)
+                me->GetScheduler().Schedule(Seconds(10), Seconds(15), [this](TaskContext task)
                 {
                     DoCastAOE(SPELL_WATER_BOLT_VOLLEY);
                     task.Repeat(Seconds(10), Seconds(15));
                 });
 
-                scheduler.Schedule(Seconds(6), Seconds(9), [this](TaskContext task)
+                me->GetScheduler().Schedule(Seconds(6), Seconds(9), [this](TaskContext task)
                 {
                     if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 50.0f))
                         DoCast(target, SPELL_WATER_BLAST);
@@ -242,7 +241,7 @@ class npc_ichor_globule : public CreatureScript
 
         struct npc_ichor_globuleAI : public ScriptedAI
         {
-            npc_ichor_globuleAI(Creature* creature) : ScriptedAI(creature), _splashTriggered(false)
+            npc_ichor_globuleAI(Creature* creature) : ScriptedAI(creature)
             {
                 _instance = creature->GetInstanceScript();
                 creature->SetReactState(REACT_PASSIVE);
@@ -274,21 +273,14 @@ class npc_ichor_globule : public CreatureScript
             // this feature should be still implemented
             void DamageTaken(Unit* /*attacker*/, uint32& damage) override
             {
-                if (_splashTriggered)
-                    return;
-
                 if (damage >= me->GetHealth())
-                {
-                    _splashTriggered = true;
                     DoCastAOE(SPELL_SPLASH);
-                }
             }
 
             void UpdateAI(uint32 /*diff*/) override { }
 
         private:
             InstanceScript* _instance;
-            bool _splashTriggered;
         };
 
         CreatureAI* GetAI(Creature* creature) const override

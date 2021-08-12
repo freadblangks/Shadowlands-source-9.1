@@ -160,7 +160,7 @@ class boss_doomrel : public CreatureScript
                     me->SetNpcFlags(UNIT_NPC_FLAG_GOSSIP);
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
                 _events.ScheduleEvent(EVENT_SHADOW_BOLT_VOLLEY, 10000);
                 _events.ScheduleEvent(EVENT_IMMOLATE, 18000);

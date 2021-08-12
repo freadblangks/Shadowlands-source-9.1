@@ -487,6 +487,43 @@ public:
     {
         return GetTrialOfTheChampionAI<npc_announcer_toc5AI>(creature);
     }
+
+    bool OnGossipHello(Player* player, Creature* creature) override
+    {
+        InstanceScript* instance = creature->GetInstanceScript();
+
+        if (instance &&
+            ((instance->GetData(BOSS_GRAND_CHAMPIONS) == DONE &&
+            instance->GetData(BOSS_BLACK_KNIGHT) == DONE &&
+            instance->GetData(BOSS_ARGENT_CHALLENGE_E) == DONE) ||
+            instance->GetData(BOSS_ARGENT_CHALLENGE_P) == DONE))
+            return false;
+
+        if (instance &&
+            instance->GetData(BOSS_GRAND_CHAMPIONS) == NOT_STARTED &&
+            instance->GetData(BOSS_ARGENT_CHALLENGE_E) == NOT_STARTED &&
+            instance->GetData(BOSS_ARGENT_CHALLENGE_P) == NOT_STARTED &&
+            instance->GetData(BOSS_BLACK_KNIGHT) == NOT_STARTED)
+            AddGossipItemFor(player, GOSSIP_ICON_CHAT, GOSSIP_START_EVENT1, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF+1);
+        else if (instance)
+            AddGossipItemFor(player, GOSSIP_ICON_CHAT, GOSSIP_START_EVENT2, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF+1);
+
+        SendGossipMenuFor(player, player->GetGossipTextId(creature), creature->GetGUID());
+
+        return true;
+    }
+
+    bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action) override
+    {
+        ClearGossipMenuFor(player);
+        if (action == GOSSIP_ACTION_INFO_DEF+1)
+        {
+            CloseGossipMenuFor(player);
+            ENSURE_AI(npc_announcer_toc5::npc_announcer_toc5AI, creature->AI())->StartEncounter();
+        }
+
+        return true;
+    }
 };
 
 void AddSC_trial_of_the_champion()

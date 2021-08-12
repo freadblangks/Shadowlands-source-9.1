@@ -56,10 +56,10 @@ enum SCGameobjectIds
     GO_BRAZIER_OF_THE_HERALD            = 175564
 };
 
-template <class AI, class T>
-inline AI* GetScholomanceAI(T* obj)
+template<typename AI>
+inline AI* GetScholomanceAI(Creature* creature)
 {
-    return GetInstanceAI<AI>(obj, ScholomanceScriptName);
+    return GetInstanceAI<AI>(creature, ScholomanceScriptName);
 }
 
 #endif

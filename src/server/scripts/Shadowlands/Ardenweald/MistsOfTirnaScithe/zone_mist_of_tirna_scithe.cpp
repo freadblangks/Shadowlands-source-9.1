@@ -17,10 +17,10 @@
 #include "ScriptMgr.h"
 #include "Player.h"
 #include "InstanceScript.h"
-#include "GameObjects"
+//#include "GameObjects"
 #include "Instance_mists_of_tirna_scithe.cpp"
-#include "zone_ardenweald"
-#include "InstanceMap"
+//#include "zone_ardenweald"
+//#include "InstanceMap"
 
 enum Data
 {
@@ -50,7 +50,7 @@ enum Data
     Data_Mistveil_Defender,
     Data_Mistveil_Gorgegullet,
     Data_Mistveil_Guardian,
-    Data_Mistveil Matriarch,
+    //Data_Mistveil Matriarch,
     Data_Mistveil_Nightblossom,
     Data_Mistveil_Shaper,
     Data_Mistveil_Stalker,
@@ -60,7 +60,7 @@ enum Data
     Data_Overgrown_Hydra,
     Data_Overgrown,
     Data_Parasitic_Infestor,
-    Data_Savory Statshroom,
+   // Data_Savory Statshroom,
     Data_Shadowlands_Wormhole,
     Data_Shivarra,
     Data_Spinemaw_Acidgullet,
@@ -81,18 +81,18 @@ enum Data
 enum Creatures
 {
 	NPC_Ingra_Maloch = 164567,
-	NPC_Mistcaller = 170217,164501,166885,
+	NPC_Mistcaller = 170217,//164501,166885,
 	NPC_Tredova = 164517,
 	NPC_Ancient_Swoop = 151846,
 	NPC_Cocoon_of_Lakali = 165512,
 	NPC_Doomguard = 168932,
-	NPC_Droman_Oulfarran = 164804,170218,170229,
+	NPC_Droman_Oulfarran = 164804,//170218,170229,
 	NPC_Drust_Boughbreaker = 164926,
 	NPC_Drust_Harvester = 164921,
-	NPC_Drust_Soulcleaver = 164920,172991,
+	NPC_Drust_Soulcleaver = 164920,//172991,
     NPC_Drust_Spiteclaw = 165111,
     NPC_Ethereal_Transmorpher = 149596,
-    NPC_Felhound = 169421,169425,
+    NPC_Felhound = 169421,//169425,
     NPC_Fleeting_Memory = 175581,
     NPC_Generic_Hunter_Pet = 165189,
     NPC_Gormling_Larva = 165560,
@@ -103,14 +103,14 @@ enum Creatures
     NPC_Infernal = 169426,
     NPC_Manifestation_of_Pridee = 173729,
     NPC_Merchant_Maku = 142668,
-    NPC_Mistveil_Defender = 163058,171772,
+    NPC_Mistveil_Defender = 163058,//171772,
     NPC_Mistveil_Gorgegullet = 173720,
     NPC_Mistveil_Guardian = 166276,
     NPC_Mistveil_Matriarch = 173655,
     NPC_Mistveil_Nightblossom = 173714,
     NPC_Mistveil_Shaper = 166275,
     NPC_Mistveil_Stalker = 166301,
-    NPC_Mistveil Stinger = 166304,
+    NPC_Mistveil_Stinger = 166304,
     NPC_Mistveil_Tender = 166299,
     NPC_Nathrian_Inquisitor = 175513,
     NPC_Overgrown_Hydra = 172992,
@@ -127,7 +127,7 @@ enum Creatures
     NPC_Spiteful_Shade = 174773,
     NPC_Tasty_Toughshroom = 173679,
     NPC_Tirnenn_Sapling = 167707,
-    NPC_tirnenn_villager = 164929,165120,
+    NPC_tirnenn_villager = 164929,//165120,
     NPC_Turnip_Punching_Bag = 65310,
     NPC_Urzul = 169430,
     NPC_Wrathguard = 169428,
@@ -137,26 +137,26 @@ enum Creatures
 enum objects
 {
 	Anvil = 192628,
-	Challengers Cache = 354972,
-	Overgrown Roots = 326498,
-	Snow Patch = 358375,
+	Challengers_Cache = 354972,
+	Overgrown_Roots = 326498,
+	Snow_Patch = 358375,
 };
 
 enum quest
 {
-	Shrieker Soul = 62436,
-	The Eternal Traveler = 57686,
+	Shrieker_Soul = 62436,
+	The_Eternal_Traveler = 57686,
 };
 
 enum achivements
 {
-    Heroic: Mists_of_Tirna_Scithe = 14412,
+    Heroic_Mists_of_Tirna_Scithe = 14412,
     Hooked_On_Hydroponics = 14503,
     Hunger_for_Knowledge = 14375,
     Mists_of_Tirna_Scithe = 14371,
-    Mythic: Mists of Tirna Scithe = 14413,
-    Mythic: Mists of Tirna Scithe Guild Run = 14382,
-    Someone Could Trip on These! = 14291,
+    Mythic_Mists_of_Tirna_Scithe = 14413,
+    Mythic_Mists_of_Tirna_Scithe_Guild_Run = 14382,
+    Someone_Could_Trip_on_These = 14291,
 };
 
     

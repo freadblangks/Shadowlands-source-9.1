@@ -95,7 +95,7 @@ public:
             me->SetDisplayId(MODEL_HUMAN);
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
         }
 

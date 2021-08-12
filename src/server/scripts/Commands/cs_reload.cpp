@@ -34,6 +34,7 @@ EndScriptData */
 #include "CreatureTextMgr.h"
 #include "DatabaseEnv.h"
 #include "DisableMgr.h"
+#include "GameObject.h"
 #include "ItemEnchantmentMgr.h"
 #include "Language.h"
 #include "LFGMgr.h"
@@ -49,6 +50,7 @@ EndScriptData */
 #include "WardenCheckMgr.h"
 #include "WaypointManager.h"
 #include "World.h"
+#include "WorldSession.h"
 
 class reload_commandscript : public CommandScript
 {
@@ -141,6 +143,7 @@ public:
             { "skill_extra_item_template",     rbac::RBAC_PERM_COMMAND_RELOAD_SKILL_EXTRA_ITEM_TEMPLATE,        true,  &HandleReloadSkillExtraItemTemplateCommand,     "" },
             { "skill_fishing_base_level",      rbac::RBAC_PERM_COMMAND_RELOAD_SKILL_FISHING_BASE_LEVEL,         true,  &HandleReloadSkillFishingBaseLevelCommand,      "" },
             { "skinning_loot_template",        rbac::RBAC_PERM_COMMAND_RELOAD_SKINNING_LOOT_TEMPLATE,           true,  &HandleReloadLootTemplatesSkinningCommand,      "" },
+            { "scrapping_loot_template",       rbac::RBAC_PERM_COMMAND_RELOAD_SKINNING_LOOT_TEMPLATE,           true,  &HandleReloadLootTemplatesScrappingCommand,     "" },
             { "smart_scripts",                 rbac::RBAC_PERM_COMMAND_RELOAD_SMART_SCRIPTS,                    true,  &HandleReloadSmartScripts,                      "" },
             { "spell_required",                rbac::RBAC_PERM_COMMAND_RELOAD_SPELL_REQUIRED,                   true,  &HandleReloadSpellRequiredCommand,              "" },
             { "spell_area",                    rbac::RBAC_PERM_COMMAND_RELOAD_SPELL_AREA,                       true,  &HandleReloadSpellAreaCommand,                  "" },
@@ -150,6 +153,7 @@ public:
             { "spell_linked_spell",            rbac::RBAC_PERM_COMMAND_RELOAD_SPELL_LINKED_SPELL,               true,  &HandleReloadSpellLinkedSpellCommand,           "" },
             { "spell_pet_auras",               rbac::RBAC_PERM_COMMAND_RELOAD_SPELL_PET_AURAS,                  true,  &HandleReloadSpellPetAurasCommand,              "" },
             { "spell_proc",                    rbac::RBAC_PERM_COMMAND_RELOAD_SPELL_PROC,                       true,  &HandleReloadSpellProcsCommand,                 "" },
+            { "spell_script_names",            rbac::RBAC_PERM_COMMAND_RELOAD_SPELL_SCRIPT_NAMES,               true,  &HandleReloadScriptNamesCommand,                "" },
             { "spell_scripts",                 rbac::RBAC_PERM_COMMAND_RELOAD_SPELL_SCRIPTS,                    true,  &HandleReloadSpellScriptsCommand,               "" },
             { "spell_target_position",         rbac::RBAC_PERM_COMMAND_RELOAD_SPELL_TARGET_POSITION,            true,  &HandleReloadSpellTargetPositionCommand,        "" },
             { "spell_threats",                 rbac::RBAC_PERM_COMMAND_RELOAD_SPELL_THREATS,                    true,  &HandleReloadSpellThreatsCommand,               "" },
@@ -163,6 +167,7 @@ public:
             { "vehicle_template",              rbac::RBAC_PERM_COMMAND_RELOAD_VEHICLE_TEMPLATE,                 true,  &HandleReloadVehicleTemplateCommand,            "" },
             { "vehicle_accessory",             rbac::RBAC_PERM_COMMAND_RELOAD_VEHICLE_ACCESORY,                 true,  &HandleReloadVehicleAccessoryCommand,           "" },
             { "vehicle_template_accessory",    rbac::RBAC_PERM_COMMAND_RELOAD_VEHICLE_TEMPLATE_ACCESSORY,       true,  &HandleReloadVehicleTemplateAccessoryCommand,   "" },
+            { "script_params",                 rbac::RBAC_PERM_COMMAND_RELOAD,                                  true,  &HandleReloadScriptParamsCommand,               "" },
         };
         static std::vector<ChatCommand> commandTable =
         {
@@ -650,6 +655,17 @@ public:
         return true;
     }
 
+    static bool HandleReloadLootTemplatesScrappingCommand(ChatHandler* handler, char const* /*args*/)
+    {
+        TC_LOG_INFO("misc", "Re-Loading Loot Tables... (`scrapping_loot_template`)");
+        sObjectMgr->LoadItemScrappingLoot();
+        LoadLootTemplates_Scrapping();
+        LootTemplates_Scrapping.CheckLootRefs();
+        handler->SendGlobalGMSysMessage("DB table `scrapping_loot_template` reloaded.");
+        sConditionMgr->LoadConditions(true);
+        return true;
+    }
+
     static bool HandleReloadLootTemplatesSkinningCommand(ChatHandler* handler, char const* /*args*/)
     {
         TC_LOG_INFO("misc", "Re-Loading Loot Tables... (`skinning_loot_template`)");
@@ -944,6 +960,15 @@ public:
         return true;
     }
 
+    static bool HandleReloadScriptNamesCommand(ChatHandler* handler, char const* /*args*/)
+    {
+        TC_LOG_INFO("misc", "Reloading spell_script_names...");
+        sObjectMgr->LoadSpellScriptNames();
+        sObjectMgr->ValidateSpellScripts();
+        handler->SendGlobalGMSysMessage("spell script names reloaded.");
+        return true;
+    }
+
     static bool HandleReloadSpellScriptsCommand(ChatHandler* handler, char const* args)
     {
         if (sMapMgr->IsScriptScheduled())
@@ -1113,6 +1138,20 @@ public:
     {
         TC_LOG_INFO("misc", "Re-Loading Smart Scripts...");
         sSmartScriptMgr->LoadSmartAIFromDB();
+
+        if (WorldSession* session = handler->GetSession())
+        {
+            std::list<Creature*> creatures;
+            session->GetPlayer()->GetCreatureListInGrid(creatures);
+            for (Creature* creature : creatures)
+                creature->AIM_Initialize();
+
+            std::list<GameObject*> gameObjects;
+            session->GetPlayer()->GetGameObjectListWithEntryInGrid(gameObjects, 0);
+            for (GameObject* gameObject : gameObjects)
+                gameObject->AIM_Initialize();
+        }
+
         handler->SendGlobalGMSysMessage("Smart Scripts reloaded.");
         return true;
     }
@@ -1171,6 +1210,14 @@ public:
         sAccountMgr->LoadRBAC();
         sWorld->ReloadRBAC();
         handler->SendGlobalGMSysMessage("RBAC data reloaded.");
+        return true;
+    }
+
+    static bool HandleReloadScriptParamsCommand(ChatHandler* handler, const char* /*args*/)
+    {
+        TC_LOG_INFO("misc", "Reloading script_params table...");
+        sObjectMgr->LoadScriptParams();
+        handler->SendGlobalGMSysMessage("Script params reloaded.");
         return true;
     }
 };

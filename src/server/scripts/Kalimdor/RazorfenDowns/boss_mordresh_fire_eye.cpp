@@ -58,9 +58,9 @@ public:
             events.ScheduleEvent(EVENT_OOC_1, 10000);
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
-            _JustEngagedWith();
+            _EnterCombat();
             events.Reset();
             Talk(SAY_AGGRO);
             events.ScheduleEvent(EVENT_FIREBALL, 100);

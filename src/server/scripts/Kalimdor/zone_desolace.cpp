@@ -28,7 +28,6 @@ go_demon_portal
 EndContentData */
 
 #include "ScriptMgr.h"
-#include "GameObjectAI.h"
 #include "MotionMaster.h"
 #include "Player.h"
 #include "ScriptedEscortAI.h"
@@ -102,19 +101,19 @@ public:
                 me->DespawnOrUnsummon(60000);
             }
         }
-
-        bool GossipHello(Player* player) override
-        {
-            if (player->HasAura(SPELL_KODO_KOMBO_PLAYER_BUFF) && me->HasAura(SPELL_KODO_KOMBO_DESPAWN_BUFF))
-            {
-                player->TalkedToCreature(me->GetEntry(), ObjectGuid::Empty);
-                player->RemoveAurasDueToSpell(SPELL_KODO_KOMBO_PLAYER_BUFF);
-            }
-
-            SendGossipMenuFor(player, player->GetGossipTextId(me), me->GetGUID());
-            return true;
-        }
     };
+
+    bool OnGossipHello(Player* player, Creature* creature) override
+    {
+        if (player->HasAura(SPELL_KODO_KOMBO_PLAYER_BUFF) && creature->HasAura(SPELL_KODO_KOMBO_DESPAWN_BUFF))
+        {
+            player->TalkedToCreature(creature->GetEntry(), ObjectGuid::Empty);
+            player->RemoveAurasDueToSpell(SPELL_KODO_KOMBO_PLAYER_BUFF);
+        }
+
+        SendGossipMenuFor(player, player->GetGossipTextId(creature), creature->GetGUID());
+        return true;
+    }
 
     CreatureAI* GetAI(Creature* creature) const override
     {

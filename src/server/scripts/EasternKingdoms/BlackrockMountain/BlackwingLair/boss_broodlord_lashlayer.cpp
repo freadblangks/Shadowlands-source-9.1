@@ -51,9 +51,9 @@ public:
     {
         boss_broodlordAI(Creature* creature) : BossAI(creature, DATA_BROODLORD_LASHLAYER) { }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
-            _JustEngagedWith();
+            _EnterCombat();
             Talk(SAY_AGGRO);
 
             events.ScheduleEvent(EVENT_CLEAVE, 8000);

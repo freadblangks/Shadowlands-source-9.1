@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 ShadowCore
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -30,33 +30,24 @@ struct go_se_sewer_access_portal : public GameObjectAI
 
     void Reset() override
     {
-        go->GetScheduler().CancelAll();
-        go->GetScheduler().Schedule(1s, [this] (TaskContext context)
+        me->GetScheduler().CancelAll();
+        me->GetScheduler().Schedule(1s, [this](TaskContext context)
         {
-			std::list<Player*> p_list;
-			go->GetPlayerListInGrid(p_list, 15.0f);
-			for (auto & p : p_list)
-			if (Scenario* scenario = p->GetScenario())
-			if (scenario->CheckCompletedCriteriaTree(CRITERIA_TREE_OPEN_SEWERS, p))
-			{
-				p->CastSpell(p, SPELL_TELEPORT_STOCKADE, true);				
-				scenario->SendScenarioEvent(p, SCENARIO_EVENT_ENTER_STOCKADE);
+            if (Player* player = me->SelectNearestPlayer(1.f))
+                if (Scenario* scenario = player->GetScenario())
+                    if (scenario->CheckCompletedCriteriaTree(CRITERIA_TREE_OPEN_SEWERS, player))
+                    {
+                        player->CastSpell(player, SPELL_TELEPORT_STOCKADE, true);
+                        scenario->SendScenarioEvent(player, SCENARIO_EVENT_ENTER_STOCKADE);
 
-				if (InstanceScript* instanceScript = go->GetInstanceScript())
-				instanceScript->SetData(SCENARIO_EVENT_ENTER_STOCKADE, 1);
-				return;
-			}
-			context.Repeat();
-		});
+                        if (InstanceScript* instanceScript = me->GetInstanceScript())
+                            instanceScript->SetData(SCENARIO_EVENT_ENTER_STOCKADE, 1);
+                        return;
+                    }
+
+            context.Repeat();
+        });
     }
-    
-    void UpdateAI(uint32 diff) override
-	{
-	    scheduler.Update(diff);
-	}
-
-private:
-	TaskScheduler scheduler;
 };
 
 // 134037
@@ -115,7 +106,7 @@ struct npc_se_saurfang : public ScriptedAI
                 instanceScript->SetData(SCENARIO_EVENT_FREE_SAURFANG, 1);
         });
 
-        return true;
+        return false;
     }
 };
 
@@ -124,11 +115,11 @@ struct go_se_talanji_zul_cell_door : public GameObjectAI
 {
     go_se_talanji_zul_cell_door(GameObject* go) : GameObjectAI(go) { }
 
-    void OnStateChanged(uint32 state, Unit* /*unit*/) override
+    void OnStateChanged(uint32 state) override
     {
         if (state == GO_ACTIVATED)
         {
-            if (InstanceScript* instanceScript = go->GetInstanceScript())
+            if (InstanceScript* instanceScript = me->GetInstanceScript())
             {
                 instanceScript->DoSendScenarioEvent(SCENARIO_EVENT_FREE_PRISONNERS);
                 instanceScript->SetData(SCENARIO_EVENT_FREE_PRISONNERS, 1);

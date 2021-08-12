@@ -163,10 +163,10 @@ public:
             _Reset();
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
             Talk(SAY_SARTHARION_AGGRO);
-            _JustEngagedWith();
+            _EnterCombat();
             DoZoneInCombat();
 
             FetchDragons();
@@ -224,7 +224,8 @@ public:
                 tenebron->SetHomePosition(3239.07f, 657.235f, 86.8775f, 4.74729f);
                 if (tenebron->IsAlive())
                 {
-                    tenebron->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
+                    if (tenebron->HasUnitFlag(UNIT_FLAG_NON_ATTACKABLE))
+                        tenebron->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
                     tenebron->GetMotionMaster()->MoveTargetedHome();
                 }
                 else
@@ -243,7 +244,8 @@ public:
                 shadron->SetHomePosition(3363.06f, 525.28f, 98.362f, 4.76475f);
                 if (shadron->IsAlive())
                 {
-                    shadron->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
+                    if (shadron->HasUnitFlag(UNIT_FLAG_NON_ATTACKABLE))
+                        shadron->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
                     shadron->GetMotionMaster()->MoveTargetedHome();
                 }
                 else
@@ -262,7 +264,8 @@ public:
                 vesperon->SetHomePosition(3145.68f, 520.71f, 89.7f, 4.64258f);
                 if (vesperon->IsAlive())
                 {
-                    vesperon->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
+                    if (vesperon->HasUnitFlag(UNIT_FLAG_NON_ATTACKABLE))
+                        vesperon->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
                     vesperon->GetMotionMaster()->MoveTargetedHome();
                 }
                 else
@@ -298,7 +301,8 @@ public:
                     }
                     fetchTene->GetMotionMaster()->MovePoint(POINT_ID_INIT, TenebronPositions[0]);
 
-                    fetchTene->AddUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
+                    if (!fetchTene->HasUnitFlag(UNIT_FLAG_NON_ATTACKABLE))
+                        fetchTene->AddUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
                 }
             }
 
@@ -315,7 +319,8 @@ public:
                     }
                     fetchShad->GetMotionMaster()->MovePoint(POINT_ID_INIT, ShadronPositions[0]);
 
-                    fetchShad->AddUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
+                    if (!fetchShad->HasUnitFlag(UNIT_FLAG_NON_ATTACKABLE))
+                        fetchShad->AddUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
                 }
             }
 
@@ -332,7 +337,8 @@ public:
                     }
                     fetchVesp->GetMotionMaster()->MovePoint(POINT_ID_INIT, VesperonPositions[0]);
 
-                    fetchVesp->AddUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
+                    if (!fetchVesp->HasUnitFlag(UNIT_FLAG_NON_ATTACKABLE))
+                        fetchVesp->AddUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
                 }
             }
 
@@ -348,7 +354,8 @@ public:
                 {
                     temp->SetWalk(false);
 
-                    temp->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
+                    if (temp->HasUnitFlag(UNIT_FLAG_NON_ATTACKABLE))
+                        temp->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
 
                     uint8 textId = 0;
 

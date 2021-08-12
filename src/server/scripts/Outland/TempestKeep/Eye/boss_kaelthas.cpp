@@ -368,7 +368,7 @@ struct advisorbase_ai : public ScriptedAI
         }
     }
 
-    void DamageTaken(Unit* /*killer*/, uint32 &damage) override
+    void DamageTaken(Unit* killer, uint32 &damage) override
     {
         if (damage >= me->GetHealth() && !_inFakeDeath && !_hasRessurrected)
         {
@@ -387,7 +387,7 @@ struct advisorbase_ai : public ScriptedAI
             me->SetTarget(ObjectGuid::Empty);
             me->SetStandState(UNIT_STAND_STATE_DEAD);
             me->GetMotionMaster()->Clear();
-            JustDied(nullptr);
+            JustDied(killer);
         }
     }
 
@@ -572,9 +572,7 @@ class boss_kaelthas : public CreatureScript
                 if (_phase == PHASE_NONE)
                 {
                     DoAction(ACTION_START_ENCOUNTER);
-
-                    if (attacker)
-                        me->SetTarget(attacker->GetGUID());
+                    me->SetTarget(attacker->GetGUID());
                 }
 
                 if (!_hasFullPower && me->HealthBelowPctDamaged(50, damage))
@@ -653,10 +651,10 @@ class boss_kaelthas : public CreatureScript
                 }
             }
 
-            void JustDied(Unit* /*killer*/) override
+            void JustDied(Unit* killer) override
             {
                 Talk(SAY_DEATH);
-                _JustDied();
+                BossAI::JustDied(killer);
             }
 
             void UpdateAI(uint32 diff) override
@@ -907,7 +905,7 @@ class boss_thaladred_the_darkener : public CreatureScript
                 advisorbase_ai::Reset();
             }
 
-            void JustEngagedWith(Unit* who) override
+            void EnterCombat(Unit* who) override
             {
                 Talk(SAY_THALADRED_AGGRO);
                 AddThreat(who, 5000000.0f);
@@ -1005,7 +1003,7 @@ class boss_lord_sanguinar : public CreatureScript
                 advisorbase_ai::Reset();
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
                 Talk(SAY_SANGUINAR_AGGRO);
             }
@@ -1101,7 +1099,7 @@ class boss_grand_astromancer_capernian : public CreatureScript
                 }
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
                 Talk(SAY_CAPERNIAN_AGGRO);
             }
@@ -1208,7 +1206,7 @@ class boss_master_engineer_telonicus : public CreatureScript
                 advisorbase_ai::JustDied(killer);
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
                 Talk(SAY_TELONICUS_AGGRO);
             }
@@ -1285,7 +1283,7 @@ class npc_kael_flamestrike : public CreatureScript
 
             void MoveInLineOfSight(Unit* /*who*/) override { }
 
-            void JustEngagedWith(Unit* /*who*/) override { }
+            void EnterCombat(Unit* /*who*/) override { }
 
             void UpdateAI(uint32 diff) override
             {

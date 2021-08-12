@@ -26,6 +26,7 @@ EndScriptData */
 npc_wizzlecrank_shredder
 EndContentData */
 
+#include "AchievementMgr.h"
 #include "ScriptMgr.h"
 #include "MotionMaster.h"
 #include "ObjectAccessor.h"
@@ -34,6 +35,19 @@ EndContentData */
 #include "ScriptedGossip.h"
 #include "SpellInfo.h"
 #include "TemporarySummon.h"
+
+// Zone 491
+class zone_razorfen_kraul : public ZoneScript
+{
+public:
+    zone_razorfen_kraul() : ZoneScript("zone_razorfen_kraul") { }
+
+    void OnPlayerEnter(Player* player) override
+    {
+        if (AchievementEntry const* southernBarrensExploration = sAchievementStore.LookupEntry(4996))
+            player->GetAchievementMgr()->CompletedAchievement(southernBarrensExploration, player);
+    }
+};
 
 /*######
 ## npc_beaten_corpse
@@ -52,7 +66,9 @@ class npc_beaten_corpse : public CreatureScript
 
         struct npc_beaten_corpseAI : public ScriptedAI
         {
-            npc_beaten_corpseAI(Creature* creature) : ScriptedAI(creature) { }
+            npc_beaten_corpseAI(Creature* creature) : ScriptedAI(creature)
+            {
+            }
 
             bool GossipSelect(Player* player, uint32 menuId, uint32 gossipListId) override
             {
@@ -61,6 +77,7 @@ class npc_beaten_corpse : public CreatureScript
                     CloseGossipMenuFor(player);
                     player->TalkedToCreature(me->GetEntry(), me->GetGUID());
                 }
+
                 return false;
             }
         };
@@ -87,13 +104,33 @@ enum Gilthares
     SAY_GIL_FREED               = 7,
 
     QUEST_FREE_FROM_HOLD        = 898,
-    AREA_MERCHANT_COAST         = 391
+    FACTION_ESCORTEE            = 232                       //guessed, possible not needed for this quest
 };
 
 class npc_gilthares : public CreatureScript
 {
 public:
     npc_gilthares() : CreatureScript("npc_gilthares") { }
+
+    bool OnQuestAccept(Player* player, Creature* creature, const Quest* quest) override
+    {
+        if (quest->GetQuestId() == QUEST_FREE_FROM_HOLD)
+        {
+            creature->SetFaction(FACTION_ESCORTEE);
+            creature->SetStandState(UNIT_STAND_STATE_STAND);
+
+            creature->AI()->Talk(SAY_GIL_START, player);
+
+            if (npc_giltharesAI* pEscortAI = CAST_AI(npc_gilthares::npc_giltharesAI, creature->AI()))
+                pEscortAI->Start(false, false, player->GetGUID(), quest);
+        }
+        return true;
+    }
+
+    CreatureAI* GetAI(Creature* creature) const override
+    {
+        return new npc_giltharesAI(creature);
+    }
 
     struct npc_giltharesAI : public EscortAI
     {
@@ -131,37 +168,21 @@ public:
             }
         }
 
-        void JustEngagedWith(Unit* who) override
+        void EnterCombat(Unit* who) override
         {
             //not always use
             if (rand32() % 4)
                 return;
 
             //only aggro text if not player and only in this area
-            if (who->GetTypeId() != TYPEID_PLAYER && me->GetAreaId() == AREA_MERCHANT_COAST)
+            if (who->GetTypeId() != TYPEID_PLAYER && me->GetAreaId() == AREA_BARRENS_MERCHANT_COAST)
             {
                 //appears to be pretty much random (possible only if escorter not in combat with who yet?)
                 Talk(SAY_GIL_AGGRO, who);
             }
         }
-
-        void QuestAccept(Player* player, Quest const* quest) override
-        {
-            if (quest->GetQuestId() == QUEST_FREE_FROM_HOLD)
-            {
-                me->SetFaction(FACTION_ESCORTEE_H_NEUTRAL_ACTIVE);
-                me->SetStandState(UNIT_STAND_STATE_STAND);
-
-                Talk(SAY_GIL_START, player);
-                Start(false, false, player->GetGUID(), quest);
-            }
-        }
     };
 
-    CreatureAI* GetAI(Creature* creature) const override
-    {
-        return new npc_giltharesAI(creature);
-    }
 };
 
 /*######
@@ -235,7 +256,7 @@ public:
             }
         }
 
-        void JustEngagedWith(Unit* /*who*/) override { }
+        void EnterCombat(Unit* /*who*/) override { }
 
         void UpdateAI(uint32 diff) override
         {
@@ -531,12 +552,24 @@ public:
             IsPostEvent = false;
             PostEventTimer = 1000;
             PostEventCount = 0;
-            me->SetReactState(REACT_DEFENSIVE);
         }
 
         bool IsPostEvent;
         uint32 PostEventTimer;
         uint32 PostEventCount;
+
+        void Reset() override
+        {
+            if (!HasEscortState(STATE_ESCORT_ESCORTING))
+            {
+                if (me->GetStandState() == UNIT_STAND_STATE_DEAD)
+                     me->SetStandState(UNIT_STAND_STATE_STAND);
+
+                IsPostEvent = false;
+                PostEventTimer = 1000;
+                PostEventCount = 0;
+            }
+        }
 
         void WaypointReached(uint32 waypointId, uint32 /*pathId*/) override
         {
@@ -591,57 +624,57 @@ public:
 
         void UpdateEscortAI(uint32 Diff) override
         {
-            if (UpdateVictim())
+            if (!UpdateVictim())
             {
-                DoMeleeAttackIfReady();
-                return;
-            }
-
-            if (!IsPostEvent)
-                return;
-
-            if (PostEventTimer > Diff)
-            {
-                PostEventTimer -= Diff;
-                return;
-            }
-
-            switch (PostEventCount)
-            {
-                case 0:
-                    Talk(SAY_PROGRESS_2);
-                    break;
-                case 1:
-                    Talk(SAY_PROGRESS_3);
-                    break;
-                case 2:
-                    Talk(SAY_END);
-                    break;
-                case 3:
-                    if (Player* player = GetPlayerForEscort())
+                if (IsPostEvent)
+                {
+                    if (PostEventTimer <= Diff)
                     {
-                        player->GroupEventHappens(QUEST_ESCAPE, me);
-                        me->DespawnOrUnsummon(3min);
-                        me->SummonCreature(NPC_PILOT_WIZZ, 0.0f, 0.0f, 0.0f, 0.0f, TEMPSUMMON_TIMED_DESPAWN, 180000);
+                        switch (PostEventCount)
+                        {
+                            case 0:
+                                Talk(SAY_PROGRESS_2);
+                                break;
+                            case 1:
+                                Talk(SAY_PROGRESS_3);
+                                break;
+                            case 2:
+                                Talk(SAY_END);
+                                break;
+                            case 3:
+                                if (Player* player = GetPlayerForEscort())
+                                {
+                                    player->GroupEventHappens(QUEST_ESCAPE, me);
+                                    me->SummonCreature(NPC_PILOT_WIZZ, 0.0f, 0.0f, 0.0f, 0.0f, TEMPSUMMON_TIMED_DESPAWN, 180000);
+                                }
+                                break;
+                        }
+
+                        ++PostEventCount;
+                        PostEventTimer = 5000;
                     }
-                    break;
+                    else
+                        PostEventTimer -= Diff;
+                }
+
+                return;
             }
 
-            ++PostEventCount;
-            PostEventTimer = 5000;
-        }
-
-        void QuestAccept(Player* player, Quest const* quest) override
-        {
-            if (quest->GetQuestId() == QUEST_ESCAPE)
-            {
-                me->SetFaction(FACTION_RATCHET);
-                Talk(SAY_START);
-                SetDespawnAtEnd(false);
-                Start(true, false, player->GetGUID());
-            }
+            DoMeleeAttackIfReady();
         }
     };
+
+    bool OnQuestAccept(Player* player, Creature* creature, Quest const* quest) override
+    {
+        if (quest->GetQuestId() == QUEST_ESCAPE)
+        {
+            creature->SetFaction(FACTION_RATCHET);
+            creature->AI()->Talk(SAY_START);
+            if (EscortAI* pEscortAI = CAST_AI(npc_wizzlecrank_shredder::npc_wizzlecrank_shredderAI, creature->AI()))
+                pEscortAI->Start(true, false, player->GetGUID());
+        }
+        return true;
+    }
 
     CreatureAI* GetAI(Creature* creature) const override
     {
@@ -652,5 +685,6 @@ public:
 
 void AddSC_the_barrens()
 {
+    new zone_razorfen_kraul();
     new npc_wizzlecrank_shredder();
 }

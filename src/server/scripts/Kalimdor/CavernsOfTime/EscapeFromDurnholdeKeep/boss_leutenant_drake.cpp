@@ -39,26 +39,19 @@ class go_barrel_old_hillsbrad : public GameObjectScript
 public:
     go_barrel_old_hillsbrad() : GameObjectScript("go_barrel_old_hillsbrad") { }
 
-    struct go_barrel_old_hillsbradAI : public GameObjectAI
+    bool OnGossipHello(Player* /*player*/, GameObject* go) override
     {
-        go_barrel_old_hillsbradAI(GameObject* go) : GameObjectAI(go), instance(go->GetInstanceScript()) { }
-
-        InstanceScript* instance;
-
-        bool GossipHello(Player* /*player*/) override
+        if (InstanceScript* instance = go->GetInstanceScript())
         {
             if (instance->GetData(TYPE_BARREL_DIVERSION) == DONE)
                 return false;
 
             instance->SetData(TYPE_BARREL_DIVERSION, IN_PROGRESS);
-            return false;
         }
-    };
 
-    GameObjectAI* GetAI(GameObject* go) const override
-    {
-        return GetOldHillsbradAI<go_barrel_old_hillsbradAI>(go);
+        return false;
     }
+
 };
 
 /*######
@@ -144,7 +137,7 @@ public:
             Initialize();
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
             Talk(SAY_AGGRO);
         }

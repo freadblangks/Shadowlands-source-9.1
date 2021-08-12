@@ -572,7 +572,7 @@ class instance_ulduar : public InstanceMapScript
                     case NPC_GUARDIAN_OF_LIFE:
                         if (!conSpeedAtory)
                         {
-                            DoStartCriteriaTimer(CriteriaStartEvent::SendEvent, CRITERIA_CON_SPEED_ATORY);
+                            DoStartCriteriaTimer(CRITERIA_TIMED_TYPE_EVENT, CRITERIA_CON_SPEED_ATORY);
                             conSpeedAtory = true;
                         }
                         break;
@@ -581,7 +581,7 @@ class instance_ulduar : public InstanceMapScript
                     case NPC_BRIGHTLEAF:
                         if (!lumberjacked)
                         {
-                            DoStartCriteriaTimer(CriteriaStartEvent::SendEvent, CRITERIA_LUMBERJACKED);
+                            DoStartCriteriaTimer(CRITERIA_TIMED_TYPE_EVENT, CRITERIA_LUMBERJACKED);
                             lumberjacked = true;
                         }
                         break;
@@ -688,7 +688,7 @@ class instance_ulduar : public InstanceMapScript
                             {
                                 if (GameObject* cache = instance->GetGameObject(thorim->AI()->GetData(DATA_THORIM_HARDMODE) ? CacheOfStormsHardmodeGUID : CacheOfStormsGUID))
                                 {
-                                    cache->SetLootRecipient(thorim->GetLootRecipient());
+                                    cache->SetLootRecipientGUIDs(thorim->GetLootRecipientGUIDs());;
                                     cache->SetRespawnTime(cache->GetRespawnDelay());
                                     cache->RemoveFlag(GO_FLAG_LOCKED);
                                     cache->RemoveFlag(GO_FLAG_NOT_SELECTABLE);
@@ -761,7 +761,7 @@ class instance_ulduar : public InstanceMapScript
                 {
                     case DATA_COLOSSUS:
                         ColossusData = data;
-                        if (data >= 2 && GetBossState(BOSS_LEVIATHAN) == NOT_STARTED)
+                        if (data == 2 && GetBossState(BOSS_LEVIATHAN) == NOT_STARTED)
                         {
                             _events.ScheduleEvent(EVENT_LEVIATHAN_BREAK_DOOR, 5 * IN_MILLISECONDS);
                             SaveToDB();
@@ -968,7 +968,7 @@ class instance_ulduar : public InstanceMapScript
 
             void WriteSaveDataMore(std::ostringstream& data) override
             {
-                data << ColossusData << ' ' << _algalonTimer << ' ' << uint32(_algalonSummoned ? 1 : 0);
+                data << GetData(DATA_COLOSSUS) << ' ' << _algalonTimer << ' ' << uint32(_algalonSummoned ? 1 : 0);
 
                 for (uint8 i = 0; i < 4; ++i)
                     data << ' ' << uint32(!KeeperGUIDs[i].IsEmpty() ? 1 : 0);
@@ -980,6 +980,8 @@ class instance_ulduar : public InstanceMapScript
             {
                 uint32 tempState;
                 data >> tempState;
+                if (tempState == IN_PROGRESS || tempState > SPECIAL)
+                    tempState = NOT_STARTED;
                 SetData(DATA_COLOSSUS, tempState);
 
                 data >> _algalonTimer;

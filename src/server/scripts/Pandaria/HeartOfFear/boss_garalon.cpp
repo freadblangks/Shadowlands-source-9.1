@@ -1,5 +1,6 @@
 /*
- * Copyright 2021 ShadowCore
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -168,7 +169,7 @@ public:
         SummonList summons;
         EventMap events;
         std::map<ObjectGuid, uint8> legsIndexMap;
-        std::list<ObjectGuid> legs;
+        std::list<uint32> legs;
         uint32 mendedLeg;
         bool damagedHeroic;
         bool castingCrush;
@@ -349,7 +350,7 @@ public:
 
             DespawnCreatures(NPC_PHEROMONE_TRAIL);
             me->RemoveAllAuras();
-            me->DeleteThreatList();
+            ResetThreatList();
             me->CombatStop(true);
             me->AttackStop();
             me->GetMotionMaster()->MoveTargetedHome();
@@ -496,26 +497,26 @@ public:
             }
         }
 
-        void SetGUID(ObjectGuid p_Guid, int32 p_Id) override
+        void SetData(uint32 action, uint32 value) override
         {
-            if (p_Id == ACTION_LEG_IS_DEAD)
+            if (action == ACTION_LEG_IS_DEAD)
             {
                 // Crash check, should always be true
                 if (legs.size() < 4)
                 {
-                    std::list<ObjectGuid>::iterator itr = legs.begin();
+                    std::list<uint32>::iterator itr = legs.begin();
                     bool search = true;
                     // Checking if leg already in list
                     while (search && itr != legs.end())
                     {
-                        if (*itr == p_Guid)
+                        if (*itr == value)
                             search = false;
                         ++itr;
                     }
                     // if not, we can add it
                     if (search)
                     {
-                        legs.push_back(p_Guid);
+                        legs.push_back(value);
                         events.ScheduleEvent(EVENT_MEND_LEG, 10000);
                     }
                 }
@@ -523,7 +524,36 @@ public:
                 me->AddAura(SPELL_BROKEN_LEG, me);
                 me->DealDamage(me, me->GetMaxHealth() * 0.03);
             }
+        }
 
+        uint32 GetData(uint32 action) const override
+        {
+            switch (action)
+            {
+                // Get first dead leg
+                case ACTION_LEG_IS_DEAD:
+                {
+                    if (legs.empty())
+                        return 0;
+
+                    uint32 guid = legs.front();
+                    //legs.pop_front();
+                    return guid;
+                }
+                case ACTION_MENDED_LEG:
+                {
+                    return legs.front();
+                    break;
+                }
+                default:
+                    break;
+            }
+
+            return 0;
+        }
+
+        void SetGUID(ObjectGuid p_Guid, int32 p_Id) override
+        {
             if (p_Id == GUID_MENDED_LEG)
             {
                 if (Creature* l_Leg = ObjectAccessor::GetCreature(*me, p_Guid))
@@ -533,24 +563,6 @@ public:
                         l_Leg->CastSpell(l_Leg, legSpells[l_Itr->second], true);
                 }
             }
-        }
-
-        ObjectGuid GetGUID(int32 id) const override
-        {
-            switch (id)
-            {
-                // Get first dead leg
-                case ACTION_LEG_IS_DEAD:
-                case ACTION_MENDED_LEG:
-                {
-                    if (legs.empty())
-                        return ObjectGuid::Empty;
-
-                    return legs.front();
-                }
-            }
-
-            return ObjectGuid::Empty;
         }
 
         void UpdateAI(const uint32 diff) override
@@ -709,7 +721,7 @@ public:
                         instance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me);
 
                     if (Creature* Garalon = instance->GetCreature(NPC_GARALON))
-                        Garalon->ToCreature()->AI()->SetGUID(me->GetGUID(), ACTION_LEG_IS_DEAD);
+                        Garalon->ToCreature()->AI()->SetData(ACTION_LEG_IS_DEAD, me->GetGUID().GetCounter());
                     break;
                 }
                 case ACTION_MEND_LEG:
@@ -875,8 +887,9 @@ class spell_garalon_mend_leg: public SpellScriptLoader
                 targets.clear();
                 if (Unit* Garalon = GetCaster())
                 {
-                    ObjectGuid legGUID = Garalon->GetAI()->GetGUID(ACTION_MENDED_LEG);
-                    if (Unit* leg = ObjectAccessor::GetUnit(*Garalon, legGUID))
+                    uint32 legLowGuid = Garalon->GetAI()->GetData(ACTION_MENDED_LEG);
+                    ObjectGuid legGuid = ObjectGuid::Create<HighGuid::Creature>(Garalon->GetMapId(), NPC_GARALON_LEG, legLowGuid);
+                    if (Unit* leg = ObjectAccessor::GetUnit(*Garalon, legGuid))
                         targets.push_back(leg);
                 }
             }
@@ -889,8 +902,9 @@ class spell_garalon_mend_leg: public SpellScriptLoader
                 // Now, once we made sure we are casting on a random broken leg, let's have it "respawn".
                 if (Creature* garalon = GetCaster()->ToCreature())
                 {
-                    ObjectGuid legGUID = garalon->GetAI()->GetGUID(ACTION_MENDED_LEG);
-                    if (Creature* leg = ObjectAccessor::GetCreature(*garalon, legGUID))
+                    uint32 legLowGuid = garalon->GetAI()->GetData(ACTION_MENDED_LEG);
+                    ObjectGuid legGuid = ObjectGuid::Create<HighGuid::Creature>(garalon->GetMapId(), NPC_GARALON_LEG, legLowGuid);
+                    if (Creature* leg = ObjectAccessor::GetCreature(*garalon, legGuid))
                         leg->AI()->DoAction(ACTION_MEND_LEG);
                 }
                 // And remove a stack from Garalon's Broken Leg aura.

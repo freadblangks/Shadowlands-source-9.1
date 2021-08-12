@@ -101,13 +101,13 @@ public:
 
         void ScheduleTasks() override
         {
-            scheduler.Schedule(Seconds(15), Seconds(25), [this](TaskContext task)
+            me->GetScheduler().Schedule(Seconds(15), Seconds(25), [this](TaskContext task)
             {
                 DoCastVictim(SPELL_SHADOWCLEAVE);
                 task.Repeat(Seconds(15), Seconds(25));
             });
 
-            scheduler.Schedule(Seconds(25), Seconds(45), [this](TaskContext task)
+            me->GetScheduler().Schedule(Seconds(25), Seconds(45), [this](TaskContext task)
             {
                 if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))
                     DoCast(target,SPELL_INTANGIBLE_PRESENCE);
@@ -115,7 +115,7 @@ public:
                 task.Repeat(Seconds(25), Seconds(45));
             });
 
-            scheduler.Schedule(Seconds(30), Seconds(60), [this](TaskContext task)
+            me->GetScheduler().Schedule(Seconds(30), Seconds(60), [this](TaskContext task)
             {
                 Talk(SAY_RANDOM);
                 task.Repeat(Seconds(30), Seconds(60));
@@ -169,7 +169,7 @@ public:
                 _phase = PHASE_MOUNTED;
                 DoCastSelf(SPELL_SPAWN_SMOKE);
 
-                scheduler.Schedule(Seconds(10), Seconds(25), [this](TaskContext task)
+                me->GetScheduler().Schedule(Seconds(10), Seconds(25), [this](TaskContext task)
                 {
                     Unit* target = nullptr;
                     std::vector<Unit*> target_list;
@@ -190,7 +190,7 @@ public:
                     task.Repeat(Seconds(10), Seconds(25));
                 });
 
-                scheduler.Schedule(Seconds(25), Seconds(35), [this](TaskContext task)
+                me->GetScheduler().Schedule(Seconds(25), Seconds(35), [this](TaskContext task)
                 {
                     DoCastVictim(SPELL_KNOCKDOWN);
                     task.Repeat(Seconds(25), Seconds(35));
@@ -198,18 +198,18 @@ public:
             }
         }
 
-        void JustDied(Unit* /*killer*/) override
+        void JustDied(Unit* killer) override
         {
             Talk(SAY_DEATH);
             if (Unit* midnight = ObjectAccessor::GetUnit(*me, _midnightGUID))
                 midnight->KillSelf();
 
-            _JustDied();
+            BossAI::JustDied(killer);
         }
 
-        void SetGUID(ObjectGuid const& guid, int32 id) override
+        void SetGUID(ObjectGuid guid, int32 data) override
         {
-            if (id == NPC_MIDNIGHT)
+            if (data == NPC_MIDNIGHT)
                 _midnightGUID = guid;
         }
 
@@ -218,7 +218,7 @@ public:
             if (!UpdateVictim() && _phase != PHASE_NONE)
                 return;
 
-            scheduler.Update(diff,
+            me->GetScheduler().Update(diff,
                 std::bind(&BossAI::DoMeleeAttackIfReady, this));
         }
 
@@ -232,7 +232,7 @@ public:
                 if (Creature* midnight = ObjectAccessor::GetCreature(*me, _midnightGUID))
                 {
                     _phase = PHASE_NONE;
-                    scheduler.CancelAll();
+                    me->GetScheduler().CancelAll();
 
                     midnight->AttackStop();
                     midnight->RemoveAllAttackers();
@@ -246,7 +246,7 @@ public:
                     me->GetMotionMaster()->MoveFollow(midnight, 2.0f, 0.0f);
                     Talk(SAY_MOUNT);
 
-                    scheduler.Schedule(Seconds(1), [this](TaskContext task)
+                    me->GetScheduler().Schedule(Seconds(1), [this](TaskContext task)
                     {
                         if (Creature* midnight = ObjectAccessor::GetCreature(*me, _midnightGUID))
                         {
@@ -337,11 +337,11 @@ public:
             BossAI::JustSummoned(summon);
         }
 
-        void JustEngagedWith(Unit* who) override
+        void EnterCombat(Unit* who) override
         {
-            BossAI::JustEngagedWith(who);
+            BossAI::EnterCombat(who);
 
-            scheduler.Schedule(Seconds(15), Seconds(25), [this](TaskContext task)
+            me->GetScheduler().Schedule(Seconds(15), Seconds(25), [this](TaskContext task)
             {
                 DoCastVictim(SPELL_KNOCKDOWN);
                 task.Repeat(Seconds(15), Seconds(25));
@@ -367,7 +367,7 @@ public:
             if (!UpdateVictim() || _phase == PHASE_MOUNTED)
                 return;
 
-            scheduler.Update(diff,
+            me->GetScheduler().Update(diff,
                 std::bind(&BossAI::DoMeleeAttackIfReady, this));
         }
 

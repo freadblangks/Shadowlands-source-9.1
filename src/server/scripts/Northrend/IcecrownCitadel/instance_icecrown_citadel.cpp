@@ -638,7 +638,7 @@ class instance_icecrown_citadel : public InstanceMapScript
                     case GO_CACHE_OF_THE_DREAMWALKER_10H:
                     case GO_CACHE_OF_THE_DREAMWALKER_25H:
                         if (Creature* valithria = instance->GetCreature(ValithriaDreamwalkerGUID))
-                            go->SetLootRecipient(valithria->GetLootRecipient(), valithria->GetLootRecipientGroup());
+                            go->SetLootRecipientGUIDs(valithria->GetLootRecipientGUIDs());
                         go->RemoveFlag(GameObjectFlags(GO_FLAG_LOCKED | GO_FLAG_NOT_SELECTABLE | GO_FLAG_NODESPAWN));
                         break;
                     case GO_ARTHAS_PLATFORM:
@@ -871,7 +871,7 @@ class instance_icecrown_citadel : public InstanceMapScript
                                 if (GameObject* loot = instance->GetGameObject(DeathbringersCacheGUID))
                                 {
                                     if (Creature* deathbringer = instance->GetCreature(DeathbringerSaurfangGUID))
-                                        loot->SetLootRecipient(deathbringer->GetLootRecipient(), deathbringer->GetLootRecipientGroup());
+                                        loot->SetLootRecipientGUIDs(deathbringer->GetLootRecipientGUIDs());
                                     loot->RemoveFlag(GameObjectFlags(GO_FLAG_LOCKED | GO_FLAG_NOT_SELECTABLE | GO_FLAG_NODESPAWN));
                                 }
 
@@ -992,10 +992,9 @@ class instance_icecrown_citadel : public InstanceMapScript
                         // set the platform as active object to dramatically increase visibility range
                         // note: "active" gameobjects do not block grid unloading
                         if (GameObject* precipice = instance->GetGameObject(ArthasPrecipiceGUID))
-                            precipice->SetFarVisible(state == IN_PROGRESS);
-
+                            precipice->setActive(state == IN_PROGRESS);
                         if (GameObject* platform = instance->GetGameObject(ArthasPlatformGUID))
-                            platform->SetFarVisible(state == IN_PROGRESS);
+                            platform->setActive(state == IN_PROGRESS);
 
                         if (instance->IsHeroic())
                         {

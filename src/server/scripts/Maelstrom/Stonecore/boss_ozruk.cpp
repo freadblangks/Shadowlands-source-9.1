@@ -92,9 +92,9 @@ class boss_ozruk : public CreatureScript
                 events.ScheduleEvent(EVENT_ELEMENTIUM_SPIKE_SHIELD, 13000);
             }
 
-            void JustEngagedWith(Unit* /*victim*/) override
+            void EnterCombat(Unit* /*victim*/) override
             {
-                _JustEngagedWith();
+                _EnterCombat();
 
                 Talk(SAY_AGGRO);
             }

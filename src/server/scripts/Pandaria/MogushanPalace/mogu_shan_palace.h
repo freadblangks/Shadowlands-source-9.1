@@ -1,6 +1,19 @@
 /*
- *    Dungeon : Mogushan Palace 88-90
- *    Instance General Script
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef MOGUSHAN_PALACE_H_
@@ -17,77 +30,50 @@ enum eData
     DATA_GEKKAN                 = 1,
     DATA_XIN_THE_WEAPONMASTER   = 2,
 
-    MAX_ENCOUNTER               = 3,
-
-    MAX_GUIDS = 4,
+    DATA_GEKKAN_ADDS            = 3
 };
 
-enum eSpells
+enum eTrashSpells
 {
     //Kuai the brute
     SPELL_COMBAT_SOUND_LOOP         = 126252,
     SPELL_SHOCKWAVE                 = 119922,
     SPELL_PICK_SHOCKWAVE_TARGET     = 120499,
+    SPELL_SHOCKWAVE_2               = 119929,
+    SPELL_SHOCKWAVE_3               = 119930,
+    SPELL_SHOCKWAVE_4               = 119931,
+    SPELL_SHOCKWAVE_5               = 119932,
+    SPELL_SHOCKWAVE_6               = 119933,
     SPELL_GUARDIAN_TAUNT            = 85667,
-
     //Ming the cunning
     SPELL_LIGHTNING_BOLT            = 123654,
     SPELL_WHIRLING_DERVISH          = 119981,
-    SPELL_MAGNETIC_FIELD_10         = 120102,
-    SPELL_MAGNETIC_FIELD_20         = 120118,
-    SPELL_MAGNETIC_FIELD_40         = 120119,
-    SPELL_MAGNETIC_FIELD_AURA       = 120100,
-    SPELL_MAGNETIC_FIELD_SCRIPT     = 120099,
-    SPELL_MAGNETIC_PULL             = 120111,
-
+    SPELL_MAGNETIC_FIELD            = 120100,
+    SPELL_MAGNETIC_FIELD_2          = 120101,
+    SPELL_MAGNETIC_FIELD_3          = 120099,
     //Haiyan the unstoppable
     SPELL_TRAUMATIC_BLOW            = 123655,
-    SPELL_CONFLAGRATE_AURA          = 120160,
-    SPELL_CONFLAGRATE               = 120167,
-    SPELL_CONFLAGRATE_SPREAD        = 120165,
+    SPELL_CONFLAGRATE               = 120160,
+    SPELL_CONFLAGRATE_2             = 120167,
+    SPELL_CONFLAGRATE_3             = 120161,
+    SPELL_CONFLAGRATE_4             = 120201,
     SPELL_METEOR                    = 120195,
-    SPELL_METEOR_TARGETING          = 120194,
-
+    SPELL_METEOR_2                  = 120194,
+    SPELL_METEOR_3                  = 120196,
     //Xin trigger
-    SPELL_PING_AURA                 = 120915,
     SPELL_PING                      = 120510,
     SPELL_MOGU_JUMP                 = 120444,
-
-    //Xin the weaponmaster
-    SPELL_WHIRLWIND                 = 119373,
+    SPELL_THROW_DAMAGE              = 119311,
+    SPELL_THROW_AURA                = 119315,
     SPELL_PERMANENT_FEIGN_DEATH     = 130966,
-
+    SPELL_AXE_TOURBILOL             = 119373,
     //Gurthan scrapper, harthak adept and kargesh grunt
     SPELL_GRUNT_AURA                = 121746,
-    SPELL_SET_SPAWN_LOCATION        = 120385,
-    SPELL_REPLACE_STAND_CHEER       = 120862,
-    SPELL_REPLACE_STAND_RUDE        = 120863,
-    SPELL_REPLACE_STAND_SHOUT       = 120864,
-    SPELL_REPLACE_STAND_LAUGH       = 120866,
-    SPELL_REPLACE_STAND_APPLAUD     = 120867,
-    SPELL_REPLACE_STAND_NO          = 121568,
-    SPELL_REPLACE_STAND_CRY         = 121569,
-    SPELL_REPLACE_STAND_READY1H     = 121571,
-    SPELL_SCALE_95_100              = 123167,
-    SPELL_SCALE_115_120             = 123168,
-    SPELL_SCALE_105_110             = 123169,
-    SPELL_GRUNT_KNOCK               = 121724,
-    SPELL_GRUNT_KNOCK_2             = 121660,
-
     //Whirling dervish trigger
-    SPELL_WHIRLING_DERVISH_AURA     = 119982,
-    SPELL_WHIRLING_DERVISH_TARGETS  = 119994,
+    SPELL_WIRHLING_DERVISH_2        = 119982,
+    SPELL_WHIRLING_DERVISH_3        = 119994,
     SPELL_THROW                     = 120087,
     SPELL_THROW_2                   = 120035,
-
-    //Glintrok
-    SPELL_GLINTROK_ANIM_REPLACE     = 118967,
-    SPELL_GLINTROK_SCOUT_CALL       = 119076,
-    SPELL_IRON_PROTECTOR            = 118958,
-
-    //Cave bats
-    SPELL_GIANT_CAVE_BAT_COSMETIC   = 119319,
-
 };
 
 enum eCreatures
@@ -98,20 +84,12 @@ enum eCreatures
     CREATURE_HAIYAN_THE_UNSTOPPABLE         = 61445,
     CREATURE_XIN_THE_WEAPONMASTER_TRIGGER   = 61884,
     CREATURE_XIN_THE_WEAPONMASTER           = 61398,
-
     //Trash
     CREATURE_GURTHAN_SCRAPPER               = 61447,
-    CREATURE_GURTHAN_SCRAPPER_2             = 61549,
     CREATURE_HARTHAK_ADEPT                  = 61449,
-    CREATURE_HARTHAK_ADEPT_2                = 61550,
     CREATURE_KARGESH_GRUNT                  = 61450,
-    CREATURE_KARGESH_GRUNT_2                = 61551,
-    CREATURE_GLINTROK_SCOUT                 = 64243,
-    CREATURE_CAVE_BAT                       = 61415,
-
     //Trigger
     CREATURE_WHIRLING_DERVISH               = 61626,
-    CREATURE_BEACON                         = 64250,
 
     CREATURE_GEKKAN                         = 61243,
     CREATURE_GLINTROK_IRONHIDE              = 61337,
@@ -122,52 +100,45 @@ enum eCreatures
     //XIN THE WEAPONMASTER
     CREATURE_ANIMATED_STAFF                 = 61433,
     CREATURE_ANIMATED_AXE                   = 61451,
-    CREATURE_CROSSBOW                       = 61679
+    CREATURE_LAUNCH_SWORD                   = 63808,
 };
 
 enum eTypes
 {
-    TYPE_MING,
-    TYPE_KUAI,
-    TYPE_HAIYAN,
-    TYPE_TRIAL_ENDED,
+    TYPE_MING_ATTACK = 4,   ///< Types are used as DATA_* with SetData function (WTF?!), so i make the enum start at 4 to avoid misconception error.
+    TYPE_KUAI_ATTACK,
+    TYPE_HAIYAN_ATTACK,
+    TYPE_ALL_ATTACK,
 
     TYPE_MING_RETIRED,
     TYPE_KUAI_RETIRED,
     TYPE_HAIYAN_RETIRED,
 
     TYPE_WIPE_FIRST_BOSS,
-    TYPE_TRIAL_CHEST,
 
-    TYPE_ACTIVATE_ANIMATED_STAFF,
-    TYPE_ACTIVATE_ANIMATED_AXE,
+    TYPE_MING_INTRO,
+    TYPE_OUTRO_01,
+    TYPE_OUTRO_02,
+    TYPE_OUTRO_03,
+    TYPE_OUTRO_04,
+    TYPE_OUTRO_05,
 
-    TYPE_SHUFFLE_ORDER,
+    TYPE_GET_ENTOURAGE_0, //14
+    TYPE_GET_ENTOURAGE_1, //15
+    TYPE_GET_ENTOURAGE_2, //16
+    TYPE_GET_ENTOURAGE_3, //17
 
-    TYPE_GEKKAN,
-    TYPE_XIN
+    TYPE_ACTIVATE_ANIMATED_STAFF, //18
+    TYPE_ACTIVATE_ANIMATED_AXE, //19
+    TYPE_ACTIVATE_SWORD, //20
 };
 
 enum eGameObjects
 {
     GO_DOOR_BEFORE_TRIAL    = 213594,
     GO_TRIAL_CHEST          = 214520,
-    GO_TRIAL_CHEST_HC       = 214521,
     GO_DOOR_AFTER_TRIAL     = 213593,
-    GO_DOOR_BEFORE_KING2    = 213595,
     GO_DOOR_BEFORE_KING     = 213596,
-    GO_ANCIENT_MOGU_TREASURE= 214795,
-    GO_GEKKAN_TREASURE_DOOR = 214654,
-    GO_USELESS_DOOR         = 213666
 };
-
-static const Position pTrialIntroPositions[] =
-{
-    { -4251.8f, -2613.6f, 17.49f, 0.0f },
-    { -4216.0f, -2590.4f, 17.50f, 0.0f },
-    { -4215.8f, -2636.8f, 17.50f, 0.0f },
-};
-
-#define MAX_TYPES 14
 
 #endif // MOGUSHAN_PALACE_H_

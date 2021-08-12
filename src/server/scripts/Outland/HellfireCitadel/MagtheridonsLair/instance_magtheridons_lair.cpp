@@ -123,7 +123,7 @@ class instance_magtheridons_lair : public InstanceMapScript
                         for (ObjectGuid warderGuid : warderGUIDS)
                             if (Creature* warder = instance->GetCreature(warderGuid))
                                 if (warder->IsAlive())
-                                    warder->AI()->DoZoneInCombat();
+                                    warder->SetInCombatWithZone();
                         break;
                     default:
                         break;

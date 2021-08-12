@@ -169,7 +169,7 @@ struct boss_coren_direbrew : public BossAI
             events.SetPhase(PHASE_ONE);
             me->SetImmuneToPC(false);
             me->SetFaction(FACTION_GOBLIN_DARK_IRON_BAR_PATRON);
-            DoZoneInCombat();
+            me->SetInCombatWithZone();
 
             EntryCheckPredicate pred(NPC_ANTAGONIST);
             summons.DoAction(ACTION_ANTAGONIST_HOSTILE, pred);
@@ -217,7 +217,7 @@ struct boss_coren_direbrew : public BossAI
     void SummonSister(uint32 entry)
     {
         if (Creature* sister = me->SummonCreature(entry, me->GetPosition(), TEMPSUMMON_DEAD_DESPAWN))
-            DoZoneInCombat(sister);
+            sister->SetInCombatWithZone();
     }
 
     void UpdateAI(uint32 diff) override
@@ -259,14 +259,9 @@ struct boss_coren_direbrew : public BossAI
                     SummonSister(NPC_URSULA_DIREBREW);
                     break;
                 case EVENT_SUMMON_MOLE_MACHINE:
-                {
-                    CastSpellExtraArgs args;
-                    args.TriggerFlags = TRIGGERED_FULL_MASK;
-                    args.AddSpellMod(SPELLVALUE_MAX_TARGETS, 1);
-                    me->CastSpell(nullptr, SPELL_MOLE_MACHINE_TARGET_PICKER, args);
+                    me->CastCustomSpell(SPELL_MOLE_MACHINE_TARGET_PICKER, SPELLVALUE_MAX_TARGETS, 1, nullptr, true);
                     events.Repeat(Seconds(15));
                     break;
-                }
                 case EVENT_DIREBREW_DISARM:
                     DoCastSelf(SPELL_DIREBREW_DISARM_PRE_CAST, true);
                     events.Repeat(Seconds(20));
@@ -287,9 +282,9 @@ struct npc_coren_direbrew_sisters : public ScriptedAI
 {
     npc_coren_direbrew_sisters(Creature* creature) : ScriptedAI(creature) { }
 
-    void SetGUID(ObjectGuid const& guid, int32 id) override
+    void SetGUID(ObjectGuid guid, int32 data) override
     {
-        if (id == DATA_TARGET_GUID)
+        if (data == DATA_TARGET_GUID)
             _targetGUID = guid;
     }
 
@@ -301,7 +296,7 @@ struct npc_coren_direbrew_sisters : public ScriptedAI
         return ObjectGuid::Empty;
     }
 
-    void JustEngagedWith(Unit* /*who*/) override
+    void EnterCombat(Unit* /*who*/) override
     {
         DoCastSelf(SPELL_PORT_TO_COREN);
 
@@ -343,7 +338,7 @@ struct npc_direbrew_minion : public ScriptedAI
     void Reset() override
     {
         me->SetFaction(FACTION_GOBLIN_DARK_IRON_BAR_PATRON);
-        DoZoneInCombat();
+        me->SetInCombatWithZone();
     }
 
     void IsSummonedBy(Unit* /*summoner*/) override
@@ -373,17 +368,17 @@ struct npc_direbrew_antagonist : public ScriptedAI
             case ACTION_ANTAGONIST_HOSTILE:
                 me->SetImmuneToPC(false);
                 me->SetFaction(FACTION_GOBLIN_DARK_IRON_BAR_PATRON);
-                DoZoneInCombat();
+                me->SetInCombatWithZone();
                 break;
             default:
                 break;
         }
     }
 
-    void JustEngagedWith(Unit* who) override
+    void EnterCombat(Unit* who) override
     {
         Talk(SAY_ANTAGONIST_COMBAT, who);
-        ScriptedAI::JustEngagedWith(who);
+        ScriptedAI::EnterCombat(who);
     }
 };
 

@@ -158,7 +158,7 @@ enum VHInstanceMisc
 template <class AI, class T>
 inline AI* GetVioletHoldAI(T* obj)
 {
-    return GetInstanceAI<AI>(obj, VioletHoldScriptName);
+    return GetInstanceAI<AI, T>(obj, VioletHoldScriptName);
 }
 
 #endif // VIOLET_HOLD_H_

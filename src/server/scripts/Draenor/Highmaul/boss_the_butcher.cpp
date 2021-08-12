@@ -1,5 +1,6 @@
 /*
- * Copyright 2021 ShadowCore
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -385,7 +386,7 @@ class boss_the_butcher : public CreatureScript
                 {
                     AddTimedDelayedOperation(2 * TimeConstants::IN_MILLISECONDS, [this]() -> void
                     {
-                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_TOPAGGRO))
+                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_MAXTHREAT))
                             AttackStart(target);
 
                         if (Creature* maggot = me->FindNearestCreature(eCreatures::Maggot, 10.0f))
@@ -444,7 +445,7 @@ class boss_the_butcher : public CreatureScript
                 {
                     case eEvents::EventTenderizer:
                     {
-                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_TOPAGGRO))
+                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_MAXTHREAT))
                             me->CastSpell(target, eSpells::TheTenderizer, true);
                         m_Events.ScheduleEvent(eEvents::EventTenderizer, 16 * TimeConstants::IN_MILLISECONDS);
                         break;
@@ -484,7 +485,7 @@ class boss_the_butcher : public CreatureScript
                     }
                     case eEvents::EventCleaver:
                     {
-                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_TOPAGGRO))
+                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_MAXTHREAT))
                             me->CastSpell(target, eSpells::TheCleaverDmg, true);
                         m_Events.ScheduleEvent(eEvents::EventCleaver, 8 * TimeConstants::IN_MILLISECONDS);
                         break;
@@ -506,7 +507,7 @@ class boss_the_butcher : public CreatureScript
                     }
                     case eEvents::EventMeatHook:
                     {
-                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_TOPAGGRO))
+                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_MAXTHREAT))
                             if (!target->IsWithinMeleeRange(me))
                                 me->CastSpell(target, eSpells::MeatHook, true);
 
@@ -707,7 +708,7 @@ class spell_highmaul_heavy_handed : public SpellScriptLoader
         {
             PrepareAuraScript(spell_highmaul_heavy_handed_AuraScript);
 
-            void OnProc(AuraEffect const* /*aurEff*/, ProcEventInfo& p_EventInfo)
+            void OnProc(AuraEffect* /*aurEff*/, ProcEventInfo& p_EventInfo)
             {
                 PreventDefaultAction();
 

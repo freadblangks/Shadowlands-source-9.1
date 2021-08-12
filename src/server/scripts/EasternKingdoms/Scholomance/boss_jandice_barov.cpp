@@ -58,7 +58,7 @@ public:
             Summons.Summon(summoned);
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
             events.ScheduleEvent(EVENT_CURSE_OF_BLOOD, 15000);
             events.ScheduleEvent(EVENT_ILLUSION, 30000);

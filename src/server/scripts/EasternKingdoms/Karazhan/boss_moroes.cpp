@@ -155,7 +155,7 @@ public:
             DoZoneInCombat();
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
             StartEvent();
 

@@ -66,7 +66,7 @@ enum RFDGameObjectIds
 template <class AI, class T>
 inline AI* GetRazorfenDownsAI(T* obj)
 {
-    return GetInstanceAI<AI>(obj, RFDScriptName);
+    return GetInstanceAI<AI, T>(obj, RFDScriptName);
 }
 
 #endif

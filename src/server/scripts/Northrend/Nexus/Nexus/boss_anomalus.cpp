@@ -105,7 +105,7 @@ class boss_anomalus : public CreatureScript
                 instance->SetBossState(DATA_ANOMALUS, NOT_STARTED);
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
                 Talk(SAY_AGGRO);
 

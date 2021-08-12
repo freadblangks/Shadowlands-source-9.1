@@ -45,7 +45,7 @@ struct boss_gorgroth : public BossAI
         }
         this->decayingCorpse = 0;
         sacrifice = false;
-        me->setRegeneratingHealth(false); // This is not supposed to be there
+       // me->setRegeneratingHealth(false); // This is not supposed to be there
         //There is a bug when npc A is trying to get in combat with npc B, but instead of it, they will both reset until they're in small range
     }
 

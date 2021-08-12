@@ -95,7 +95,7 @@ class boss_sjonnir : public CreatureScript
                 Initialize();
             }
 
-            void JustEngagedWith(Unit* who) override
+            void EnterCombat(Unit* who) override
             {
                 if (!instance->CheckRequiredBosses(DATA_SJONNIR, who->ToPlayer()))
                 {
@@ -103,7 +103,7 @@ class boss_sjonnir : public CreatureScript
                     return;
                 }
 
-                _JustEngagedWith();
+                _EnterCombat();
                 Talk(SAY_AGGRO);
 
                 events.ScheduleEvent(EVENT_CHAIN_LIGHTNING, urand(3000, 8000));

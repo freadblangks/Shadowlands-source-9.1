@@ -1,5 +1,5 @@
 /*
-* Copyright 2021 ShadowCore
+* Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
 *
 * This program is free software; you can redistribute it and/or modify it
 * under the terms of the GNU General Public License as published by the
@@ -31,7 +31,7 @@
 #include "ScriptedEscortAI.h"
 #include "SpellScript.h"
 #include "TemporarySummon.h"
-//#include "WodGarrison.h"
+#include "WodGarrison.h"
 
 enum
 {
@@ -51,20 +51,16 @@ enum
     NPC_ESTABLISH_YOUR_GARRISON_KILL_CREDIT = 79757,
 };
 
-// 79206 - Prophet Velen - Shadowmoon start
+// 79206 - Prophète Velen - Shadowmoon start
 class npc_velen_shadowmoon_begin : public CreatureScript
 {
 public:
     npc_velen_shadowmoon_begin() : CreatureScript("npc_velen_shadowmoon_begin") { }
 
-    bool OnQuestAccept(Player* player, Creature* creature, Quest const* quest)
+    bool OnQuestAccept(Player* player, Creature* creature, Quest const* quest) override
     {
         if (quest->GetQuestId() == QUEST_FINDING_A_FOOTHOLD)
         {
-            player->GetScheduler().Schedule(68s, [this, player](TaskContext context)
-            {
-                player->ForceCompleteQuest(QUEST_FINDING_A_FOOTHOLD);
-            });
             if (TempSummon* waypointVelen = player->SummonCreature(creature->GetEntry(), creature->GetPosition(), TEMPSUMMON_MANUAL_DESPAWN, 0, 0, true))
             {
                 waypointVelen->AI()->SetGUID(player->GetGUID());
@@ -106,22 +102,25 @@ public:
             playerGuid = ObjectGuid::Empty;
         }
 
-        void SetGUID(ObjectGuid guid, int32 /*id*/)
+        void SetGUID(ObjectGuid guid, int32 /*id*/) override
         {
             playerGuid = guid;
             Start(false, true, guid);
             SetDespawnAtFar(false);
-            me->GetScheduler().Schedule(68s, [this](TaskContext context)
-            {
-                Talk(0);
-                me->SetFacingTo(5.631830f);
-                me->DespawnOrUnsummon(3s);
-            });
+        }
+
+        void LastWaypointReached() override
+        {
+            me->DespawnOrUnsummon();
+            me->SetFacingTo(5.631830f);
+
+            if (Player* player = ObjectAccessor::FindPlayer(playerGuid))
+                player->ForceCompleteQuest(QUEST_FINDING_A_FOOTHOLD);
         }
     };
 };
 
-// 79206 - Proph?te Velen - Shadowmoon start
+// 79206 - Prophète Velen - Shadowmoon start
 class npc_velen_shadowmoon_follower : public CreatureScript
 {
 public:
@@ -136,12 +135,12 @@ public:
     {
         npc_velen_shadowmoon_followerAI(Creature* creature) : EscortAI(creature) { }
 
-        void SetGUID(ObjectGuid guid, int32 /*id*/)
+        void SetGUID(ObjectGuid guid, int32 /*id*/) override
         {
             Start(true, true, guid);
         }
 
-        void WaypointReached(uint32 pointId) override
+        void WaypointReached(uint32 pointId, uint32 /*pathId*/) override
         {
             switch (pointId)
             {
@@ -166,18 +165,6 @@ public:
             }
         }
     };
-};
-
-//79470
-struct npc_vindicator_maraad_79470 : public ScriptedAI
-{
-    npc_vindicator_maraad_79470(Creature* c) : ScriptedAI(c) { }
-
-    void QuestAccept(Player* player, Quest const* quest) override
-    {
-        if (quest->ID == QUEST_FOR_THE_ALLIANCE)
-            player->ForceCompleteQuest(QUEST_FOR_THE_ALLIANCE);
-    }
 };
 
 class npc_baros_pre_garrison : public CreatureScript
@@ -376,7 +363,7 @@ public:
     };
 };
 
- //Submerge - 172189
+/// Submerge - 172189
 struct areatrigger_aqualir_submerge : AreaTriggerAI
 {
     areatrigger_aqualir_submerge(AreaTrigger* areatrigger) : AreaTriggerAI(areatrigger) { }
@@ -396,7 +383,7 @@ struct areatrigger_aqualir_submerge : AreaTriggerAI
     }
 };
 
-//## Gara - suite de qu?tes cach?es chasseur
+//## Gara - suite de quêtes cachées chasseur
 
 enum GaraQuestLineEnum
 {
@@ -583,7 +570,7 @@ public:
 
         TempSummon* GetOmra()
         {
-            if (Creature* omra = ObjectAccessor::GetCreature(*go, omraGuid))
+            if (Creature* omra = ObjectAccessor::GetCreature(*me, omraGuid))
                 return omra->ToTempSummon();
 
             return nullptr;
@@ -591,7 +578,7 @@ public:
 
         TempSummon* GetXan()
         {
-            if (Creature* xan = ObjectAccessor::GetCreature(*go, xanGuid))
+            if (Creature* xan = ObjectAccessor::GetCreature(*me, xanGuid))
                 return xan->ToTempSummon();
 
             return nullptr;
@@ -607,10 +594,10 @@ public:
                 {
                     case EVENT_SOUL_EFFIGY_01:
                     {
-                        if (Creature* gara = go->FindNearestCreature(NPC_GARA_BURIAL, 15, false))
+                        if (Creature* gara = me->FindNearestCreature(NPC_GARA_BURIAL, 15, false))
                             gara->Respawn();
 
-                        if (TempSummon* Omra = go->SummonCreature(NPC_MOTHER_OMRA_BURIAL, BurialEventPos[0], TEMPSUMMON_MANUAL_DESPAWN))
+                        if (TempSummon* Omra = me->SummonCreature(NPC_MOTHER_OMRA_BURIAL, BurialEventPos[0], TEMPSUMMON_MANUAL_DESPAWN))
                         {
                             omraGuid = Omra->GetGUID();
                             Omra->CastSpell(Omra, SPELL_SOULSTONE_VISUAL);
@@ -671,7 +658,7 @@ public:
                             Omra->CastSpell(Omra, SPELL_SOULSTONE_VISUAL);
                         }
                         events.ScheduleEvent(EVENT_SOUL_EFFIGY_07, 2 * IN_MILLISECONDS);
-                        if (TempSummon* Xan = go->SummonCreature(NPC_XAN, BurialEventPos[3], TEMPSUMMON_MANUAL_DESPAWN))
+                        if (TempSummon* Xan = me->SummonCreature(NPC_XAN, BurialEventPos[3], TEMPSUMMON_MANUAL_DESPAWN))
                         {
                             xanGuid = Xan->GetGUID();
                             Xan->SetReactState(REACT_PASSIVE);
@@ -697,7 +684,7 @@ public:
                         if (TempSummon* Xan = GetXan())
                             Xan->Say(SAY_XAN_02, LANG_UNIVERSAL, Xan);
 
-                        if (Creature* gara = go->FindNearestCreature(NPC_GARA_BURIAL, 15, true))
+                        if (Creature* gara = me->FindNearestCreature(NPC_GARA_BURIAL, 15, true))
                             gara->CastSpell(gara, SPELL_VOID_EFFECT);
                         events.ScheduleEvent(EVENT_SOUL_EFFIGY_END, 4 * IN_MILLISECONDS);
 
@@ -705,7 +692,7 @@ public:
                     }
                     case EVENT_SOUL_EFFIGY_END:
                     {
-                        if (Creature* gara = go->FindNearestCreature(NPC_GARA_BURIAL, 15))
+                        if (Creature* gara = me->FindNearestCreature(NPC_GARA_BURIAL, 15))
                         {
                             gara->TextEmote("Gara slowly disappear into the void.", gara);
                             gara->RemoveAllAuras();
@@ -796,7 +783,7 @@ Position VoidRealmEventPos[] =
 #define SAY_OMRA_11 "She is being swallowed by the void! You must help her! There is only one way, tame her, now! Maybe you can find a way to reverse the process, and put her soul at rest, as you have done mine !"
 #define SAY_OMRA_12 "You've done it... thank you. Goodbye, Gara, my soul is at peace now. I hope... that you find this peace some day, too. I am so sorry, my dearest Gara."
 
-// 88707 - Gara invoqu?e dans le vide
+// 88707 - Gara invoquée dans le vide
 class npc_void_gara : public CreatureScript
 {
 public:
@@ -994,7 +981,7 @@ public:
                 {
                     case EVENT_CONSUMING_VOID:
                     {
-                        if (Unit* victim = SelectTarget(SELECT_TARGET_TOPAGGRO, 0, 100.0f, true))
+                        if (Unit* victim = SelectTarget(SELECT_TARGET_MAXTHREAT, 0, 100.0f, true))
                             me->CastSpell(victim, SPELL_CONSUMING_VOID);
 
                         events.ScheduleEvent(EVENT_CONSUMING_VOID, urand(40, 60) * IN_MILLISECONDS);
@@ -1002,7 +989,7 @@ public:
                     }
                     case EVENT_GRIP_OF_THE_VOID:
                     {
-                        if (Unit* victim = SelectTarget(SELECT_TARGET_TOPAGGRO, 0, 50.0f, true))
+                        if (Unit* victim = SelectTarget(SELECT_TARGET_MAXTHREAT, 0, 50.0f, true))
                             me->CastSpell(victim, SPELL_GRIP_OF_THE_VOID);
 
                         events.ScheduleEvent(EVENT_GRIP_OF_THE_VOID, urand(20, 30) * IN_MILLISECONDS);
@@ -1010,7 +997,7 @@ public:
                     }
                     case EVENT_NEGATE:
                     {
-                        if (Unit* victim = SelectTarget(SELECT_TARGET_TOPAGGRO, 0, 10.0f, true))
+                        if (Unit* victim = SelectTarget(SELECT_TARGET_MAXTHREAT, 0, 10.0f, true))
                             me->CastSpell(victim, SPELL_NEGATE);
 
                         events.ScheduleEvent(EVENT_NEGATE, urand(10, 25) * IN_MILLISECONDS);
@@ -1036,7 +1023,7 @@ public:
                     }
                     case EVENT_VOID_BOLT:
                     {
-                        if (Unit* victim = SelectTarget(SELECT_TARGET_TOPAGGRO, 0, 40.0f))
+                        if (Unit* victim = SelectTarget(SELECT_TARGET_MAXTHREAT, 0, 40.0f))
                             me->CastSpell(victim, SPELL_VOID_BOLT);
 
                         events.ScheduleEvent(EVENT_VOID_BOLT, urand(2, 6) * IN_MILLISECONDS);
@@ -1099,7 +1086,7 @@ public:
                 {
                     case EVENT_CONSUMING_VOID:
                     {
-                        if (Unit* victim = SelectTarget(SELECT_TARGET_TOPAGGRO, 0, 100.0f, true))
+                        if (Unit* victim = SelectTarget(SELECT_TARGET_MAXTHREAT, 0, 100.0f, true))
                             me->CastSpell(victim, SPELL_CONSUMING_VOID);
 
                         events.ScheduleEvent(EVENT_CONSUMING_VOID, urand(40, 60) * IN_MILLISECONDS);
@@ -1107,7 +1094,7 @@ public:
                     }
                     case EVENT_GRIP_OF_THE_VOID:
                     {
-                        if (Unit* victim = SelectTarget(SELECT_TARGET_TOPAGGRO, 0, 50.0f, true))
+                        if (Unit* victim = SelectTarget(SELECT_TARGET_MAXTHREAT, 0, 50.0f, true))
                             me->CastSpell(victim, SPELL_GRIP_OF_THE_VOID);
 
                         events.ScheduleEvent(EVENT_GRIP_OF_THE_VOID, urand(30, 35) * IN_MILLISECONDS);
@@ -1115,7 +1102,7 @@ public:
                     }
                     case EVENT_NEGATE:
                     {
-                        if (Unit* victim = SelectTarget(SELECT_TARGET_TOPAGGRO, 0, 10.0f, true))
+                        if (Unit* victim = SelectTarget(SELECT_TARGET_MAXTHREAT, 0, 10.0f, true))
                             me->CastSpell(victim, SPELL_NEGATE);
 
                         events.ScheduleEvent(EVENT_NEGATE, urand(20, 25) * IN_MILLISECONDS);
@@ -1141,7 +1128,7 @@ public:
                     }
                     case EVENT_VOID_BOLT:
                     {
-                        if (Unit* victim = SelectTarget(SELECT_TARGET_TOPAGGRO, 0, 40.0f))
+                        if (Unit* victim = SelectTarget(SELECT_TARGET_MAXTHREAT, 0, 40.0f))
                             me->CastSpell(victim, SPELL_VOID_BOLT);
 
                         events.ScheduleEvent(EVENT_VOID_BOLT, urand(2, 5) * IN_MILLISECONDS);
@@ -1166,8 +1153,11 @@ void AddSC_shadowmoon_draenor()
     new npc_velen_shadowmoon_follower();
     new npc_baros_pre_garrison();
     new npc_aqualir();
+
     new spell_shadowmoon_claiming();
+
     RegisterAreaTriggerAI(areatrigger_aqualir_submerge);
+
     new npc_gara();
     new spell_use_effigy();
     new go_spirit_effigy();
@@ -1176,5 +1166,4 @@ void AddSC_shadowmoon_draenor()
     new npc_void_gara();
     new npc_gara_void_creature();
     new npc_xan_void_realm();
-    RegisterCreatureAI(npc_vindicator_maraad_79470);
 }

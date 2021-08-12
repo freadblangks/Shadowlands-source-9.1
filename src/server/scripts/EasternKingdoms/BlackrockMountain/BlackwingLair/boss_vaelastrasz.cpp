@@ -75,7 +75,7 @@ public:
         {
             Initialize();
             creature->AddNpcFlag(UNIT_NPC_FLAG_GOSSIP);
-            creature->SetFaction(FACTION_FRIENDLY);
+            creature->SetFaction(35);
             creature->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
         }
 
@@ -93,9 +93,9 @@ public:
             Initialize();
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
-            _JustEngagedWith();
+            _EnterCombat();
 
             DoCast(me, SPELL_ESSENCEOFTHERED);
             me->SetHealth(me->CountPctFromMaxHealth(30));
@@ -153,7 +153,7 @@ public:
                             events.ScheduleEvent(EVENT_SPEECH_4, 16000);
                             break;
                         case EVENT_SPEECH_4:
-                            me->SetFaction(FACTION_DRAGONFLIGHT_BLACK);
+                            me->SetFaction(103);
                             if (Player* player = ObjectAccessor::GetPlayer(*me, PlayerGUID))
                                 AttackStart(player);
                             break;
@@ -229,6 +229,7 @@ public:
                 CloseGossipMenuFor(player);
                 BeginSpeech(player);
             }
+
             return false;
         }
 

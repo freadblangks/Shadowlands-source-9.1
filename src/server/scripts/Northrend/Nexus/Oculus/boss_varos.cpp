@@ -92,9 +92,9 @@ class boss_varos : public CreatureScript
                 Initialize();
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
-                _JustEngagedWith();
+                _EnterCombat();
 
                 Talk(SAY_AGGRO);
             }
@@ -282,7 +282,7 @@ class spell_varos_centrifuge_shield : public SpellScriptLoader
                 if (Unit* caster = GetCaster())
                 {
                     // flags taken from sniffs
-                    if (caster->HasUnitFlag(UnitFlags(UNIT_FLAG_UNK_15 | UNIT_FLAG_IMMUNE_TO_NPC | UNIT_FLAG_IMMUNE_TO_PC | UNIT_FLAG_UNK_6)))
+                    if (!caster->HasUnitFlag(UnitFlags(UNIT_FLAG_UNK_15|UNIT_FLAG_IMMUNE_TO_NPC|UNIT_FLAG_IMMUNE_TO_PC|UNIT_FLAG_UNK_6)))
                     {
                         caster->ToCreature()->SetReactState(REACT_PASSIVE);
                         caster->AddUnitFlag(UnitFlags(UNIT_FLAG_UNK_15 | UNIT_FLAG_UNK_6));

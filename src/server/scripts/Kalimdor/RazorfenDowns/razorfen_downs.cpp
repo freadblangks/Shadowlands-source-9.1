@@ -58,6 +58,8 @@ enum Belnistrasz
     EVENT_FIREBALL               = 5,
     EVENT_FROST_NOVA             = 6,
 
+    FACTION_ESCORT               = 250,
+
     PATH_ESCORT                  = 871710,
     POINT_REACH_IDOL             = 17,
 
@@ -109,7 +111,7 @@ public:
             }
         }
 
-        void JustEngagedWith(Unit* who) override
+        void EnterCombat(Unit* who) override
         {
             if (channeling)
                 Talk(SAY_WATCH_OUT, who);
@@ -135,7 +137,7 @@ public:
                 eventInProgress = true;
                 Talk(SAY_QUEST_ACCEPTED);
                 me->RemoveNpcFlag(UNIT_NPC_FLAG_QUESTGIVER);
-                me->SetFaction(FACTION_ESCORTEE_N_NEUTRAL_ACTIVE);
+                me->SetFaction(FACTION_ESCORT);
                 me->GetMotionMaster()->MovePath(PATH_ESCORT, false);
             }
         }
@@ -330,7 +332,7 @@ public:
             instance->SetData(DATA_WAVE, me->GetEntry());
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
             events.ScheduleEvent(EVENT_WEB, urand(5000, 8000));
         }
@@ -375,24 +377,19 @@ class go_gong : public GameObjectScript
 public:
     go_gong() : GameObjectScript("go_gong") { }
 
-    struct go_gongAI : public GameObjectAI
+    bool OnGossipHello(Player* /*player*/, GameObject* go) override
     {
-        go_gongAI(GameObject* go) : GameObjectAI(go), instance(go->GetInstanceScript()) { }
+        InstanceScript* instance = go->GetInstanceScript();
 
-        InstanceScript* instance;
-
-        bool GossipHello(Player* /*player*/) override
+        if (instance)
         {
-            me->SendCustomAnim(0);
+            go->SendCustomAnim(0);
             instance->SetData(DATA_WAVE, IN_PROGRESS);
             return true;
         }
-    };
-
-    GameObjectAI* GetAI(GameObject* go) const override
-    {
-        return GetRazorfenDownsAI<go_gongAI>(go);
+        return false;
     }
+
 };
 
 void AddSC_razorfen_downs()

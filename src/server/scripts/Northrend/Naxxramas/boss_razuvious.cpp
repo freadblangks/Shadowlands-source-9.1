@@ -117,9 +117,9 @@ public:
             instance->SetBossState(BOSS_RAZUVIOUS, DONE);
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
-            _JustEngagedWith();
+            _EnterCombat();
             me->StopMoving();
             summons.DoZoneInCombat();
             Talk(SAY_AGGRO);
@@ -185,7 +185,7 @@ class npc_dk_understudy : public CreatureScript
                 creature->LoadEquipment(1);
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
                 me->SetEmoteState(EMOTE_ONESHOT_NONE);
                 if (Creature* razuvious = ObjectAccessor::GetCreature(*me, _instance->GetGuidData(DATA_RAZUVIOUS)))
@@ -222,7 +222,7 @@ class npc_dk_understudy : public CreatureScript
                 if (apply)
                 {
                     if (!me->IsInCombat())
-                        JustEngagedWith(nullptr);
+                        EnterCombat(nullptr);
                     me->StopMoving();
                     me->SetReactState(REACT_PASSIVE);
                     _charmer = me->GetCharmerGUID();

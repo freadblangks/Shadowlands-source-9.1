@@ -112,7 +112,7 @@ public:
             instance->SetBossState(DATA_MAL_GANIS, NOT_STARTED);
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
             Talk(SAY_AGGRO);
             instance->SetBossState(DATA_MAL_GANIS, IN_PROGRESS);

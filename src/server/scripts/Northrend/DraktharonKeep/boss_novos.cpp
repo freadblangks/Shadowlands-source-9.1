@@ -106,9 +106,9 @@ public:
             SetBubbled(false);
         }
 
-        void JustEngagedWith(Unit* /* victim */) override
+        void EnterCombat(Unit* /* victim */) override
         {
-            _JustEngagedWith();
+            _EnterCombat();
             Talk(SAY_AGGRO);
 
             SetCrystalsStatus(true);
@@ -203,13 +203,15 @@ public:
             _bubbled = state;
             if (!state)
             {
-                me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
+                if (me->HasUnitFlag(UNIT_FLAG_NON_ATTACKABLE))
+                    me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
                 if (me->HasUnitState(UNIT_STATE_CASTING))
                     me->CastStop();
             }
             else
             {
-                me->AddUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
+                if (!me->HasUnitFlag(UNIT_FLAG_NON_ATTACKABLE))
+                    me->AddUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
                 DoCast(SPELL_ARCANE_FIELD);
             }
         }

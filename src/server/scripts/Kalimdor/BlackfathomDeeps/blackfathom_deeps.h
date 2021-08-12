@@ -73,7 +73,7 @@ enum BFDGameObjectIds
 template <class AI, class T>
 inline AI* GetBlackfathomDeepsAI(T* obj)
 {
-    return GetInstanceAI<AI>(obj, BFDScriptName);
+    return GetInstanceAI<AI, T>(obj, BFDScriptName);
 }
 
 #endif // BFD_H_

@@ -26,6 +26,7 @@ EndScriptData */
 #include "Chat.h"
 #include "DatabaseEnv.h"
 #include "DB2Stores.h"
+#include "LootMgr.h"
 #include "ObjectMgr.h"
 #include "Player.h"
 #include "RBAC.h"
@@ -81,15 +82,15 @@ public:
         }
 
         // check item starting quest (it can work incorrectly if added without item in inventory)
-        ItemTemplateContainer const& itc = sObjectMgr->GetItemTemplateStore();
-        auto itr = std::find_if(std::begin(itc), std::end(itc), [quest](ItemTemplateContainer::value_type const& value)
+        ItemTemplateContainer const* itc = sObjectMgr->GetItemTemplateStore();
+        ItemTemplateContainer::const_iterator result = std::find_if(itc->begin(), itc->end(), [quest](ItemTemplateContainer::value_type const& value)
         {
             return value.second.GetStartQuest() == quest->GetQuestId();
         });
 
-        if (itr != std::end(itc))
+        if (result != itc->end())
         {
-            handler->PSendSysMessage(LANG_COMMAND_QUEST_STARTFROMITEM, entry, itr->first);
+            handler->PSendSysMessage(LANG_COMMAND_QUEST_STARTFROMITEM, entry, result->second.GetId());
             handler->SetSentErrorMessage(true);
             return false;
         }
@@ -150,8 +151,10 @@ public:
                     }
                 }
             }
-            player->RemoveActiveQuest(entry, false);
+
+            player->RemoveActiveQuest(quest, false);
             player->RemoveRewardedQuest(entry);
+
 
             sScriptMgr->OnQuestStatusChange(player, entry);
             sScriptMgr->OnQuestStatusChange(player, quest, oldStatus, QUEST_STATUS_NONE);
@@ -195,61 +198,6 @@ public:
             return false;
         }
 
-        for (uint32 i = 0; i < quest->Objectives.size(); ++i)
-        {
-            QuestObjective const& obj = quest->Objectives[i];
-
-            switch (obj.Type)
-            {
-                case QUEST_OBJECTIVE_ITEM:
-                {
-                    uint32 curItemCount = player->GetItemCount(obj.ObjectID, true);
-                    ItemPosCountVec dest;
-                    uint8 msg = player->CanStoreNewItem(NULL_BAG, NULL_SLOT, dest, obj.ObjectID, obj.Amount - curItemCount);
-                    if (msg == EQUIP_ERR_OK)
-                    {
-                        Item* item = player->StoreNewItem(dest, obj.ObjectID, true);
-                        player->SendNewItem(item, obj.Amount - curItemCount, true, false);
-                    }
-                    break;
-                }
-                case QUEST_OBJECTIVE_MONSTER:
-                {
-                    if (CreatureTemplate const* creatureInfo = sObjectMgr->GetCreatureTemplate(obj.ObjectID))
-                        for (uint16 z = 0; z < obj.Amount; ++z)
-                            player->KilledMonster(creatureInfo, ObjectGuid::Empty);
-                    break;
-                }
-                case QUEST_OBJECTIVE_GAMEOBJECT:
-                {
-                    for (uint16 z = 0; z < obj.Amount; ++z)
-                        player->KillCreditGO(obj.ObjectID);
-                    break;
-                }
-                case QUEST_OBJECTIVE_MIN_REPUTATION:
-                {
-                    uint32 curRep = player->GetReputationMgr().GetReputation(obj.ObjectID);
-                    if (curRep < uint32(obj.Amount))
-                        if (FactionEntry const* factionEntry = sFactionStore.LookupEntry(obj.ObjectID))
-                            player->GetReputationMgr().SetReputation(factionEntry, obj.Amount);
-                    break;
-                }
-                case QUEST_OBJECTIVE_MAX_REPUTATION:
-                {
-                    uint32 curRep = player->GetReputationMgr().GetReputation(obj.ObjectID);
-                    if (curRep > uint32(obj.Amount))
-                        if (FactionEntry const* factionEntry = sFactionStore.LookupEntry(obj.ObjectID))
-                            player->GetReputationMgr().SetReputation(factionEntry, obj.Amount);
-                    break;
-                }
-                case QUEST_OBJECTIVE_MONEY:
-                {
-                    player->ModifyMoney(obj.Amount);
-                    break;
-                }
-            }
-        }
-
         if (sWorld->getBoolConfig(CONFIG_QUEST_ENABLE_QUEST_TRACKER)) // check if Quest Tracker is enabled
         {
             // prepare Quest Tracker datas
@@ -261,7 +209,7 @@ public:
             CharacterDatabase.Execute(stmt);
         }
 
-        player->CompleteQuest(entry);
+        player->ForceCompleteQuest(entry);
         return true;
     }
 

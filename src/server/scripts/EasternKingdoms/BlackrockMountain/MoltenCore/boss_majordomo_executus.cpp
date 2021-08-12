@@ -87,9 +87,9 @@ class boss_majordomo : public CreatureScript
                     Talk(SAY_SLAY);
             }
 
-            void JustEngagedWith(Unit* who) override
+            void EnterCombat(Unit* who) override
             {
-                BossAI::JustEngagedWith(who);
+                BossAI::EnterCombat(who);
                 Talk(SAY_AGGRO);
                 events.ScheduleEvent(EVENT_MAGIC_REFLECTION, 30000);
                 events.ScheduleEvent(EVENT_DAMAGE_REFLECTION, 15000);
@@ -202,6 +202,7 @@ class boss_majordomo : public CreatureScript
                     CloseGossipMenuFor(player);
                     DoAction(ACTION_START_RAGNAROS);
                 }
+
                 return false;
             }
         };

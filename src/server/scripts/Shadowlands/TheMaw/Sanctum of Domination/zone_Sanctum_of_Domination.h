@@ -32,5 +32,5 @@ Script Data End */
 #include "TaskScheduler.h"
 #include "TemporarySummon.h"
 #include "GameObjectAI.h"
-#include "zone_zone_Sanctum_of_Domination.cpp"
+//#include "zone_zone_Sanctum_of_Domination.cpp"
 

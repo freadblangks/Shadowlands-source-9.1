@@ -86,9 +86,9 @@ class boss_rajaxx : public CreatureScript
                 _JustDied();
             }
 
-            void JustEngagedWith(Unit* /*victim*/) override
+            void EnterCombat(Unit* /*victim*/) override
             {
-                _JustEngagedWith();
+                _EnterCombat();
             }
 
             void UpdateAI(uint32 diff) override

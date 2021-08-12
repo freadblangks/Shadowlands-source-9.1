@@ -84,9 +84,9 @@ public:
             Initialize();
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
-            _JustEngagedWith();
+            _EnterCombat();
 
             events.ScheduleEvent(EVENT_CRYSTAL_SPIKES, 12000);
             events.ScheduleEvent(EVENT_TRAMPLE, 10000);

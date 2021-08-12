@@ -117,7 +117,7 @@ class boss_kologarn : public CreatureScript
             bool left, right;
             ObjectGuid eyebeamTarget;
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
                 Talk(SAY_AGGRO);
 
@@ -131,9 +131,9 @@ class boss_kologarn : public CreatureScript
                 if (Vehicle* vehicle = me->GetVehicleKit())
                     for (uint8 i = 0; i < 2; ++i)
                         if (Unit* arm = vehicle->GetPassenger(i))
-                            DoZoneInCombat(arm->ToCreature());
+                            arm->ToCreature()->SetInCombatWithZone();
 
-                _JustEngagedWith();
+                _EnterCombat();
             }
 
             void Reset() override
@@ -199,12 +199,12 @@ class boss_kologarn : public CreatureScript
                     if (!right && !left)
                         events.ScheduleEvent(EVENT_STONE_SHOUT, 5000);
 
-                    instance->DoStartCriteriaTimer(CriteriaStartEvent::SendEvent, CRITERIA_DISARMED);
+                    instance->DoStartCriteriaTimer(CRITERIA_TIMED_TYPE_EVENT, CRITERIA_DISARMED);
                 }
                 else
                 {
                     events.CancelEvent(EVENT_STONE_SHOUT);
-                    DoZoneInCombat(who->ToCreature());
+                    who->ToCreature()->SetInCombatWithZone();
                 }
             }
 
@@ -343,7 +343,7 @@ class spell_ulduar_rubble_summon : public SpellScriptLoader
                 ObjectGuid originalCaster = caster->GetInstanceScript() ? caster->GetInstanceScript()->GetGuidData(BOSS_KOLOGARN) : ObjectGuid::Empty;
                 uint32 spellId = GetEffectValue();
                 for (uint8 i = 0; i < 5; ++i)
-                    caster->CastSpell(caster, spellId, originalCaster);
+                    caster->CastSpell(caster, spellId, true, nullptr, nullptr, originalCaster);
             }
 
             void Register() override

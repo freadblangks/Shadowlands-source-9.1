@@ -58,6 +58,9 @@ public:
 
     static bool HandleGodModeCheatCommand(ChatHandler* handler, char const* args)
     {
+        if (!handler->GetSession() && !handler->GetSession()->GetPlayer())
+            return false;
+
         std::string argstr = (char*)args;
 
         if (!*args)
@@ -81,6 +84,9 @@ public:
 
     static bool HandleCasttimeCheatCommand(ChatHandler* handler, char const* args)
     {
+        if (!handler->GetSession() && !handler->GetSession()->GetPlayer())
+            return false;
+
         std::string argstr = (char*)args;
 
         if (!*args)
@@ -104,6 +110,9 @@ public:
 
     static bool HandleCoolDownCheatCommand(ChatHandler* handler, char const* args)
     {
+        if (!handler->GetSession() && !handler->GetSession()->GetPlayer())
+            return false;
+
         std::string argstr = (char*)args;
 
         if (!*args)
@@ -127,6 +136,9 @@ public:
 
     static bool HandlePowerCheatCommand(ChatHandler* handler, char const* args)
     {
+        if (!handler->GetSession() && !handler->GetSession()->GetPlayer())
+            return false;
+
         std::string argstr = (char*)args;
 
         if (!*args)
@@ -171,6 +183,9 @@ public:
 
     static bool HandleWaterWalkCheatCommand(ChatHandler* handler, char const* args)
     {
+        if (!handler->GetSession() && !handler->GetSession()->GetPlayer())
+            return false;
+
         std::string argstr = (char*)args;
 
         Player* target = handler->GetSession()->GetPlayer();
@@ -271,6 +286,32 @@ public:
         }
 
         return true;
+    }
+
+    static bool HandleAllSpellCheatCommand(ChatHandler* handler, const char* args)
+    {
+        if (!handler->GetSession() && !handler->GetSession()->GetPlayer())
+            return false;
+
+        std::string argstr = (char*)args;
+
+        if (!*args)
+            argstr = (handler->GetSession()->GetPlayer()->GetCommandStatus(CHEAT_ALL)) ? "off" : "on";
+
+        if (argstr == "off")
+        {
+            handler->GetSession()->GetPlayer()->SetCommandStatusOff(CHEAT_ALL);
+            handler->SendSysMessage("All spell cheats are OFF. You will take damage, your spells will have a casttime, a cooldown and a power cost.");
+            return true;
+        }
+        else if (argstr == "on")
+        {
+            handler->GetSession()->GetPlayer()->SetCommandStatusOn(CHEAT_ALL);
+            handler->SendSysMessage("All spell cheats are ON. You won't take damage, your spells won't have a casttime, a cooldown and a power cost.");
+            return true;
+        }
+
+        return false;
     }
 };
 

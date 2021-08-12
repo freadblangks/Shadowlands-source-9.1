@@ -189,8 +189,8 @@ public:
                     _Reset();
 
                 me->SetVisible(true);
-                me->SetNpcFlags(UNIT_NPC_FLAG_GOSSIP);
-                me->SetFaction(FACTION_FRIENDLY);
+                me->AddNpcFlag(UNIT_NPC_FLAG_GOSSIP);
+                me->SetFaction(35);
                 me->SetStandState(UNIT_STAND_STATE_SIT_HIGH_CHAIR);
                 me->RemoveAura(SPELL_NEFARIANS_BARRIER);
             }
@@ -203,12 +203,12 @@ public:
 
         void BeginEvent(Player* target)
         {
-            _JustEngagedWith();
+            _EnterCombat();
 
             Talk(SAY_GAMESBEGIN_2);
 
-            me->SetFaction(FACTION_DRAGONFLIGHT_BLACK);
-            me->SetNpcFlags(UNIT_NPC_FLAG_NONE);
+            me->SetFaction(103);
+            me->AddNpcFlag(UNIT_NPC_FLAG_NONE);
             DoCast(me, SPELL_NEFARIANS_BARRIER);
             me->SetStandState(UNIT_STAND_STATE_STAND);
             me->SetImmuneToPC(false);
@@ -342,7 +342,7 @@ public:
                                     CreatureID = Entry[urand(0, 4)];
                                 if (Creature* dragon = me->SummonCreature(CreatureID, DrakeSpawnLoc[i]))
                                 {
-                                    dragon->SetFaction(FACTION_DRAGONFLIGHT_BLACK);
+                                    dragon->SetFaction(103);
                                     dragon->AI()->AttackStart(me->GetVictim());
                                 }
 
@@ -351,7 +351,6 @@ public:
                                     if (Creature* nefarian = me->SummonCreature(NPC_NEFARIAN, NefarianLoc[0]))
                                     {
                                         nefarian->setActive(true);
-                                        nefarian->SetFarVisible(true);
                                         nefarian->SetCanFly(true);
                                         nefarian->SetDisableGravity(true);
                                         nefarian->CastSpell(nullptr, SPELL_SHADOWFLAME_INITIAL);
@@ -382,6 +381,7 @@ public:
                 Talk(SAY_GAMESBEGIN_1);
                 BeginEvent(player);
             }
+
             return false;
         }
 
@@ -424,7 +424,7 @@ public:
             canDespawn = true;
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
             events.ScheduleEvent(EVENT_SHADOWFLAME, 12000);
             events.ScheduleEvent(EVENT_FEAR, urand(25000, 35000));
@@ -435,7 +435,7 @@ public:
             Talk(SAY_RANDOM);
         }
 
-        void JustDied(Unit* /*killer*/) override
+        void JustDied(Unit* /*Killer*/) override
         {
             _JustDied();
             Talk(SAY_DEATH);
@@ -456,7 +456,7 @@ public:
 
             if (id == 1)
             {
-                DoZoneInCombat();
+                me->SetInCombatWithZone();
                 if (me->GetVictim())
                     AttackStart(me->GetVictim());
             }
@@ -575,7 +575,7 @@ public:
                     if ((*itr) && !(*itr)->IsAlive())
                     {
                         (*itr)->Respawn();
-                        DoZoneInCombat((*itr));
+                        (*itr)->SetInCombatWithZone();
                         (*itr)->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                         (*itr)->SetReactState(REACT_AGGRESSIVE);
                         (*itr)->SetStandState(UNIT_STAND_STATE_STAND);

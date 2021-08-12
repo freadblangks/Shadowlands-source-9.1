@@ -58,7 +58,7 @@ public:
             {
                 Start(true, false, player->GetGUID());
                 Talk(SAY_READY, player);
-                me->SetFaction(FACTION_ESCORTEE_N_NEUTRAL_PASSIVE);
+                me->SetFaction(113);
             }
         }
 
@@ -114,9 +114,9 @@ public:
 
         void Reset() override { }
 
-        void JustEngagedWith(Unit* who) override
+        void EnterCombat(Unit* /*who*/) override
         {
-            Talk(SAY_AGGRO1, who);
+            Talk(SAY_AGGRO1);
         }
 
         void JustSummoned(Creature* summoned) override

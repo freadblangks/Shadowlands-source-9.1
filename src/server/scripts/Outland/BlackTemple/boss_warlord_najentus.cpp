@@ -102,9 +102,9 @@ struct boss_najentus : public BossAI
         }
     }
 
-    void JustEngagedWith(Unit* /*who*/) override
+    void EnterCombat(Unit* /*who*/) override
     {
-        _JustEngagedWith();
+        _EnterCombat();
         Talk(SAY_AGGRO);
         events.ScheduleEvent(EVENT_NEEDLE, Seconds(2));
         events.ScheduleEvent(EVENT_SHIELD, Seconds(60));

@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -676,7 +677,7 @@ class npc_the_etymidian : public CreatureScript
                 Initialize();
             }
 
-            void QuestReward(Player* /*player*/, Quest const* quest, LootItemType /*type*/, uint32 /*opt*/) override
+            void QuestReward(Player* /*player*/, Quest const* quest, uint32 /*opt*/) override
             {
                 if (quest->GetQuestId() != QUEST_THE_ACTIVATION_RUNE)
                     return;

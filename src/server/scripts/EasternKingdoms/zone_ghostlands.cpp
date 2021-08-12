@@ -52,7 +52,8 @@ enum RangerLilatha
     GO_CAGE                             = 181152,
     NPC_CAPTAIN_HELIOS                  = 16220,
     NPC_MUMMIFIED_HEADHUNTER            = 16342,
-    NPC_SHADOWPINE_ORACLE               = 16343
+    NPC_SHADOWPINE_ORACLE               = 16343,
+    FACTION_QUEST_ESCAPE                = 113
 };
 
 class npc_ranger_lilatha : public CreatureScript
@@ -126,16 +127,19 @@ public:
             if (GameObject* Cage = me->FindNearestGameObject(GO_CAGE, 20))
                 Cage->SetGoState(GO_STATE_READY);
         }
-
-        void QuestAccept(Player* player, Quest const* quest) override
-        {
-            if (quest->GetQuestId() == QUEST_ESCAPE_FROM_THE_CATACOMBS)
-            {
-                me->SetFaction(FACTION_ESCORTEE_N_NEUTRAL_PASSIVE);
-                Start(true, false, player->GetGUID());
-            }
-        }
     };
+
+    bool OnQuestAccept(Player* player, Creature* creature, Quest const* quest) override
+    {
+        if (quest->GetQuestId() == QUEST_ESCAPE_FROM_THE_CATACOMBS)
+        {
+            creature->SetFaction(FACTION_QUEST_ESCAPE);
+
+            if (EscortAI* pEscortAI = CAST_AI(npc_ranger_lilatha::npc_ranger_lilathaAI, creature->AI()))
+                pEscortAI->Start(true, false, player->GetGUID());
+        }
+        return true;
+    }
 
     CreatureAI* GetAI(Creature* creature) const override
     {

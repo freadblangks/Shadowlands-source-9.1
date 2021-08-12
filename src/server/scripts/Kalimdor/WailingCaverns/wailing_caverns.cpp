@@ -80,6 +80,11 @@ class npc_disciple_of_naralex : public CreatureScript
 public:
     npc_disciple_of_naralex() : CreatureScript("npc_disciple_of_naralex") { }
 
+    CreatureAI* GetAI(Creature* creature) const override
+    {
+        return GetWailingCavernsAI<npc_disciple_of_naralexAI>(creature);
+    }
+
     struct npc_disciple_of_naralexAI : public EscortAI
     {
         npc_disciple_of_naralexAI(Creature* creature) : EscortAI(creature)
@@ -89,7 +94,6 @@ public:
             currentEvent = 0;
             eventProgress = 0;
             me->setActive(true);
-            me->SetFarVisible(true);
             me->SetImmuneToPC(false);
         }
 
@@ -132,12 +136,12 @@ public:
 
         }
 
-        void JustEngagedWith(Unit* who) override
+        void EnterCombat(Unit* who) override
         {
             Talk(SAY_ATTACKED, who);
         }
 
-        void JustDied(Unit* /*killer*/) override
+        void JustDied(Unit* /*slayer*/) override
         {
             instance->SetData(TYPE_NARALEX_EVENT, FAIL);
             instance->SetData(TYPE_NARALEX_PART1, FAIL);
@@ -363,10 +367,6 @@ public:
         }
     };
 
-    CreatureAI* GetAI(Creature* creature) const override
-    {
-        return GetWailingCavernsAI<npc_disciple_of_naralexAI>(creature);
-    }
 };
 
 void AddSC_wailing_caverns()

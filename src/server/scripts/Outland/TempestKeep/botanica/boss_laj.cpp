@@ -164,7 +164,7 @@ class boss_laj : public CreatureScript
                 CanSummon = false;
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
             }
 

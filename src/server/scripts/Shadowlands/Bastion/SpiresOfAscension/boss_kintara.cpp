@@ -232,7 +232,7 @@ struct at_attenuated_barrage : public AreaTriggerAI
 
         Position movePos = caster->GetPosition();
         at->MovePosition(movePos, 30.0f, 0.0f);
-        at->SetDestination(movePos, 3500);
+        //at->SetDestination(movePos, 3500);
     }
 
     void OnUnitEnter(Unit* target) override

@@ -1,5 +1,6 @@
 /*
- * Copyright 2021 ShadowCore
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -441,7 +442,7 @@ class boss_twin_ogron_pol : public CreatureScript
                     }
                     case eEvents::EventShieldBash:
                     {
-                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_TOPAGGRO))
+                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_MAXTHREAT))
                             me->CastSpell(target, eSpells::ShieldBash, false);
                         m_Events.ScheduleEvent(eEvents::EventShieldBash, 22 * TimeConstants::IN_MILLISECONDS);
                         break;
@@ -957,7 +958,7 @@ class boss_twin_ogron_phemos : public CreatureScript
                     }
                     case eEvents::EventDoubleSlash:
                     {
-                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_TOPAGGRO))
+                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_MAXTHREAT))
                         {
                             me->CastSpell(target, eSpells::DoubleSlashMainHand, false);
 
@@ -1055,7 +1056,7 @@ class boss_twin_ogron_phemos : public CreatureScript
 
                         if (l_Timer)
                         {
-                            AddTimedDelayedOperation(l_Timer, [this, pos, l_Dest]() -> void
+                            AddTimedDelayedOperation(l_Timer, [this]() -> void
                             {
                                 me->CastSpell(me, eSpells::BlazeFirstSpawn, true);
                             });

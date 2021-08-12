@@ -81,7 +81,7 @@ class npc_tb_spirit_guide : public CreatureScript
                         areaId = TB_GY_SOUTH_SPIRE;
                         break;
                     default:
-                        return true;
+                        return false;
                 }
 
                 if (WorldSafeLocsEntry const* safeLoc = sObjectMgr->GetWorldSafeLoc(areaId))

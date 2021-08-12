@@ -138,9 +138,9 @@ class boss_ossirian : public CreatureScript
                             Trigger->CastSpell(Trigger, SpellWeakness[urand(0, 4)], false);
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
-                _JustEngagedWith();
+                _EnterCombat();
                 events.Reset();
                 events.ScheduleEvent(EVENT_SILENCE, 30000);
                 events.ScheduleEvent(EVENT_CYCLONE, 20000);
@@ -196,7 +196,7 @@ class boss_ossirian : public CreatureScript
                 if (Creature* Trigger = me->SummonCreature(NPC_OSSIRIAN_TRIGGER, CrystalCoordinates[CrystalIterator]))
                 {
                     TriggerGUID = Trigger->GetGUID();
-                    if (GameObject* Crystal = Trigger->SummonGameObject(GO_OSSIRIAN_CRYSTAL, CrystalCoordinates[CrystalIterator], QuaternionData::fromEulerAnglesZYX(CrystalCoordinates[CrystalIterator].GetOrientation(), 0.0f, 0.0f), uint32(-1)))
+                    if (GameObject* Crystal = Trigger->SummonGameObject(GO_OSSIRIAN_CRYSTAL, CrystalCoordinates[CrystalIterator], QuaternionData(), uint32(-1)))
                     {
                         CrystalGUID = Crystal->GetGUID();
                         ++CrystalIterator;
@@ -284,26 +284,18 @@ class go_ossirian_crystal : public GameObjectScript
     public:
         go_ossirian_crystal() : GameObjectScript("go_ossirian_crystal") { }
 
-        struct go_ossirian_crystalAI : public GameObjectAI
+        bool OnGossipHello(Player* player, GameObject* /*go*/) override
         {
-            go_ossirian_crystalAI(GameObject* go) : GameObjectAI(go), instance(go->GetInstanceScript()) { }
+            InstanceScript* Instance = player->GetInstanceScript();
+            if (!Instance)
+                return false;
 
-            InstanceScript* instance;
+            Creature* Ossirian = player->FindNearestCreature(NPC_OSSIRIAN, 30.0f);
+            if (!Ossirian || Instance->GetBossState(DATA_OSSIRIAN) != IN_PROGRESS)
+                return false;
 
-            bool GossipHello(Player* player) override
-            {
-                Creature* ossirian = player->FindNearestCreature(NPC_OSSIRIAN, 30.0f);
-                if (!ossirian || instance->GetBossState(DATA_OSSIRIAN) != IN_PROGRESS)
-                    return false;
-
-                ossirian->AI()->DoAction(ACTION_TRIGGER_WEAKNESS);
-                return true;
-            }
-        };
-
-        GameObjectAI* GetAI(GameObject* go) const override
-        {
-            return GetAQ20AI<go_ossirian_crystalAI>(go);
+            Ossirian->AI()->DoAction(ACTION_TRIGGER_WEAKNESS);
+            return true;
         }
 };
 

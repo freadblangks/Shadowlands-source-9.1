@@ -1,5 +1,6 @@
 /*
- * Copyright 2021 ShadowCore
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -47,7 +48,7 @@ public:
         {
             OnEffectHitTarget += SpellEffectFn(spell_barrage_of_leaves_SpellScript::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
         }
-     
+
     };
 
     SpellScript* GetSpellScript() const override
@@ -415,7 +416,7 @@ public:
 
         void HandleEffect(SpellEffIndex /*effIndex*/)
         {
-            SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(SPELL_GROWTH_2, DIFFICULTY_NONE);
+            SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(SPELL_GROWTH_2, GetCaster()->GetMap()->GetDifficultyID());
             if (!spellInfo)
                 return;
 
@@ -759,28 +760,27 @@ class areatrigger_black_hole : public AreaTriggerAI
 public:
     areatrigger_black_hole(AreaTrigger* areatrigger) : AreaTriggerAI(areatrigger) { }
 
-    void OnCreate() override
-    {
-        //at->SetCustomRadius(1.0f);
-        directionForce = { at->GetPositionX(), at->GetPositionY(), at->GetPositionZ(), at->GetOrientation() };
-    }
+        void OnCreate() override
+        {
+            //at->SetCustomRadius(1.0f);
+            directionForce = { at->GetPositionX(), at->GetPositionY(), at->GetPositionZ(), at->GetOrientation() };
+        }
 
-    void OnUnitEnter(Unit* unit) override
-    {
-        if (Player* player = unit->ToPlayer())
-            player->ApplyMovementForce(at->GetGUID(), directionForce, 3.0f, 0);
-    }
+        void OnUnitEnter(Unit* unit) override
+        {
+            if (Player* player = unit->ToPlayer())
+                player->ApplyMovementForce(at->GetGUID(), directionForce, 3.0f, 0);
+        }
 
-    void OnUnitExit(Unit* unit) override
-    {
-        if (Player* player = unit->ToPlayer())
-            player->RemoveMovementForce(at->GetGUID());
-    }
+        void OnUnitExit(Unit* unit) override
+        {
+            if (Player* player = unit->ToPlayer())
+                player->RemoveMovementForce(at->GetGUID());
+        }
 
-private:
-    Position directionForce;
+    private:
+        Position directionForce;
 };
-
 
 class spell_frozen_snap : public SpellScriptLoader
 {
@@ -992,19 +992,19 @@ void AddSC_the_everbloom()
     new npc_dreadpetal();
     new npc_everbloom_tender();
     new mob_everbloom_mender();
-    //new spell_growth();
+    new spell_growth();
     new spell_enraged_growth();
     new npc_melded_berserker();
     new spell_bounding_whirl();
     new npc_gnarlroot();
-    //new spell_choking_vines();
+    new spell_choking_vines();
     new spell_spore_breath();
     new spell_black_hole();
     RegisterAreaTriggerAI(areatrigger_black_hole);
     new spell_frozen_snap();
     new aura_glowbulb_pollen();
     new aura_barrier();
-    //new spell_vine_pull();
+    new spell_vine_pull();
     //new areatrigger_spore_cloud();
     new go_everbloom_entrance_portal();
     new go_everbloom_stormwind_portal();

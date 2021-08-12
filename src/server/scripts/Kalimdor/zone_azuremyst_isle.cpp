@@ -40,7 +40,6 @@ EndContentData */
 #include "ObjectAccessor.h"
 #include "ScriptedEscortAI.h"
 #include "ScriptedGossip.h"
-#include "SpellScript.h"
 #include "TemporarySummon.h"
 
 /*######
@@ -93,7 +92,7 @@ public:
             me->SetStandState(UNIT_STAND_STATE_SLEEP);
         }
 
-        void JustEngagedWith(Unit* /*who*/) override { }
+        void EnterCombat(Unit* /*who*/) override { }
 
         void MoveInLineOfSight(Unit* who) override
         {
@@ -186,9 +185,8 @@ enum Overgrind
     SAY_EMOTE       = 1,
     ATTACK_YELL     = 2,
 
-    AREA_COVE       = 3579,
-    AREA_ISLE       = 3639,
     QUEST_GNOMERCY  = 9537,
+    FACTION_HOSTILE = 14,
     SPELL_DYNAMITE  = 7978
 };
 
@@ -203,7 +201,7 @@ public:
         {
             Initialize();
             NormFaction = creature->GetFaction();
-            NpcFlags = NPCFlags(creature->m_unitData->NpcFlags[0]);
+            NpcFlags = (uint32)creature->m_unitData->NpcFlags[0];
         }
 
         void Initialize()
@@ -211,7 +209,7 @@ public:
             DynamiteTimer = 8000;
             EmoteTimer = urand(120000, 150000);
 
-            if (me->GetAreaId() == AREA_COVE || me->GetAreaId() == AREA_ISLE)
+            if (me->GetAreaId() == AREA_AZUREMYST_ISLE_TRAITOR_COVE || me->GetAreaId() == AREA_AZUREMYST_ISLE_SILVERMYST_ISLE)
                 IsTreeEvent = true;
             else
                 IsTreeEvent = false;
@@ -222,10 +220,10 @@ public:
             Initialize();
 
             me->SetFaction(NormFaction);
-            me->SetNpcFlags(NpcFlags);
+            me->AddNpcFlag(NPCFlags(NpcFlags));
         }
 
-        void JustEngagedWith(Unit* who) override
+        void EnterCombat(Unit* who) override
         {
             Talk(ATTACK_YELL, who);
         }
@@ -233,7 +231,7 @@ public:
         bool GossipSelect(Player* player, uint32 /*menuId*/, uint32 /*gossipListId*/) override
         {
             CloseGossipMenuFor(player);
-            me->SetFaction(FACTION_MONSTER);
+            me->SetFaction(FACTION_HOSTILE);
             me->Attack(player, true);
             return false;
         }
@@ -266,7 +264,7 @@ public:
 
     private:
         uint32 NormFaction;
-        NPCFlags NpcFlags;
+        uint32 NpcFlags;
         uint32 DynamiteTimer;
         uint32 EmoteTimer;
         bool   IsTreeEvent;
@@ -307,7 +305,7 @@ public:
             }
         }
 
-        void JustEngagedWith(Unit* /*who*/) override { }
+        void EnterCombat(Unit* /*who*/) override { }
 
         void MoveInLineOfSight(Unit* /*who*/) override { }
 
@@ -339,7 +337,8 @@ enum Magwin
     EVENT_STAND                 = 3,
     EVENT_TALK_END              = 4,
     EVENT_COWLEN_TALK           = 5,
-    QUEST_A_CRY_FOR_HELP        = 9528
+    QUEST_A_CRY_FOR_HELP        = 9528,
+    FACTION_QUEST               = 113
 };
 
 class npc_magwin : public CreatureScript
@@ -356,7 +355,7 @@ public:
             _events.Reset();
         }
 
-        void JustEngagedWith(Unit* who) override
+        void EnterCombat(Unit* who) override
         {
             Talk(SAY_AGGRO, who);
         }
@@ -404,7 +403,7 @@ public:
                     case EVENT_ACCEPT_QUEST:
                         if (Player* player = ObjectAccessor::GetPlayer(*me, _player))
                             Talk(SAY_START, player);
-                        me->SetFaction(FACTION_ESCORTEE_N_NEUTRAL_PASSIVE);
+                        me->SetFaction(FACTION_QUEST);
                         _events.ScheduleEvent(EVENT_START_ESCORT, Seconds(1));
                         break;
                     case EVENT_START_ESCORT:
@@ -500,7 +499,7 @@ public:
             StartEvent();
         }
 
-        void JustEngagedWith(Unit* /*who*/) override { }
+        void EnterCombat(Unit* /*who*/) override { }
 
         void StartEvent()
         {
@@ -533,8 +532,8 @@ public:
                     return 1000;
                 case 2:
                     Talk(GEEZLE_SAY_1, Spark);
-                    Spark->SetFacingToObject(me);
-                    me->SetFacingToObject(Spark);
+                    Spark->SetInFront(me);
+                    me->SetInFront(Spark);
                     return 5000;
                 case 3:
                     Spark->AI()->Talk(SPARK_SAY_2);
@@ -633,29 +632,19 @@ class go_ravager_cage : public GameObjectScript
 public:
     go_ravager_cage() : GameObjectScript("go_ravager_cage") { }
 
-    struct go_ravager_cageAI : public GameObjectAI
+    bool OnGossipHello(Player* player, GameObject* go) override
     {
-        go_ravager_cageAI(GameObject* go) : GameObjectAI(go) { }
-
-        bool GossipHello(Player* player) override
+        go->UseDoorOrButton();
+        if (player->GetQuestStatus(QUEST_STRENGTH_ONE) == QUEST_STATUS_INCOMPLETE)
         {
-            me->UseDoorOrButton();
-            if (player->GetQuestStatus(QUEST_STRENGTH_ONE) == QUEST_STATUS_INCOMPLETE)
+            if (Creature* ravager = go->FindNearestCreature(NPC_DEATH_RAVAGER, 5.0f, true))
             {
-                if (Creature* ravager = me->FindNearestCreature(NPC_DEATH_RAVAGER, 5.0f, true))
-                {
-                    ravager->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
-                    ravager->SetReactState(REACT_AGGRESSIVE);
-                    ravager->AI()->AttackStart(player);
-                }
+                ravager->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
+                ravager->SetReactState(REACT_AGGRESSIVE);
+                ravager->AI()->AttackStart(player);
             }
-            return true;
         }
-    };
-
-    GameObjectAI* GetAI(GameObject* go) const override
-    {
-        return new go_ravager_cageAI(go);
+        return true;
     }
 };
 
@@ -717,21 +706,116 @@ public:
     }
 };
 
-// 29528 -  Inoculate Nestlewood Owlkin
-class spell_inoculate_nestlewood : public AuraScript
+/*########
+## Quest: The Prophecy of Akida
+########*/
+
+enum BristlelimbCage
 {
-    PrepareAuraScript(spell_inoculate_nestlewood);
+    QUEST_THE_PROPHECY_OF_AKIDA         = 9544,
+    NPC_STILLPINE_CAPITIVE              = 17375,
+    GO_BRISTELIMB_CAGE                  = 181714,
 
-    void PeriodicTick(AuraEffect const* /*aurEff*/)
-    {
-        if (GetTarget()->GetTypeId() != TYPEID_UNIT) // prevent error reports in case ignored player target
-            PreventDefaultAction();
-    }
+    CAPITIVE_SAY                        = 0,
 
-    void Register() override
-    {
-        OnEffectPeriodic += AuraEffectPeriodicFn(spell_inoculate_nestlewood::PeriodicTick, EFFECT_0, SPELL_AURA_PERIODIC_TRIGGER_SPELL);
-    }
+    POINT_INIT                          = 1,
+    EVENT_DESPAWN                       = 1,
+};
+
+class npc_stillpine_capitive : public CreatureScript
+{
+    public:
+        npc_stillpine_capitive() : CreatureScript("npc_stillpine_capitive") { }
+
+        struct npc_stillpine_capitiveAI : public ScriptedAI
+        {
+            npc_stillpine_capitiveAI(Creature* creature) : ScriptedAI(creature)
+            {
+                Initialize();
+            }
+
+            void Initialize()
+            {
+                _playerGUID.Clear();
+                _movementComplete = false;
+            }
+
+            void Reset() override
+            {
+                if (GameObject* cage = me->FindNearestGameObject(GO_BRISTELIMB_CAGE, 5.0f))
+                {
+                    cage->SetLootState(GO_JUST_DEACTIVATED);
+                    cage->SetGoState(GO_STATE_READY);
+                }
+                _events.Reset();
+                Initialize();
+            }
+
+            void StartMoving(Player* owner)
+            {
+                if (owner)
+                {
+                    Talk(CAPITIVE_SAY, owner);
+                    _playerGUID = owner->GetGUID();
+                }
+                Position pos = me->GetNearPosition(3.0f, 0.0f);
+                me->GetMotionMaster()->MovePoint(POINT_INIT, pos);
+            }
+
+            void MovementInform(uint32 type, uint32 id) override
+            {
+                if (type != POINT_MOTION_TYPE || id != POINT_INIT)
+                    return;
+
+                if (Player* _player = ObjectAccessor::GetPlayer(*me, _playerGUID))
+                    _player->KilledMonsterCredit(me->GetEntry(), me->GetGUID());
+
+                _movementComplete = true;
+                _events.ScheduleEvent(EVENT_DESPAWN, 3500);
+            }
+
+            void UpdateAI(uint32 diff) override
+            {
+                if (!_movementComplete)
+                    return;
+
+                _events.Update(diff);
+
+                if (_events.ExecuteEvent() == EVENT_DESPAWN)
+                    me->DespawnOrUnsummon();
+            }
+
+        private:
+            ObjectGuid _playerGUID;
+            EventMap _events;
+            bool _movementComplete;
+        };
+
+        CreatureAI* GetAI(Creature* creature) const override
+        {
+            return new npc_stillpine_capitiveAI(creature);
+        }
+};
+
+class go_bristlelimb_cage : public GameObjectScript
+{
+    public:
+        go_bristlelimb_cage() : GameObjectScript("go_bristlelimb_cage") { }
+
+        bool OnGossipHello(Player* player, GameObject* go) override
+        {
+            go->SetGoState(GO_STATE_READY);
+            if (player->GetQuestStatus(QUEST_THE_PROPHECY_OF_AKIDA) == QUEST_STATUS_INCOMPLETE)
+            {
+                if (Creature* capitive = go->FindNearestCreature(NPC_STILLPINE_CAPITIVE, 5.0f, true))
+                {
+                    go->ResetDoorOrButton();
+                    ENSURE_AI(npc_stillpine_capitive::npc_stillpine_capitiveAI, capitive->AI())->StartMoving(player);
+                    return false;
+                }
+            }
+            return true;
+        }
 };
 
 void AddSC_azuremyst_isle()
@@ -742,5 +826,6 @@ void AddSC_azuremyst_isle()
     new npc_magwin();
     new npc_death_ravager();
     new go_ravager_cage();
-    RegisterAuraScript(spell_inoculate_nestlewood);
+    new npc_stillpine_capitive();
+    new go_bristlelimb_cage();
 }

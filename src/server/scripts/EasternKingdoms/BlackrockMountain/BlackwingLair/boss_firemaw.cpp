@@ -42,9 +42,9 @@ public:
     {
         boss_firemawAI(Creature* creature) : BossAI(creature, DATA_FIREMAW) { }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
-            _JustEngagedWith();
+            _EnterCombat();
 
             events.ScheduleEvent(EVENT_SHADOWFLAME, urand(10000, 20000));
             events.ScheduleEvent(EVENT_WINGBUFFET, 30000);

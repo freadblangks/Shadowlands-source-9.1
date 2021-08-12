@@ -44,10 +44,10 @@ enum UDGameObjectIds
     GO_KEYSTONE                         = 124371,
 };
 
-template <class AI, class T>
-inline AI* GetUldamanAI(T* obj)
+template<typename AI>
+inline AI* GetUldamanAI(Creature* creature)
 {
-    return GetInstanceAI<AI>(obj, UldamanScriptName);
+    return GetInstanceAI<AI>(creature, UldamanScriptName);
 }
 
 #endif

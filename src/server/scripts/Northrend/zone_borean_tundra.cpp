@@ -104,7 +104,7 @@ public:
             }
         }
 
-        void JustEngagedWith(Unit* /*who*/) override { }
+        void EnterCombat(Unit* /*who*/) override { }
 
         void UpdateAI(uint32 diff) override
         {
@@ -119,7 +119,7 @@ public:
                         DoCast(me, SPELL_EXPLODE_CART, true);
                         DoCast(me, SPELL_SUMMON_CART, true);
                         if (GameObject* cart = me->FindNearestGameObject(GO_EXPLOSIVES_CART, 3.0f))
-                            cart->SetFaction(FACTION_MONSTER);
+                            cart->SetFaction(14);
                         phaseTimer = 3000;
                         phase = 2;
                         break;
@@ -149,7 +149,7 @@ public:
                         DoCast(me, SPELL_EXPLODE_CART, true);
                         if (Unit* worm = me->FindNearestCreature(NPC_SCOURGED_BURROWER, 3.0f))
                         {
-                            Unit::Kill(me, worm);
+                            me->Kill(worm);
                             worm->RemoveDynamicFlag(UNIT_DYNFLAG_LOOTABLE);
                         }
                         phaseTimer = 2000;
@@ -245,40 +245,31 @@ class npc_corastrasza : public CreatureScript
 public:
     npc_corastrasza() : CreatureScript("npc_corastrasza") { }
 
-    struct npc_corastraszaAI : public ScriptedAI
+    bool OnGossipHello(Player* player, Creature* creature) override
     {
-        npc_corastraszaAI(Creature* creature) : ScriptedAI(creature) { }
+        if (creature->IsQuestGiver())
+            player->PrepareQuestMenu(creature->GetGUID());
 
-        bool GossipHello(Player* player) override
+        if (player->GetQuestStatus(QUEST_ACES_HIGH) == QUEST_STATUS_INCOMPLETE || player->GetQuestStatus(QUEST_ACES_HIGH_DAILY) == QUEST_STATUS_INCOMPLETE) //It's the same dragon for both quests.
+            AddGossipItemFor(player, GOSSIP_ICON_CHAT, GOSSIP_ITEM_C_1, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF+1);
+
+        SendGossipMenuFor(player, player->GetGossipTextId(creature), creature->GetGUID());
+        return true;
+    }
+
+    bool OnGossipSelect(Player* player, Creature* /*creature*/, uint32 /*sender*/, uint32 action) override
+    {
+        ClearGossipMenuFor(player);
+        if (action == GOSSIP_ACTION_INFO_DEF+1)
         {
-            if (me->IsQuestGiver())
-                player->PrepareQuestMenu(me->GetGUID());
+            CloseGossipMenuFor(player);
 
-            if (player->GetQuestStatus(QUEST_ACES_HIGH) == QUEST_STATUS_INCOMPLETE || player->GetQuestStatus(QUEST_ACES_HIGH_DAILY) == QUEST_STATUS_INCOMPLETE) //It's the same dragon for both quests.
-                AddGossipItemFor(player, GOSSIP_ICON_CHAT, GOSSIP_ITEM_C_1, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
+            player->CastSpell(player, SPELL_SUMMON_WYRMREST_SKYTALON, true);
+            player->CastSpell(player, SPELL_WYRMREST_SKYTALON_RIDE_PERIODIC, true);
 
-            SendGossipMenuFor(player, player->GetGossipTextId(me), me->GetGUID());
-            return true;
         }
 
-        bool GossipSelect(Player* player, uint32 /*menuId*/, uint32 gossipListId) override
-        {
-            uint32 const action = player->PlayerTalkClass->GetGossipOptionAction(gossipListId);
-            ClearGossipMenuFor(player);
-            if (action == GOSSIP_ACTION_INFO_DEF + 1)
-            {
-                CloseGossipMenuFor(player);
-
-                player->CastSpell(player, SPELL_SUMMON_WYRMREST_SKYTALON, true);
-                player->CastSpell(player, SPELL_WYRMREST_SKYTALON_RIDE_PERIODIC, true);
-            }
-            return true;
-        }
-    };
-
-    CreatureAI* GetAI(Creature* creature) const override
-    {
-        return new npc_corastraszaAI(creature);
+        return true;
     }
 };
 
@@ -300,38 +291,27 @@ class npc_iruk : public CreatureScript
 public:
     npc_iruk() : CreatureScript("npc_iruk") { }
 
-    struct npc_irukAI : public ScriptedAI
+    bool OnGossipHello(Player* player, Creature* creature) override
     {
-        npc_irukAI(Creature* creature) : ScriptedAI(creature) { }
+        if (player->GetQuestStatus(QUEST_SPIRITS_WATCH_OVER_US) == QUEST_STATUS_INCOMPLETE)
+            AddGossipItemFor(player, GOSSIP_ICON_CHAT, GOSSIP_ITEM_I, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF+1);
 
-        bool GossipHello(Player* player) override
-        {
-            if (player->GetQuestStatus(QUEST_SPIRITS_WATCH_OVER_US) == QUEST_STATUS_INCOMPLETE)
-                AddGossipItemFor(player, GOSSIP_ICON_CHAT, GOSSIP_ITEM_I, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
+        player->PlayerTalkClass->SendGossipMenu(GOSSIP_TEXT_I, creature->GetGUID());
+        return true;
+    }
 
-            player->PlayerTalkClass->SendGossipMenu(GOSSIP_TEXT_I, me->GetGUID());
-            return true;
-        }
-
-        bool GossipSelect(Player* player, uint32 /*menuId*/, uint32 gossipListId) override
-        {
-            uint32 const action = player->PlayerTalkClass->GetGossipOptionAction(gossipListId);
-            ClearGossipMenuFor(player);
-            switch (action)
-            {
-                case GOSSIP_ACTION_INFO_DEF + 1:
-                    player->CastSpell(player, SPELL_CREATURE_TOTEM_OF_ISSLIRUK, true);
-                    CloseGossipMenuFor(player);
-                    break;
-
-            }
-            return true;
-        }
-    };
-
-    CreatureAI* GetAI(Creature* creature) const override
+    bool OnGossipSelect(Player* player, Creature* /*creature*/, uint32 /*sender*/, uint32 action) override
     {
-        return new npc_irukAI(creature);
+        ClearGossipMenuFor(player);
+        switch (action)
+        {
+            case GOSSIP_ACTION_INFO_DEF+1:
+                player->CastSpell(player, SPELL_CREATURE_TOTEM_OF_ISSLIRUK, true);
+                CloseGossipMenuFor(player);
+                break;
+
+        }
+        return true;
     }
 };
 
@@ -364,16 +344,15 @@ public:
         npc_nerubar_victimAI(Creature* creature) : ScriptedAI(creature) { }
 
         void Reset() override { }
-        void JustEngagedWith(Unit* /*who*/) override { }
+        void EnterCombat(Unit* /*who*/) override { }
         void MoveInLineOfSight(Unit* /*who*/) override { }
 
 
         void JustDied(Unit* killer) override
         {
-            if (!killer || killer->GetTypeId() != TYPEID_PLAYER)
-                return;
-
             Player* player = killer->ToPlayer();
+            if (!player)
+                return;
 
             if (player->GetQuestStatus(QUEST_TAKEN_BY_THE_SCOURGE) == QUEST_STATUS_INCOMPLETE)
             {
@@ -459,7 +438,7 @@ public:
             Initialize();
         }
 
-        void JustEngagedWith(Unit* /*who*/) override { }
+        void EnterCombat(Unit* /*who*/) override { }
         void MoveInLineOfSight(Unit* /*who*/) override { }
 
 
@@ -558,6 +537,9 @@ enum Lurgglbr
 
     GO_CAGE                             = 187369,
 
+    FACTION_ESCORTEE_A                  = 774,
+    FACTION_ESCORTEE_H                  = 775,
+
     SAY_START_1                         = 0,
     SAY_START_2                         = 1,
     SAY_END_1                           = 2,
@@ -600,7 +582,6 @@ public:
                     IntroTimer = 2000;
                     break;
                 case 41:
-                    SetEscortPaused(true);
                     IntroPhase = 4;
                     IntroTimer = 2000;
                     break;
@@ -627,7 +608,7 @@ public:
                             IntroTimer = 7500;
                             break;
                         case 3:
-                            me->SetReactState(REACT_DEFENSIVE);
+                            me->SetReactState(REACT_AGGRESSIVE);
                             IntroPhase = 0;
                             IntroTimer = 0;
                             break;
@@ -642,12 +623,14 @@ public:
                             IntroPhase = 6;
                             IntroTimer = 2500;
                             break;
+
                         case 6:
                             if (Player* player = GetPlayerForEscort())
                                 player->AreaExploredOrEventHappens(QUEST_ESCAPE_WINTERFIN_CAVERNS);
                             IntroPhase = 7;
                             IntroTimer = 2500;
                             break;
+
                         case 7:
                             me->DespawnOrUnsummon();
                             IntroPhase = 0;
@@ -661,36 +644,41 @@ public:
             if (!UpdateVictim())
                 return;
         }
-
-        void QuestAccept(Player* player, Quest const* quest) override
-        {
-            if (quest->GetQuestId() == QUEST_ESCAPE_WINTERFIN_CAVERNS)
-            {
-                if (GameObject* go = me->FindNearestGameObject(GO_CAGE, 5.0f))
-                {
-                    go->SetRespawnTime(0);
-                    go->UseDoorOrButton(20000);
-                }
-
-                Start(true, false, player->GetGUID());
-
-                switch (player->GetTeam())
-                {
-                    case ALLIANCE:
-                        me->SetFaction(FACTION_ESCORTEE_A_PASSIVE);
-                        break;
-                    default:
-                    case HORDE:
-                        me->SetFaction(FACTION_ESCORTEE_H_PASSIVE);
-                        break;
-                }
-            }
-        }
     };
 
     CreatureAI* GetAI(Creature* creature) const override
     {
         return new npc_lurgglbrAI(creature);
+    }
+
+    bool OnQuestAccept(Player* player, Creature* creature, Quest const* quest) override
+    {
+        if (quest->GetQuestId() == QUEST_ESCAPE_WINTERFIN_CAVERNS)
+        {
+            if (GameObject* go = creature->FindNearestGameObject(GO_CAGE, 5.0f))
+            {
+                go->SetRespawnTime(0);
+                go->SetGoType(GAMEOBJECT_TYPE_BUTTON);
+                go->UseDoorOrButton(20);
+            }
+
+            if (EscortAI* pEscortAI = CAST_AI(npc_lurgglbr::npc_lurgglbrAI, creature->AI()))
+                pEscortAI->Start(true, false, player->GetGUID());
+
+            switch (player->GetTeam())
+            {
+                case ALLIANCE:
+                    creature->SetFaction(FACTION_ESCORTEE_A);
+                    break;
+                default:
+                case HORDE:
+                    creature->SetFaction(FACTION_ESCORTEE_H);
+                    break;
+            }
+
+            return true;
+        }
+        return false;
     }
 };
 
@@ -1059,33 +1047,33 @@ public:
             if (Creature* arthas = ObjectAccessor::GetCreature(*me, arthasGUID))
                 arthas->RemoveFromWorld();
         }
-
-        bool GossipHello(Player* player) override
-        {
-            if (me->IsQuestGiver())
-                player->PrepareQuestMenu(me->GetGUID());
-
-            if (player->GetQuestStatus(QUEST_LAST_RITES) == QUEST_STATUS_INCOMPLETE && me->GetAreaId() == 4128)
-                AddGossipItemFor(player, GOSSIP_ICON_CHAT, GOSSIP_ITEM_T, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
-
-            SendGossipMenuFor(player, player->GetGossipTextId(me), me->GetGUID());
-            return true;
-        }
-
-        bool GossipSelect(Player* player, uint32 /*menuId*/, uint32 gossipListId) override
-        {
-            uint32 const action = player->PlayerTalkClass->GetGossipOptionAction(gossipListId);
-            ClearGossipMenuFor(player);
-            switch (action)
-            {
-                case GOSSIP_ACTION_INFO_DEF + 1:
-                    Start(true, false, player->GetGUID());
-                    SetMaxPlayerDistance(200.0f);
-                    break;
-            }
-            return true;
-        }
     };
+
+    bool OnGossipHello(Player* player, Creature* creature) override
+    {
+        if (creature->IsQuestGiver())
+            player->PrepareQuestMenu(creature->GetGUID());
+
+        if (player->GetQuestStatus(QUEST_LAST_RITES) == QUEST_STATUS_INCOMPLETE && creature->GetAreaId() == AREA_BOREAN_TUNDRA_NAXXANAR)
+            AddGossipItemFor(player, GOSSIP_ICON_CHAT, GOSSIP_ITEM_T, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF+1);
+
+        SendGossipMenuFor(player, player->GetGossipTextId(creature), creature->GetGUID());
+
+        return true;
+    }
+
+    bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action) override
+    {
+        ClearGossipMenuFor(player);
+        switch (action)
+        {
+            case GOSSIP_ACTION_INFO_DEF+1:
+                ENSURE_AI(EscortAI, (creature->AI()))->Start(true, false, player->GetGUID());
+                ENSURE_AI(EscortAI, (creature->AI()))->SetMaxPlayerDistance(200.0f);
+                break;
+        }
+        return true;
+    }
 
     CreatureAI* GetAI(Creature* creature) const override
     {
@@ -1272,8 +1260,8 @@ public:
             leryssa->SetWalk(false);
             leryssa->GetMotionMaster()->MovePoint(0, 3722.114502f, 3564.201660f, 477.441437f);
 
-            if (killer && killer->GetTypeId() == TYPEID_PLAYER)
-                killer->ToPlayer()->RewardPlayerAndGroupAtEvent(NPC_PRINCE_VALANAR, nullptr);
+            if (Player* player = killer->ToPlayer())
+                player->RewardPlayerAndGroupAtEvent(NPC_PRINCE_VALANAR, nullptr);
         }
     };
 
@@ -1451,7 +1439,7 @@ public:
             Initialize();
         }
 
-        void JustEngagedWith(Unit* who) override
+        void EnterCombat(Unit* who) override
         {
             if (me->IsValidAttackTarget(who))
                 AttackStart(who);
@@ -1563,7 +1551,7 @@ public:
             DoMeleeAttackIfReady();
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
         }
 
@@ -1634,6 +1622,26 @@ class npc_mootoo_the_younger : public CreatureScript
 public:
     npc_mootoo_the_younger() : CreatureScript("npc_mootoo_the_younger") { }
 
+    bool OnQuestAccept(Player* player, Creature* creature, Quest const* quest) override
+    {
+        if (quest->GetQuestId() == QUEST_ESCAPING_THE_MIST)
+        {
+            switch (player->GetTeam())
+            {
+            case ALLIANCE:
+                creature->SetFaction(FACTION_ESCORTEE_A);
+                break;
+            case HORDE:
+                creature->SetFaction(FACTION_ESCORTEE_H);
+                break;
+            }
+            creature->SetStandState(UNIT_STAND_STATE_STAND);
+            creature->AI()->Talk(SAY_1, player);
+            ENSURE_AI(EscortAI, (creature->AI()))->Start(true, false, player->GetGUID());
+        }
+        return true;
+    }
+
     struct npc_mootoo_the_youngerAI : public EscortAI
     {
         npc_mootoo_the_youngerAI(Creature* creature) : EscortAI(creature) { }
@@ -1678,25 +1686,6 @@ public:
                     break;
             }
         }
-
-        void QuestAccept(Player* player, Quest const* quest) override
-        {
-            if (quest->GetQuestId() == QUEST_ESCAPING_THE_MIST)
-            {
-                switch (player->GetTeam())
-                {
-                    case ALLIANCE:
-                        me->SetFaction(FACTION_ESCORTEE_A_PASSIVE);
-                        break;
-                    case HORDE:
-                        me->SetFaction(FACTION_ESCORTEE_H_PASSIVE);
-                        break;
-                }
-                me->SetStandState(UNIT_STAND_STATE_STAND);
-                Talk(SAY_1, player);
-                Start(true, false, player->GetGUID());
-            }
-        }
     };
 
     CreatureAI* GetAI(Creature* creature) const override
@@ -1722,6 +1711,17 @@ class npc_bonker_togglevolt : public CreatureScript
 {
 public:
     npc_bonker_togglevolt() : CreatureScript("npc_bonker_togglevolt") { }
+
+    bool OnQuestAccept(Player* player, Creature* creature, Quest const* quest) override
+    {
+        if (quest->GetQuestId() == QUEST_GET_ME_OUTA_HERE)
+        {
+            creature->SetStandState(UNIT_STAND_STATE_STAND);
+            creature->AI()->Talk(SAY_BONKER_2, player);
+            ENSURE_AI(EscortAI, (creature->AI()))->Start(true, true, player->GetGUID());
+        }
+        return true;
+    }
 
     struct npc_bonker_togglevoltAI : public EscortAI
     {
@@ -1774,16 +1774,6 @@ public:
                 case 29:
                     player->GroupEventHappens(QUEST_GET_ME_OUTA_HERE, me);
                     break;
-            }
-        }
-
-        void QuestAccept(Player* player, Quest const* quest) override
-        {
-            if (quest->GetQuestId() == QUEST_GET_ME_OUTA_HERE)
-            {
-                me->SetStandState(UNIT_STAND_STATE_STAND);
-                Talk(SAY_BONKER_2, player);
-                Start(true, true, player->GetGUID());
             }
         }
     };
@@ -1942,10 +1932,9 @@ public:
 
         void JustDied(Unit* killer) override
         {
-            if (!killer || killer->GetTypeId() != TYPEID_PLAYER)
-                return;
-
             Player* player = killer->ToPlayer();
+            if (!player)
+                return;
 
             if (player->GetQuestStatus(QUEST_YOU_RE_NOT_SO_BIG_NOW) == QUEST_STATUS_INCOMPLETE &&
                 (me->HasAura(SPELL_AURA_NOTSOBIG_1) || me->HasAura(SPELL_AURA_NOTSOBIG_2) ||
@@ -2064,7 +2053,7 @@ public:
             Initialize();
         }
 
-        void JustEngagedWith(Unit* /*who*/) override { }
+        void EnterCombat(Unit* /*who*/) override { }
 
         void AttackStart(Unit* /*who*/) override { }
 
@@ -2176,7 +2165,7 @@ public:
         {
             Initialize();
             uiEmoteState = creature->GetEmoteState();
-            uiNpcFlags = NPCFlags(creature->m_unitData->NpcFlags[0]);
+            uiNpcFlags = uint32(creature->m_unitData->NpcFlags[0]);
         }
 
         void Initialize()
@@ -2187,8 +2176,8 @@ public:
             uiPlayerGUID.Clear();
         }
 
-        Emote uiEmoteState;
-        NPCFlags uiNpcFlags;
+        uint32 uiEmoteState;
+        uint32 uiNpcFlags;
 
         uint32 uiEventTimer;
         uint8 uiEventPhase;
@@ -2198,10 +2187,10 @@ public:
         void Reset() override
         {
             if (uiEmoteState)
-                me->SetEmoteState(uiEmoteState);
+                me->SetEmoteState(Emote(uiEmoteState));
 
             if (uiNpcFlags)
-                me->SetNpcFlags(uiNpcFlags);
+                me->AddNpcFlag(NPCFlags(uiNpcFlags));
 
             Initialize();
 
@@ -2213,12 +2202,17 @@ public:
         void DoAction(int32 /*iParam*/) override
         {
             me->StopMoving();
-            me->SetNpcFlags(UNIT_NPC_FLAG_NONE);
+            me->AddNpcFlag(UNIT_NPC_FLAG_NONE);
             me->SetEmoteState(EMOTE_ONESHOT_NONE);
             if (Player* player = ObjectAccessor::GetPlayer(*me, uiPlayerGUID))
                 me->SetFacingToObject(player);
             uiEventTimer = 3000;
             uiEventPhase = 1;
+        }
+
+        void SetGUID(ObjectGuid uiGuid, int32 /*iId*/) override
+        {
+            uiPlayerGUID = uiGuid;
         }
 
         void AttackPlayer()
@@ -2287,64 +2281,64 @@ public:
 
             DoMeleeAttackIfReady();
         }
-
-        bool GossipHello(Player* player) override
-        {
-            uint32 uiGossipText = 0;
-            char const* charGossipItem;
-
-            switch (me->GetEntry())
-            {
-                case NPC_TOM_HEGGER:
-                    uiGossipText = GOSSIP_TEXT_TOM_HEGGER;
-                    charGossipItem = GOSSIP_ITEM_TOM_HEGGER;
-                    break;
-                case NPC_SALTY_JOHN_THORPE:
-                    uiGossipText = GOSSIP_TEXT_SALTY_JOHN_THORPE;
-                    charGossipItem = GOSSIP_ITEM_SALTY_JOHN_THORPE;
-                    break;
-                case NPC_GUARD_MITCHELLS:
-                    uiGossipText = GOSSIP_TEXT_GUARD_MITCHELSS;
-                    charGossipItem = GOSSIP_ITEM_GUARD_MITCHELLS;
-                    break;
-                default:
-                    return false;
-            }
-
-            if (player->HasAura(SPELL_RIGHTEOUS_VISION) && player->GetQuestStatus(QUEST_THE_HUNT_IS_ON) == QUEST_STATUS_INCOMPLETE)
-                AddGossipItemFor(player, GOSSIP_ICON_CHAT, charGossipItem, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
-
-            if (me->IsVendor())
-                AddGossipItemFor(player, GOSSIP_ICON_VENDOR, GOSSIP_TEXT_BROWSE_GOODS, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_TRADE);
-
-            SendGossipMenuFor(player, uiGossipText, me->GetGUID());
-
-            return true;
-        }
-
-        bool GossipSelect(Player* player, uint32 /*menuId*/, uint32 gossipListId) override
-        {
-            uint32 const action = player->PlayerTalkClass->GetGossipOptionAction(gossipListId);
-            ClearGossipMenuFor(player);
-
-            if (action == GOSSIP_ACTION_INFO_DEF + 1)
-            {
-                CloseGossipMenuFor(player);
-                uiPlayerGUID = player->GetGUID();
-                DoAction(1);
-            }
-
-            if (action == GOSSIP_ACTION_TRADE)
-                player->GetSession()->SendListInventory(me->GetGUID());
-
-            return true;
-        }
     };
 
     CreatureAI* GetAI(Creature* creature) const override
     {
         return new npc_hidden_cultistAI(creature);
     }
+
+    bool OnGossipHello(Player* player, Creature* creature) override
+    {
+        uint32 uiGossipText = 0;
+        const char* charGossipItem;
+
+        switch (creature->GetEntry())
+        {
+            case NPC_TOM_HEGGER:
+                uiGossipText = GOSSIP_TEXT_TOM_HEGGER;
+                charGossipItem = GOSSIP_ITEM_TOM_HEGGER;
+                break;
+            case NPC_SALTY_JOHN_THORPE:
+                uiGossipText = GOSSIP_TEXT_SALTY_JOHN_THORPE;
+                charGossipItem = GOSSIP_ITEM_SALTY_JOHN_THORPE;
+                break;
+            case NPC_GUARD_MITCHELLS:
+                uiGossipText = GOSSIP_TEXT_GUARD_MITCHELSS;
+                charGossipItem = GOSSIP_ITEM_GUARD_MITCHELLS;
+                break;
+            default:
+                return false;
+        }
+
+        if (player->HasAura(SPELL_RIGHTEOUS_VISION) && player->GetQuestStatus(QUEST_THE_HUNT_IS_ON) == QUEST_STATUS_INCOMPLETE)
+            AddGossipItemFor(player, GOSSIP_ICON_CHAT, charGossipItem, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF+1);
+
+        if (creature->IsVendor())
+            AddGossipItemFor(player, GOSSIP_ICON_VENDOR, GOSSIP_TEXT_BROWSE_GOODS, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_TRADE);
+
+        SendGossipMenuFor(player, uiGossipText, creature->GetGUID());
+
+        return true;
+    }
+
+    bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action) override
+    {
+        ClearGossipMenuFor(player);
+
+        if (action == GOSSIP_ACTION_INFO_DEF+1)
+        {
+            CloseGossipMenuFor(player);
+            creature->AI()->SetGUID(player->GetGUID());
+            creature->AI()->DoAction(1);
+        }
+
+        if (action == GOSSIP_ACTION_TRADE)
+            player->GetSession()->SendListInventory(creature->GetGUID());
+
+        return true;
+    }
+
 };
 
 enum WindsoulTotemAura
@@ -2380,108 +2374,6 @@ public:
     }
 };
 
-enum BloodsporeRuination
-{
-    NPC_BLOODMAGE_LAURITH   = 25381,
-    SAY_BLOODMAGE_LAURITH   = 0,
-    EVENT_TALK              = 1,
-    EVENT_RESET_ORIENTATION
-};
-
-class spell_q11719_bloodspore_ruination_45997 : public SpellScriptLoader
-{
-public:
-    spell_q11719_bloodspore_ruination_45997() : SpellScriptLoader("spell_q11719_bloodspore_ruination_45997") { }
-
-    class spell_q11719_bloodspore_ruination_45997_SpellScript : public SpellScript
-    {
-        PrepareSpellScript(spell_q11719_bloodspore_ruination_45997_SpellScript);
-
-        void HandleEffect(SpellEffIndex /*effIndex*/)
-        {
-            if (Unit* caster = GetCaster())
-                if (Creature* laurith = caster->FindNearestCreature(NPC_BLOODMAGE_LAURITH, 100.0f))
-                    laurith->AI()->SetGUID(caster->GetGUID());
-        }
-
-        void Register() override
-        {
-            OnEffectHit += SpellEffectFn(spell_q11719_bloodspore_ruination_45997_SpellScript::HandleEffect, EFFECT_1, SPELL_EFFECT_SEND_EVENT);
-        }
-    };
-
-    SpellScript* GetSpellScript() const override
-    {
-        return new spell_q11719_bloodspore_ruination_45997_SpellScript();
-    }
-};
-
-class npc_bloodmage_laurith : public CreatureScript
-{
-public:
-    npc_bloodmage_laurith() : CreatureScript("npc_bloodmage_laurith") { }
-
-    struct npc_bloodmage_laurithAI : public ScriptedAI
-    {
-        npc_bloodmage_laurithAI(Creature* creature) : ScriptedAI(creature) { }
-
-        void Reset() override
-        {
-            _events.Reset();
-            _playerGUID.Clear();
-        }
-
-        void SetGUID(ObjectGuid const& guid, int32 /*id*/) override
-        {
-            if (!_playerGUID.IsEmpty())
-                return;
-
-            _playerGUID = guid;
-
-            if (Player* player = ObjectAccessor::GetPlayer(*me, _playerGUID))
-                me->SetFacingToObject(player);
-
-            _events.ScheduleEvent(EVENT_TALK, Seconds(1));
-        }
-
-        void UpdateAI(uint32 diff) override
-        {
-            if (UpdateVictim())
-            {
-                DoMeleeAttackIfReady();
-                return;
-            }
-
-            _events.Update(diff);
-
-            if (uint32 eventId = _events.ExecuteEvent())
-            {
-                switch (eventId)
-                {
-                    case EVENT_TALK:
-                        if (Player* player = ObjectAccessor::GetPlayer(*me, _playerGUID))
-                            Talk(SAY_BLOODMAGE_LAURITH, player);
-                        _playerGUID.Clear();
-                        _events.ScheduleEvent(EVENT_RESET_ORIENTATION, Seconds(5));
-                        break;
-                    case EVENT_RESET_ORIENTATION:
-                        me->SetFacingTo(me->GetHomePosition().GetOrientation());
-                        break;
-                }
-            }
-        }
-
-        private:
-            EventMap _events;
-            ObjectGuid _playerGUID;
-    };
-
-    CreatureAI* GetAI(Creature* creature) const override
-    {
-        return new npc_bloodmage_laurithAI(creature);
-    }
-};
-
 void AddSC_borean_tundra()
 {
     new npc_sinkhole_kill_credit();
@@ -2507,6 +2399,4 @@ void AddSC_borean_tundra()
     new npc_warmage_coldarra();
     new npc_hidden_cultist();
     new spell_windsoul_totem_aura();
-    new spell_q11719_bloodspore_ruination_45997();
-    new npc_bloodmage_laurith();
 }

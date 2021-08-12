@@ -90,7 +90,7 @@ private:
         me->SetMaxPower(POWER_ENERGY, 100);
         me->SetPower(POWER_ENERGY, 0);
         me->SetReactState(REACT_AGGRESSIVE);
-        me->AddAura(AURA_OVERRIDE_POWER_COLOR_RAGE);
+       // me->AddAura(AURA_OVERRIDE_POWER_COLOR_RAGE);
     }
 
     void EnterCombat(Unit* /*who*/) override
@@ -116,7 +116,7 @@ private:
             events.Repeat(1s);
             break;
 
-        case SPELL_EXPOSE_DESIRES:
+       /* case SPELL_EXPOSE_DESIRES:
             me->CastSpell(nullptr, SPELL_EXPOSE_DESIRES, true);
             if (Unit* target = SelectTarget(SELECT_TARGET_TOPAGGRO, 0, 100.0f, true))
             {
@@ -125,7 +125,7 @@ private:
             }
             events.Repeat(19s);
             break;
-
+            
         case EVENT_EXPOSED_COGNITION:
             if (Unit* target = SelectTarget(SELECT_TARGET_TOPAGGRO, 0, 100.0f, true))
             {
@@ -139,7 +139,7 @@ private:
             }
             events.Repeat(33s);
             break;
-
+            
         case EVENT_EXPOSED_HEART:
             if (Unit* target = SelectTarget(SELECT_TARGET_TOPAGGRO, 0, 100.0f, true))
                 if (!target->HasAura(SPELL_WARPED_DESIRES_DEBUFF))
@@ -150,7 +150,7 @@ private:
 
             events.Repeat(66s);
             break;
-
+            */
         case EVENT_BOTTLED_ANIMA:
             me->CastSpell(nullptr, SPELL_BOTTLED_ANIMA_CAST, false);
             {
@@ -370,7 +370,7 @@ struct at_fragments_of_shadow : public AreaTriggerAI
 
         Position casterPos = at->GetCaster()->GetPosition();
         at->MovePosition(casterPos, 30.0f, 0.0f);
-        at->SetDestination(casterPos, 3000);
+      //  at->SetDestination(casterPos, 3000);
     }
 
     void OnUnitEnter(Unit* target) override

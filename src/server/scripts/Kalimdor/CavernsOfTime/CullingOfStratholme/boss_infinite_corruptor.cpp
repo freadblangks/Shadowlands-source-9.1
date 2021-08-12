@@ -60,10 +60,10 @@ class boss_infinite_corruptor : public CreatureScript
                 }
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
                 Talk(SAY_AGGRO);
-                _JustEngagedWith();
+                _EnterCombat();
                 events.ScheduleEvent(EVENT_CORRUPTING_BLIGHT, 7000);
                 events.ScheduleEvent(EVENT_VOID_STRIKE, 5000);
             }

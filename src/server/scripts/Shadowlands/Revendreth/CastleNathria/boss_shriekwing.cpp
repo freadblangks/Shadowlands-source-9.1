@@ -82,7 +82,7 @@ private:
         me->SetPowerType(POWER_ENERGY);
         me->SetMaxPower(POWER_ENERGY, 100);
         me->SetPower(POWER_ENERGY, 0);
-        me->AddAura(AURA_OVERRIDE_POWER_COLOR_RAGE);
+       // me->AddAura(AURA_OVERRIDE_POWER_COLOR_RAGE);
         me->SetReactState(REACT_AGGRESSIVE);
     }
 
@@ -155,7 +155,7 @@ private:
             break;
         }
 
-        case SPELL_EXSANGUINATING_BITE:
+        /* case SPELL_EXSANGUINATING_BITE:
             if (Unit* target = SelectTarget(SELECT_TARGET_TOPAGGRO, 0, 30.0f))
             {
                 me->CastSpell(target, SPELL_EXSANGUINATING_BITE, false);
@@ -167,7 +167,7 @@ private:
                     {
                         if (!target || !me)
                             return;
-
+                            
                         if (Aura* exsanguinated = target->GetAura(SPELL_EXSANGUINATED_DEBUFF))
                             if (exsanguinated->GetStackAmount() > 1)
                                 exsanguinated->SetStackAmount(exsanguinated->GetStackAmount() - 1);
@@ -182,7 +182,7 @@ private:
             }
             events.Repeat(20s);
             break;
-
+            */
         case SPELL_BLIND_SWIPE_CAST:
             if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 100.0f))
             {
@@ -329,22 +329,22 @@ struct at_echoing_sonar : public AreaTriggerAI
     void OnCreate() override
     {
         at->SetDuration(30000);
-        at->SetPeriodicProcTimer(1000);
+        //at->SetPeriodicProcTimer(1000);
     }
 
     void OnInitialize() override
     {
-        VALIDATE_CASTER();
+        //VALIDATE_CASTER();
         Position GetRandomPos = at->GetRandomNearPosition(urand(20,30));
         at->MovePositionToFirstCollision(GetRandomPos, urand(30,45), 0.0f);
-        at->SetDestination(GetRandomPos, 3000);
+        //at->SetDestination(GetRandomPos, 3000);
     }
 
     void OnDestinationReached()
     {
         Position randomPos = at->GetCaster()->GetRandomNearPosition(urand(20,30));
         at->MovePositionToFirstCollision(randomPos, urand(30,45), 0.0f);
-        at->SetDestination(randomPos, 3000);
+        //at->SetDestination(randomPos, 3000);
     }
 
     void OnUnitEnter(Unit* unit) override
@@ -364,22 +364,22 @@ struct at_echoing_screech : public AreaTriggerAI
     void OnCreate() override
     {
         at->SetDuration(15000);
-        at->SetPeriodicProcTimer(1000);
+       // at->SetPeriodicProcTimer(1000);
     }
 
     void OnInitialize() override
     {
-        VALIDATE_CASTER();
+        //VALIDATE_CASTER();
         Position randomPos = at->GetCaster()->GetRandomNearPosition(urand(10,15));
         at->MovePositionToFirstCollision(randomPos, urand(20,30), 0.0f);
-        at->SetDestination(randomPos, 3000);
+        //at->SetDestination(randomPos, 3000);
     }
 
     void OnDestinationReached()
     {
         Position randomPos = at->GetCaster()->GetRandomNearPosition(urand(10,15));
         at->MovePositionToFirstCollision(randomPos, urand(20,30), 0.0f);
-        at->SetDestination(randomPos, 3000);
+       // at->SetDestination(randomPos, 3000);
     }
 
     void OnUnitEnter(Unit* unit) override

@@ -80,7 +80,7 @@ public:
             Initialize();
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
             DoCastVictim(SPELL_BIRTH);
         }
@@ -111,7 +111,7 @@ public:
                 //Cast
                 me->HandleEmoteCommand(EMOTE_ONESHOT_SUBMERGE);
                 me->AddUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
-                me->SetFaction(FACTION_FRIENDLY);
+                me->SetFaction(35);
                 DoCast(me, SPELL_DIRTMOUND_PASSIVE);
 
                 Submerged = true;
@@ -131,7 +131,7 @@ public:
             if (Submerged && Back_Timer <= diff)
             {
                 me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
-                me->SetFaction(FACTION_MONSTER);
+                me->SetFaction(14);
 
                 DoCastVictim(SPELL_GROUND_RUPTURE);
 

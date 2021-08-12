@@ -59,8 +59,7 @@ enum GDCreatureIds
     NPC_DRAKKARI_COLOSSUS            = 29307,
     NPC_RUIN_DWELLER                 = 29920,
     NPC_ECK_THE_FEROCIOUS            = 29932,
-    NPC_ALTAR_TRIGGER                = 30298,
-    NPC_RHINO_SPIRIT                 = 29791
+    NPC_ALTAR_TRIGGER                = 30298
 };
 
 enum GDGameObjectIds
@@ -96,7 +95,7 @@ enum GDInstanceMisc
 template <class AI, class T>
 inline AI* GetGundrakAI(T* obj)
 {
-    return GetInstanceAI<AI>(obj, GundrakScriptName);
+    return GetInstanceAI<AI, T>(obj, GundrakScriptName);
 }
 
 #endif // GUNDRAK_H_

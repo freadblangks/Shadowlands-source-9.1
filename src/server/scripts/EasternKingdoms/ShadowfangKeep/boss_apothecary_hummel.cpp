@@ -55,7 +55,6 @@ enum ApothecarySays
     SAY_CALL_BAXTER  = 3,
     SAY_CALL_FRYE    = 4,
     SAY_HUMMEL_DEATH = 5,
-    SAY_SUMMON_ADDS  = 6,
     SAY_BAXTER_DEATH = 0,
     SAY_FRYE_DEATH   = 0
 };
@@ -108,6 +107,7 @@ class boss_apothecary_hummel : public CreatureScript
                     CloseGossipMenuFor(player);
                     DoAction(ACTION_START_EVENT);
                 }
+
                 return false;
             }
 
@@ -217,13 +217,12 @@ class boss_apothecary_hummel : public CreatureScript
                         case EVENT_START_FIGHT:
                         {
                             me->SetImmuneToAll(false);
-                            DoZoneInCombat();
+                            me->SetInCombatWithZone();
                             events.ScheduleEvent(EVENT_CALL_BAXTER, Seconds(6));
                             events.ScheduleEvent(EVENT_CALL_FRYE, Seconds(14));
                             events.ScheduleEvent(EVENT_PERFUME_SPRAY, Milliseconds(3640));
                             events.ScheduleEvent(EVENT_CHAIN_REACTION, Seconds(15));
 
-                            Talk(SAY_SUMMON_ADDS);
                             std::vector<Creature*> trashs;
                             me->GetCreatureListWithEntryInGrid(trashs, NPC_CROWN_APOTHECARY);
                             for (Creature* crea : trashs)
@@ -266,20 +265,17 @@ class boss_apothecary_hummel : public CreatureScript
                 DoMeleeAttackIfReady();
             }
 
-            void QuestReward(Player* /*player*/, Quest const* quest, LootItemType /*type*/, uint32 /*opt*/) override
-            {
-                if (quest->GetQuestId() == QUEST_YOUVE_BEEN_SERVED)
-                    DoAction(ACTION_START_EVENT);
-            }
-
             private:
                 uint8 _deadCount;
                 bool _isDead;
         };
 
-        CreatureAI* GetAI(Creature* creature) const override
+        bool OnQuestReward(Player* /*player*/, Creature* creature, Quest const* quest, uint32 /*opt*/) override
         {
-            return GetShadowfangKeepAI<boss_apothecary_hummelAI>(creature);
+            if (quest->GetQuestId() == QUEST_YOUVE_BEEN_SERVED)
+                creature->AI()->DoAction(ACTION_START_EVENT);
+
+            return true;
         }
 };
 
@@ -298,7 +294,7 @@ struct npc_apothecary_genericAI : public ScriptedAI
         else if (action == ACTION_START_FIGHT)
         {
             me->SetImmuneToAll(false);
-            DoZoneInCombat();
+            me->SetInCombatWithZone();
         }
     }
 
@@ -321,16 +317,11 @@ class npc_apothecary_frye : public CreatureScript
         {
             npc_apothecary_fryeAI(Creature* creature) : npc_apothecary_genericAI(creature, FryeMovePos) { }
 
-            void JustDied(Unit* /*killer*/) override
+            void JustDied(Unit* /*who*/) override
             {
                 Talk(SAY_FRYE_DEATH);
             }
         };
-
-        CreatureAI* GetAI(Creature* creature) const override
-        {
-            return GetShadowfangKeepAI<npc_apothecary_fryeAI>(creature);
-        }
 };
 
 class npc_apothecary_baxter : public CreatureScript
@@ -349,7 +340,7 @@ class npc_apothecary_baxter : public CreatureScript
                 _events.ScheduleEvent(EVENT_CHAIN_REACTION, Seconds(12));
             }
 
-            void JustDied(Unit* /*killer*/) override
+            void JustDied(Unit* /*who*/) override
             {
                 _events.Reset();
                 Talk(SAY_BAXTER_DEATH);
@@ -389,11 +380,6 @@ class npc_apothecary_baxter : public CreatureScript
         private:
             EventMap _events;
         };
-
-        CreatureAI* GetAI(Creature* creature) const override
-        {
-            return GetShadowfangKeepAI<npc_apothecary_baxterAI>(creature);
-        }
 };
 
 // 68965 -[DND] Lingering Fumes Targetting (starter)

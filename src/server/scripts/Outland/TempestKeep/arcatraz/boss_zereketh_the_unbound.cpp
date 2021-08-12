@@ -61,9 +61,9 @@ class boss_zereketh_the_unbound : public CreatureScript
                 Talk(SAY_DEATH);
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
-                _JustEngagedWith();
+                _EnterCombat();
                 events.ScheduleEvent(EVENT_VOID_ZONE, urand (6000, 10000));
                 events.ScheduleEvent(EVENT_SHADOW_NOVA, urand (6000, 10000));
                 events.ScheduleEvent(EVENT_SEED_OF_CORRUPTION, urand(12000, 20000));

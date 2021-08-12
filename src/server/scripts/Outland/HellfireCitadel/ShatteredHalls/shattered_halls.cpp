@@ -103,7 +103,7 @@ class boss_shattered_executioner : public CreatureScript
 
             void JustSummoned(Creature*) override { } // avoid despawn of prisoners on death/reset
 
-            void JustDied(Unit* /*killer*/) override
+            void JustDied(Unit*) override
             {
                 _JustDied();
 
@@ -125,7 +125,7 @@ class boss_shattered_executioner : public CreatureScript
                 if (type == DATA_PRISONERS_EXECUTED && data <= 3)
                 {
                     if (Creature* victim = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_FIRST_PRISONER + data - 1)))
-                        Unit::Kill(me, victim);
+                        me->Kill(victim);
 
                     if (data == 1)
                     {

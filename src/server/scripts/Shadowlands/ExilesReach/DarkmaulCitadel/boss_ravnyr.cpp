@@ -92,7 +92,7 @@ struct boss_ravnyr : public BossAI
         for (auto& players : playerList)
         {
             players->ForceCompleteQuest(55992);
-            me->SetLootRecipient(players);
+            //me->SetLootRecipient(players);
         }
     }
 };

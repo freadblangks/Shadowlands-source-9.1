@@ -52,7 +52,7 @@ struct boss_toravon : public BossAI
 {
     boss_toravon(Creature* creature) : BossAI(creature, DATA_TORAVON) { }
 
-    void JustEngagedWith(Unit* /*who*/) override
+    void EnterCombat(Unit* /*who*/) override
     {
         DoCastSelf(SPELL_FROZEN_MALLET);
 
@@ -60,7 +60,7 @@ struct boss_toravon : public BossAI
         events.ScheduleEvent(EVENT_WHITEOUT, Seconds(25));
         events.ScheduleEvent(EVENT_FREEZING_GROUND, Seconds(7));
 
-        _JustEngagedWith();
+        _EnterCombat();
     }
 
     void UpdateAI(uint32 diff) override
@@ -78,11 +78,9 @@ struct boss_toravon : public BossAI
             switch (eventId)
             {
                 case EVENT_FROZEN_ORB:
-                {
-                    me->CastSpell(me, SPELL_FROZEN_ORB, CastSpellExtraArgs().AddSpellMod(SPELLVALUE_MAX_TARGETS, RAID_MODE(1, 3)));
+                    me->CastCustomSpell(SPELL_FROZEN_ORB, SPELLVALUE_MAX_TARGETS, RAID_MODE(1, 3), me);
                     events.Repeat(Seconds(32));
                     break;
-                }
                 case EVENT_WHITEOUT:
                     DoCastSelf(SPELL_WHITEOUT);
                     events.Repeat(Seconds(38));
@@ -113,7 +111,7 @@ struct npc_frost_warder : public ScriptedAI
         _events.Reset();
     }
 
-    void JustEngagedWith(Unit* /*who*/) override
+    void EnterCombat(Unit* /*who*/) override
     {
         DoZoneInCombat();
 
@@ -160,7 +158,7 @@ struct npc_frozen_orb : public ScriptedAI
             if (toravon->IsInCombat())
             {
                 toravon->AI()->JustSummoned(me);
-                DoZoneInCombat();
+                me->SetInCombatWithZone();
             }
             else
                 me->DespawnOrUnsummon();
@@ -184,7 +182,7 @@ class spell_toravon_random_aggro : public SpellScript
         if (!caster->IsAIEnabled)
             return;
 
-        caster->GetThreatManager().ResetAllThreat();
+        caster->GetThreatManager().resetAllAggro();
 
         if (Unit* target = caster->AI()->SelectTarget(SELECT_TARGET_RANDOM, 1))
             caster->GetThreatManager().AddThreat(target, 1000000);

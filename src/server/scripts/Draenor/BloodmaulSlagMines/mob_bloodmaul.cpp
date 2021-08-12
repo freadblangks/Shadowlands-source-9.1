@@ -1,5 +1,6 @@
 /*
- * Copyright 2021 ShadowCore
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -134,7 +135,7 @@ namespace Instances { namespace Bloodmaul
 
                 void EnterCombat(Unit* target) override
                 {
-                    me->getThreatManager().addThreat(target, 1000.0f);
+                    me->GetThreatManager().addThreat(target, 1000.0f);
 
                     m_Events.Reset();
 
@@ -356,7 +357,7 @@ namespace Instances { namespace Bloodmaul
                                 if (unit->IsInCombat())
                                     target = unit;
                             }*/
-                            
+
                             me->CastSpell(target, uint32(Spells::StoneBulwark));
 
                             events.ScheduleEvent(uint32(Events::StoneBulwark), urand(3000, 35000));
@@ -655,7 +656,7 @@ namespace Instances { namespace Bloodmaul
                     switch (events.ExecuteEvent())
                     {
                         case uint32(Events::ChainGrip):
-                            if (Unit* l_Plr = SelectTarget(SELECT_TARGET_FARTHEST, 0, 5.0f))
+                            if (Unit* l_Plr = SelectTarget(SELECT_TARGET_MAXDISTANCE, 0, 5.0f))
                                 me->CastSpell(l_Plr, uint32(Spells::ChainGrip));
                             events.ScheduleEvent(uint32(Events::ChainGrip), urand(16000, 18000));
                             break;
@@ -761,7 +762,7 @@ namespace Instances { namespace Bloodmaul
                             events.ScheduleEvent(uint32(Events::Crush), urand(10000, 11000));
                             break;
                         case uint32(Events::LumberingLeap):
-                            if (Unit* l_Plr = SelectTarget(SELECT_TARGET_FARTHEST, 0, 8.0f))
+                            if (Unit* l_Plr = SelectTarget(SELECT_TARGET_MAXDISTANCE, 0, 8.0f))
                             {
                                 m_TargetGUID = l_Plr->GetGUID();
                                 me->CastSpell(l_Plr, uint32(Spells::LumberingLeap));

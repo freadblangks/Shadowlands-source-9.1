@@ -44,7 +44,7 @@ class boss_ambassador_flamelash : public CreatureScript
                 _events.Reset();
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
                 _events.ScheduleEvent(EVENT_FIREBLAST, 2000);
                 _events.ScheduleEvent(EVENT_SUMMON_SPIRITS, 24000);

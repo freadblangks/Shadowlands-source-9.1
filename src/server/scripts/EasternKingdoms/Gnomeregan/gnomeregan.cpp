@@ -135,6 +135,7 @@ public:
 
                 player->PlayerTalkClass->SendCloseGossip();
             }
+
             return false;
         }
 
@@ -156,14 +157,14 @@ public:
             {
                 if (GameObject* go = ObjectAccessor::GetGameObject(*me, *itr))
                 {
-                    if (Creature* trigger = go->SummonTrigger(go->GetPositionX(), go->GetPositionY(), go->GetPositionZ(), 0, 1))
+                    if (Creature* trigger = me->SummonTrigger(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), 0, 1))
                     {
                         //visual effects are not working!
                         trigger->CastSpell(trigger, 11542, true);
                         trigger->CastSpell(trigger, 35470, true);
                     }
-                    go->RemoveFromWorld();
-                    //go->CastSpell(me, 12158); makes all die?!
+                    me->RemoveFromWorld();
+                    //me->CastSpell(me, 12158); makes all die?!
                 }
             }
 
@@ -189,7 +190,7 @@ public:
                 for (GuidList::const_iterator itr = GoSummonList.begin(); itr != GoSummonList.end(); ++itr)
                 {
                     if (GameObject* go = ObjectAccessor::GetGameObject(*me, *itr))
-                        go->RemoveFromWorld();
+                        me->RemoveFromWorld();
                 }
 
             if (!SummonList.empty())
@@ -275,10 +276,10 @@ public:
                     switch (uiValue)
                     {
                         case 1:
-                            instance->SetBossState(DATA_BLASTMASTER_EVENT, IN_PROGRESS);
+                            instance->SetData(TYPE_EVENT, IN_PROGRESS);
                             break;
                         case 2:
-                            instance->SetBossState(DATA_BLASTMASTER_EVENT, DONE);
+                            instance->SetData(TYPE_EVENT, DONE);
                             NextStep(5000, false, 22);
                             break;
                     }
@@ -305,7 +306,7 @@ public:
                 case 2:
                     if (GameObject* go = me->SummonGameObject(183410, -533.140f, -105.322f, -156.016f, 0.f, QuaternionData(), 1))
                     {
-                        GoSummonList.push_back(go->GetGUID());
+                        GoSummonList.push_back(me->GetGUID());
                         go->AddFlag(GO_FLAG_NOT_SELECTABLE); //We can't use it!
                     }
                     Summon(3);
@@ -320,7 +321,7 @@ public:
                 case 4:
                     if (GameObject* go = me->SummonGameObject(183410, -542.199f, -96.854f, -155.790f, 0.f, QuaternionData(), 1))
                     {
-                        GoSummonList.push_back(go->GetGUID());
+                        GoSummonList.push_back(me->GetGUID());
                         go->AddFlag(GO_FLAG_NOT_SELECTABLE);
                     }
                     break;
@@ -334,7 +335,7 @@ public:
                 case 6:
                     if (GameObject* go = me->SummonGameObject(183410, -507.820f, -103.333f, -151.353f, 0.f, QuaternionData(), 1))
                     {
-                        GoSummonList.push_back(go->GetGUID());
+                        GoSummonList.push_back(me->GetGUID());
                         go->AddFlag(GO_FLAG_NOT_SELECTABLE); //We can't use it!
                         Summon(5);
                     }
@@ -342,7 +343,7 @@ public:
                 case 7:
                     if (GameObject* go = me->SummonGameObject(183410, -511.829f, -86.249f, -151.431f, 0.f, QuaternionData(), 1))
                     {
-                        GoSummonList.push_back(go->GetGUID());
+                        GoSummonList.push_back(me->GetGUID());
                         go->AddFlag(GO_FLAG_NOT_SELECTABLE); //We can't use it!
                     }
                     break;
@@ -352,9 +353,9 @@ public:
                     me->SummonCreature(NPC_CHOMPER, SpawnPosition[16], TEMPSUMMON_CORPSE_TIMED_DESPAWN, 1800000);
                     break;
                 case 9:
-                    me->SummonGameObject(GO_RED_ROCKET, SpawnPosition[17], QuaternionData::fromEulerAnglesZYX(SpawnPosition[17].GetOrientation(), 0.0f, 0.0f), 7200);
-                    me->SummonGameObject(GO_RED_ROCKET, SpawnPosition[18], QuaternionData::fromEulerAnglesZYX(SpawnPosition[18].GetOrientation(), 0.0f, 0.0f), 7200);
-                    me->SummonGameObject(GO_RED_ROCKET, SpawnPosition[19], QuaternionData::fromEulerAnglesZYX(SpawnPosition[19].GetOrientation(), 0.0f, 0.0f), 7200);
+                    me->SummonGameObject(GO_RED_ROCKET, SpawnPosition[17], QuaternionData(), 7200);
+                    me->SummonGameObject(GO_RED_ROCKET, SpawnPosition[18], QuaternionData(), 7200);
+                    me->SummonGameObject(GO_RED_ROCKET, SpawnPosition[19], QuaternionData(), 7200);
                     break;
             }
         }

@@ -91,7 +91,7 @@ public:
             player->AddPvpFlag(UNIT_BYTE2_FLAG_SANCTUARY);
     }
 
-    void OnUpdateArea(Player* player, uint32 /*newArea*/, uint32 /*oldArea*/) override
+    void OnUpdateArea(Player* player, uint32 /*newArea*/, uint32 /*oldArea*/) 
     {
         // Set zone as sanctuary
         if (player->GetMapId() == MAP_NPE)
@@ -1287,14 +1287,14 @@ public:
 void AddSC_zone_exiles_reach()
 {    
     RegisterPlayerScript(exiles_reach);
-    RegisterZoneScript(zone_exiles_reach);
+    //RegisterZoneScript(zone_exiles_reach);
     RegisterCreatureAI(npc_combat_dummy);
     RegisterCreatureAI(npc_private_cole);
-    RegisterItemScript(item_first_aid_kit);
+    //RegisterItemScript(item_first_aid_kit);
     RegisterGameObjectAI(go_campfire_339769);
     RegisterCreatureAI(npc_lindie_springstock_149899);
     RegisterCreatureAI(npc_scout_o_matic_5000);
-    RegisterItemScript(item_resizer_v901);
+   // RegisterItemScript(item_resizer_v901);
     RegisterCreatureAI(npc_giant_boar);
     RegisterCreatureAI(npc_meredy_huntswell_156943);
     RegisterCreatureAI(npc_henry_garrick_156799);

@@ -71,9 +71,9 @@ class boss_zuramat : public CreatureScript
                 Initialize();
             }
 
-            void JustEngagedWith(Unit* who) override
+            void EnterCombat(Unit* who) override
             {
-                BossAI::JustEngagedWith(who);
+                BossAI::EnterCombat(who);
                 Talk(SAY_AGGRO);
             }
 
@@ -104,10 +104,10 @@ class boss_zuramat : public CreatureScript
                 return 0;
             }
 
-            void JustDied(Unit* /*killer*/) override
+            void JustDied(Unit* killer) override
             {
+                BossAI::JustDied(killer);
                 Talk(SAY_DEATH);
-                _JustDied();
             }
 
             void KilledUnit(Unit* victim) override
@@ -116,31 +116,22 @@ class boss_zuramat : public CreatureScript
                     Talk(SAY_SLAY);
             }
 
-            void UpdateAI(uint32 diff) override
-            {
-                if (!UpdateVictim())
-                    return;
-
-                scheduler.Update(diff,
-                    std::bind(&BossAI::DoMeleeAttackIfReady, this));
-            }
-
             void ScheduleTasks() override
             {
-                scheduler.Schedule(Seconds(4), [this](TaskContext task)
+                me->GetScheduler().Schedule(Seconds(4), [this](TaskContext task)
                 {
                     DoCast(me, SPELL_SUMMON_VOID_SENTRY);
                     task.Repeat(Seconds(7), Seconds(10));
                 });
 
-                scheduler.Schedule(Seconds(9), [this](TaskContext task)
+                me->GetScheduler().Schedule(Seconds(9), [this](TaskContext task)
                 {
                     if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 60.0f, true))
                         DoCast(target, SPELL_VOID_SHIFT);
                     task.Repeat(Seconds(15));
                 });
 
-                scheduler.Schedule(Seconds(18), Seconds(20), [this](TaskContext task)
+                me->GetScheduler().Schedule(Seconds(18), Seconds(20), [this](TaskContext task)
                 {
                     DoCast(me, SPELL_SHROUD_OF_DARKNESS);
                     task.Repeat(Seconds(18), Seconds(20));

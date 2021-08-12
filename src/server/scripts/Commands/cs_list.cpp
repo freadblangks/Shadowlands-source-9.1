@@ -29,7 +29,6 @@ EndScriptData */
 #include "DatabaseEnv.h"
 #include "DB2Stores.h"
 #include "GameObject.h"
-#include "GameTime.h"
 #include "Language.h"
 #include "MapManager.h"
 #include "ObjectAccessor.h"
@@ -57,6 +56,7 @@ public:
             { "spawnpoints", rbac::RBAC_PERM_COMMAND_LIST_SPAWNPOINTS, false, &HandleListSpawnPointsCommand, "" },
             { "respawns",    rbac::RBAC_PERM_COMMAND_LIST_RESPAWNS,    false, &HandleListRespawnsCommand,    "" },
             { "scenes",      rbac::RBAC_PERM_COMMAND_LIST_SCENES,      false, &HandleListScenesCommand,      "" },
+            { "quests",      rbac::RBAC_PERM_COMMAND_LIST_QUESTS,      false, &HandleListQuestsCommand,      "" },
         };
         static std::vector<ChatCommand> commandTable =
         {
@@ -486,7 +486,7 @@ public:
         return true;
     }
 
-    static bool HandleListAurasCommand(ChatHandler* handler, char const* /*args*/)
+    static bool HandleListAurasCommand(ChatHandler* handler, char const* args)
     {
         Unit* unit = handler->getSelectedUnit();
         if (!unit)
@@ -495,6 +495,8 @@ public:
             handler->SetSentErrorMessage(true);
             return false;
         }
+
+        std::string param = (char*)args;
 
         char const* talentStr = handler->GetTrinityString(LANG_TALENT);
         char const* passiveStr = handler->GetTrinityString(LANG_PASSIVE);
@@ -519,16 +521,19 @@ public:
                 aura->GetCasterGUID().ToString().c_str());
         }
 
-        for (uint16 i = 0; i < TOTAL_AURAS; ++i)
+        if (param == "all")
         {
-            Unit::AuraEffectList const& auraList = unit->GetAuraEffectsByType(AuraType(i));
-            if (auraList.empty())
-                continue;
+            for (uint16 i = 0; i < TOTAL_AURAS; ++i)
+            {
+                Unit::AuraEffectList const& auraList = unit->GetAuraEffectsByType(AuraType(i));
+                if (auraList.empty())
+                    continue;
 
-            handler->PSendSysMessage(LANG_COMMAND_TARGET_LISTAURATYPE, std::to_string(auraList.size()).c_str(), i);
+                handler->PSendSysMessage(LANG_COMMAND_TARGET_LISTAURATYPE, std::to_string(auraList.size()).c_str(), i);
 
-            for (Unit::AuraEffectList::const_iterator itr = auraList.begin(); itr != auraList.end(); ++itr)
-                handler->PSendSysMessage(LANG_COMMAND_TARGET_AURASIMPLE, (*itr)->GetId(), (*itr)->GetEffIndex(), (*itr)->GetAmount());
+                for (Unit::AuraEffectList::const_iterator itr = auraList.begin(); itr != auraList.end(); ++itr)
+                    handler->PSendSysMessage(LANG_COMMAND_TARGET_AURASIMPLE, (*itr)->GetId(), (*itr)->GetEffIndex(), (*itr)->GetAmount());
+            }
         }
 
         return true;
@@ -692,7 +697,7 @@ public:
         if (*args)
             range = atoi((char*)args);
 
-        std::vector<RespawnInfo*> respawns;
+        RespawnVector respawns;
         LocaleConstant locale = handler->GetSession()->GetSessionDbcLocale();
         char const* stringOverdue = sObjectMgr->GetTrinityString(LANG_LIST_RESPAWNS_OVERDUE, locale);
         char const* stringCreature = sObjectMgr->GetTrinityString(LANG_LIST_RESPAWNS_CREATURES, locale);
@@ -715,7 +720,7 @@ public:
             uint32 gridY = ri->gridId / MAX_NUMBER_OF_GRIDS;
             uint32 gridX = ri->gridId % MAX_NUMBER_OF_GRIDS;
 
-            std::string respawnTime = ri->respawnTime > GameTime::GetGameTime() ? secsToTimeString(uint64(ri->respawnTime - GameTime::GetGameTime()), true) : stringOverdue;
+            std::string respawnTime = ri->respawnTime > time(NULL) ? secsToTimeString(uint64(ri->respawnTime - time(NULL)), true) : stringOverdue;
             handler->PSendSysMessage(UI64FMTD " | %u | [%02u,%02u] | %s (%u) | %s", ri->spawnId, ri->entry, gridX, gridY, GetZoneName(ri->zoneId, handler->GetSessionDbcLocale()), ri->zoneId, map->IsSpawnGroupActive(data->spawnGroupData->groupId) ? respawnTime.c_str() : "inactive");
         }
 
@@ -736,7 +741,7 @@ public:
             uint32 gridY = ri->gridId / MAX_NUMBER_OF_GRIDS;
             uint32 gridX = ri->gridId % MAX_NUMBER_OF_GRIDS;
 
-            std::string respawnTime = ri->respawnTime > GameTime::GetGameTime() ? secsToTimeString(uint64(ri->respawnTime - GameTime::GetGameTime()), true) : stringOverdue;
+            std::string respawnTime = ri->respawnTime > time(NULL) ? secsToTimeString(uint64(ri->respawnTime - time(NULL)), true) : stringOverdue;
             handler->PSendSysMessage(UI64FMTD " | %u | [% 02u, % 02u] | %s (%u) | %s", ri->spawnId, ri->entry, gridX, gridY, GetZoneName(ri->zoneId, handler->GetSessionDbcLocale()), ri->zoneId, map->IsSpawnGroupActive(data->spawnGroupData->groupId) ? respawnTime.c_str() : "inactive");
         }
         return true;
@@ -756,13 +761,34 @@ public:
             return false;
         }
 
-        SceneTemplateByInstance const& instanceByPackageMap = target->GetSceneMgr().GetSceneTemplateByInstanceMap();
+        SceneTemplateByInstance const& instanceByPackageMap = target->GetSceneMgr().GetSceneByInstanceMap();
 
         handler->PSendSysMessage(LANG_DEBUG_SCENE_OBJECT_LIST, target->GetSceneMgr().GetActiveSceneCount());
 
-        for (auto const& instanceByPackage : instanceByPackageMap)
-            handler->PSendSysMessage(LANG_DEBUG_SCENE_OBJECT_DETAIL, instanceByPackage.second->ScenePackageId, instanceByPackage.first);
+        for (auto instanceByPackage : instanceByPackageMap)
+            handler->PSendSysMessage(LANG_DEBUG_SCENE_OBJECT_DETAIL, instanceByPackage.second.ScenePackageId, instanceByPackage.first);
 
+        return true;
+    }
+
+    static bool HandleListQuestsCommand(ChatHandler* handler, char const* /*args*/)
+    {
+        Player* target = handler->getSelectedPlayerOrSelf();
+
+        uint32 activeQuestCount = 0;
+        for (uint16 i = 0; i < MAX_QUEST_LOG_SIZE; ++i)
+        {
+            uint32 questId = target->GetQuestSlotQuestId(i);
+
+            if (questId == 0)
+                continue;
+
+            ++activeQuestCount;
+            QuestStatus status = target->GetQuestStatus(questId);
+            handler->PSendSysMessage(LANG_LIST_QUESTS_DETAIL, questId, target->GetQuestStatusString(status).c_str());
+        }
+
+        handler->PSendSysMessage(LANG_LIST_QUESTS, activeQuestCount);
         return true;
     }
 };

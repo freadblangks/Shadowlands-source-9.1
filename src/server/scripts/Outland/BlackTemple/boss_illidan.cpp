@@ -478,9 +478,9 @@ struct boss_illidan_stormrage : public BossAI
                 akama->AI()->DoAction(ACTION_ACTIVE_AKAMA_INTRO);
     }
 
-    void JustEngagedWith(Unit* /*who*/) override
+    void EnterCombat(Unit* /*who*/) override
     {
-        _JustEngagedWith();
+        _EnterCombat();
         me->SetCanDualWield(true);
         if (GameObject* musicController = instance->GetGameObject(DATA_ILLIDAN_MUSIC_CONTROLLER))
             musicController->PlayDirectMusic(EVENT_BT_SUMMIT_WALK_3_SOUND_ID);
@@ -703,7 +703,8 @@ struct boss_illidan_stormrage : public BossAI
 
     void DamageTaken(Unit* who, uint32 &damage) override
     {
-        if (damage >= me->GetHealth() && (!who || who->GetGUID() != me->GetGUID()))
+
+        if (damage >= me->GetHealth() && who->GetGUID() != me->GetGUID())
         {
             damage = me->GetHealth() - 1;
             if (!_dead)
@@ -1379,7 +1380,7 @@ struct npc_parasitic_shadowfiend : public ScriptedAI
         _scheduler.Schedule(Seconds(2), [this](TaskContext /*context*/)
         {
             me->SetReactState(REACT_AGGRESSIVE);
-            DoZoneInCombat();
+            me->SetInCombatWithZone();
         });
     }
 
@@ -1394,7 +1395,7 @@ struct npc_parasitic_shadowfiend : public ScriptedAI
             _scheduler.Schedule(Seconds(2), [this](TaskContext /*context*/)
             {
                 me->SetReactState(REACT_AGGRESSIVE);
-                DoZoneInCombat();
+                me->SetInCombatWithZone();
             });
     }
 
@@ -1497,7 +1498,7 @@ struct npc_flame_of_azzinoth : public ScriptedAI
             {
                 case EVENT_ENGAGE:
                     me->SetReactState(REACT_AGGRESSIVE);
-                    DoZoneInCombat();
+                    me->SetInCombatWithZone();
                     _events.ScheduleEvent(EVENT_FLAME_CHARGE, Seconds(5));
                     break;
                 case EVENT_FLAME_CHARGE:
@@ -1590,7 +1591,7 @@ struct npc_shadow_demon : public PassiveAI
         });
     }
 
-    void SetGUID(ObjectGuid const& guid, int32 /*id*/) override
+    void SetGUID(ObjectGuid guid, int32 /*id*/) override
     {
         _targetGUID = guid;
         if (Unit* target = ObjectAccessor::GetUnit(*me, _targetGUID))
@@ -1625,7 +1626,7 @@ struct npc_maiev : public ScriptedAI
         _canDown = true;
     }
 
-    void JustEngagedWith(Unit* /*who*/) override
+    void EnterCombat(Unit* /*who*/) override
     {
         _events.SetPhase(PHASE_1);
         _events.ScheduleEvent(EVENT_CAGE_TRAP, Seconds(30));

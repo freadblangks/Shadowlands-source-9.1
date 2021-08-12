@@ -44,12 +44,9 @@ enum RuulSnowhoof
     NPC_THISTLEFUR_TOTEMIC      = 3922,
     NPC_THISTLEFUR_PATHFINDER   = 3926,
     QUEST_FREEDOM_TO_RUUL       = 6482,
-    GO_CAGE                     = 178147,
-    RUUL_SHAPECHANGE            = 20514,
-    SAY_FINISH                  = 0
+    FACTION_QUEST               = 113,
+    GO_CAGE                     = 178147
 };
-
-
 
 Position const RuulSnowhoofSummonsCoord[6] =
 {
@@ -76,7 +73,7 @@ public:
                 Cage->SetGoState(GO_STATE_READY);
         }
 
-        void JustEngagedWith(Unit* /*who*/) override { }
+        void EnterCombat(Unit* /*who*/) override { }
 
         void JustSummoned(Creature* summoned) override
         {
@@ -115,10 +112,7 @@ public:
                     me->SummonCreature(NPC_THISTLEFUR_URSA, RuulSnowhoofSummonsCoord[4], TEMPSUMMON_DEAD_DESPAWN, 60000);
                     me->SummonCreature(NPC_THISTLEFUR_PATHFINDER, RuulSnowhoofSummonsCoord[5], TEMPSUMMON_DEAD_DESPAWN, 60000);
                     break;
-                case 27:
-                    me->SetFaction(me->GetCreatureTemplate()->faction);
-                    me->RemoveAurasDueToSpell(RUUL_SHAPECHANGE);
-                    Talk(SAY_FINISH, player);
+                case 21:
                     player->GroupEventHappens(QUEST_FREEDOM_TO_RUUL, me);
                     break;
             }
@@ -127,13 +121,6 @@ public:
         void UpdateAI(uint32 diff) override
         {
             EscortAI::UpdateAI(diff);
-        }
-
-        void EnterEvadeMode(EvadeReason why) override
-        {
-            if (!me->HasAura(RUUL_SHAPECHANGE))
-                me->AddAura(RUUL_SHAPECHANGE, me);
-            ScriptedAI::EnterEvadeMode(why);
         }
     };
 
@@ -212,7 +199,7 @@ public:
             Initialize();
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
             if (Player* player = GetPlayerForEscort())
                 if (HasEscortState(STATE_ESCORT_PAUSED))
@@ -342,30 +329,20 @@ class go_naga_brazier : public GameObjectScript
     public:
         go_naga_brazier() : GameObjectScript("go_naga_brazier") { }
 
-        struct go_naga_brazierAI : public GameObjectAI
+        bool OnGossipHello(Player* /*player*/, GameObject* go) override
         {
-            go_naga_brazierAI(GameObject* go) : GameObjectAI(go) { }
-
-            bool GossipHello(Player* /*player*/) override
+            if (Creature* creature = GetClosestCreatureWithEntry(go, NPC_MUGLASH, INTERACTION_DISTANCE*2))
             {
-                if (Creature* creature = GetClosestCreatureWithEntry(me, NPC_MUGLASH, INTERACTION_DISTANCE * 2))
+                if (npc_muglash::npc_muglashAI* pEscortAI = CAST_AI(npc_muglash::npc_muglashAI, creature->AI()))
                 {
-                    if (npc_muglash::npc_muglashAI* pEscortAI = CAST_AI(npc_muglash::npc_muglashAI, creature->AI()))
-                    {
-                        creature->AI()->Talk(SAY_MUG_BRAZIER_WAIT);
+                    creature->AI()->Talk(SAY_MUG_BRAZIER_WAIT);
 
-                        pEscortAI->_isBrazierExtinguished = true;
-                        return false;
-                    }
+                    pEscortAI->_isBrazierExtinguished = true;
+                    return false;
                 }
-
-                return true;
             }
-        };
 
-        GameObjectAI* GetAI(GameObject* go) const override
-        {
-            return new go_naga_brazierAI(go);
+            return true;
         }
 };
 

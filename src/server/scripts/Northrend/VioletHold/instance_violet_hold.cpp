@@ -739,7 +739,7 @@ class instance_violet_hold : public InstanceMapScript
                                 guard->SetImmuneToAll(true);
                             }
                         }
-                        /* fallthrough */
+                        // no break
                     default:
                         if (boss->isDead())
                         {

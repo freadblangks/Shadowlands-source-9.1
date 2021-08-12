@@ -258,6 +258,11 @@ class npc_arthas : public CreatureScript
 public:
     npc_arthas() : CreatureScript("npc_arthas") { }
 
+    CreatureAI* GetAI(Creature* creature) const override
+    {
+        return GetCullingOfStratholmeAI<npc_arthasAI>(creature);
+    }
+
     struct npc_arthasAI : public EscortAI
     {
         npc_arthasAI(Creature* creature) : EscortAI(creature)
@@ -339,7 +344,7 @@ public:
                 EscortAI::AttackStart(who);
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
             DoCast(me, SPELL_ARTHAS_AURA);
         }
@@ -1192,7 +1197,7 @@ public:
                     {
                         QuestStatus status = player->GetQuestStatus(13149);
                         if (status != QUEST_STATUS_COMPLETE && status != QUEST_STATUS_REWARDED)
-                            return true;
+                            return false;
                         AddGossipItemFor(player, GOSSIP_ICON_CHAT, GOSSIP_ITEM_ARTHAS_0, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF);
                         SendGossipMenuFor(player, 907, me->GetGUID());
                         break;
@@ -1225,10 +1230,6 @@ public:
         }
     };
 
-    CreatureAI* GetAI(Creature* creature) const override
-    {
-        return GetCullingOfStratholmeAI<npc_arthasAI>(creature);
-    }
 };
 
 class npc_crate_helper : public CreatureScript
@@ -1252,7 +1253,7 @@ class npc_crate_helper : public CreatureScript
                         instance->SetData(DATA_CRATE_COUNT, instance->GetData(DATA_CRATE_COUNT) + 1);
                     if (GameObject* crate = me->FindNearestGameObject(GO_SUSPICIOUS_CRATE, 5.0f))
                     {
-                        crate->SummonGameObject(GO_PLAGUED_CRATE, *crate, QuaternionData::fromEulerAnglesZYX(crate->GetOrientation(), 0.0f, 0.0f), DAY);
+                        crate->SummonGameObject(GO_PLAGUED_CRATE, *crate, QuaternionData(), DAY);
                         crate->Delete();
                     }
                 }

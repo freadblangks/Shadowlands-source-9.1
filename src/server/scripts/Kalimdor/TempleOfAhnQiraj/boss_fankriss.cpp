@@ -102,7 +102,7 @@ public:
                 Spawn->AI()->AttackStart(victim);
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
         }
 

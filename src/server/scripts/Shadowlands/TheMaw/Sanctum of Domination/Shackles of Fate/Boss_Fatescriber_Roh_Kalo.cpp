@@ -32,9 +32,9 @@ Script Data End */
 #include "AreaTriggerAI.h"
 #include "InstanceScript.h"
 #include "SpellAuras.h"
-#include "zone_the_maw"
-#include "zone_Sanctum_of_Domination.h"
-#include "Sanctum_of_Domination.h"
+//#include "zone_the_maw"
+//#include "zone_Sanctum_of_Domination.h"
+//#include "Sanctum_of_Domination.h"
 
 
 
@@ -55,7 +55,7 @@ enum Spells
 //179390
 struct Boss_Fatescribe_Roh_Kalo : public BossAI
 {
-    Boss_Fatescribe_Roh_Kalo(Creature* c) : BossAI(c, DATA_FATESCRIBE_ROH_KALO) { }
+    //Boss_Fatescribe_Roh_Kalo(Creature* c) : BossAI(c, DATA_FATESCRIBE_ROH_KALO) { }
 
     void Reset() override
     {
@@ -85,7 +85,7 @@ struct Boss_Fatescribe_Roh_Kalo : public BossAI
             break;
         }
 
-        case SPELL_:
+        //case SPELL_:
         {
             std::list<AreaTrigger*> atList;
             me->GetAreaTriggerListWithSpellIDInRange(atList, SPELL_, 100.0f);
@@ -118,7 +118,7 @@ struct Boss_Fatescribe_Roh_Kalo : public BossAI
             events.Repeat(20s, 25s); 
             break;
 
-        case SPELL_:
+        //case SPELL_:
             if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 100.0F, true))
             {
                 me->CastSpell(target, SPELL_, true);
@@ -127,7 +127,7 @@ struct Boss_Fatescribe_Roh_Kalo : public BossAI
             events.Repeat(0s);
             break;
 
-        case SPELL_:
+        //case SPELL_1:
             me->CastSpell(nullptr, SPELL_, false);
             events.Repeat(0s);
             break;
@@ -155,4 +155,4 @@ struct Boss_Fatescribe_Roh_Kalo : public BossAI
 
 
 
-57.4 70.2
+//57.4 70.2

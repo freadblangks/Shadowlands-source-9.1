@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 ShadowCore
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -335,7 +335,7 @@ public:
 
             if (m_Events.ExecuteEvent() == EventChomp)
             {
-                if (Unit* target = SelectTarget(SELECT_TARGET_TOPAGGRO))
+                if (Unit* target = SelectTarget(SELECT_TARGET_MAXTHREAT))
                     me->CastSpell(target, SpellChomp, false);
                 m_Events.ScheduleEvent(EventChomp, 20000);
             }
@@ -534,7 +534,7 @@ public:
                 if (kargath->AI())
                     kargath->AI()->DoAction(1);
 
-            // Si il s'est tuÃ© lui-mÃªme car il ne trouvait pas de pnjs, on ne donne pas de crÃ©dit au joueur
+            // Si il s'est tué lui-même car il ne trouvait pas de pnjs, on ne donne pas de crédit au joueur
             if (killer == me)
                 return;
 
@@ -567,10 +567,10 @@ public:
         {
             kargathGuid = summoner->GetGUID();
 
-            // Si il est dÃ©jÃ  au sol, on ne le fait pas sauter, il passe directement Ã  l'attaque sur un PNJ
+            // Si il est déjà au sol, on ne le fait pas sauter, il passe directement à l'attaque sur un PNJ
             if (me->GetPositionZ() < 10.0f)
             {
-                //MovementInform(EFFECT_MOTION_TYPE, 1);
+                MovementInform(EFFECT_MOTION_TYPE, 1);
                 return;
             }
 
@@ -581,7 +581,7 @@ public:
             me->GetMotionMaster()->MoveJump(jumpPosition, 10.0f, 10.0f, 1);
         }
 
-        /*void MovementInform(uint32 type, uint32 id) override
+        void MovementInform(uint32 type, uint32 id) override
         {
             if (type != EFFECT_MOTION_TYPE && type != POINT_MOTION_TYPE)
                 return;
@@ -591,11 +591,11 @@ public:
                 if (Creature* npcToAttack = GetNpcToAttack())
                 {
                     AttackStart(npcToAttack);
-                    me->getThreatManager().addThreat(npcToAttack, 20000.0f);
+                    me->GetThreatManager().addThreat(npcToAttack, 20000.0f);
                 }
                 else
                 {
-                    // Pas de mob Ã  attaquer, on le fait bouger un peu
+                    // Pas de mob à attaquer, on le fait bouger un peu
                     // pour un visuel plus joli avant de le supprimer
                     me->GetMotionMaster()->MovePoint(2, frand(4376.39f, 4428.70f), frand(-2846.56f, -2804.52f), 5.0f);
                 }
@@ -604,13 +604,13 @@ public:
             {
                 me->Kill(me);
             }
-        }*/
+        }
 
         ObjectGuid kargathGuid;
     };
 };
 
-// Est aussi utilisÃ© par les PNJS aprÃ¨s l'arÃ¨ne
+// Est aussi utilisé par les PNJS après l'arène
 class npc_tanaan_arena_helper : public CreatureScript
 {
 public:
@@ -676,7 +676,7 @@ public:
 
             if (m_Events.ExecuteEvent() == eDatas::EventWhipSplash)
             {
-                if (Unit* target = SelectTarget(SELECT_TARGET_TOPAGGRO))
+                if (Unit* target = SelectTarget(SELECT_TARGET_MAXTHREAT))
                     me->CastSpell(target, eDatas::SpellWhipSplash, false);
 
                 m_Events.Repeat(Seconds(12));

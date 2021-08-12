@@ -142,7 +142,7 @@ public:
 
                         case 6:
                             Talk(SAY_PERSUADED6);
-                            Unit::Kill(player, me);
+                            player->Kill(me);
                             speechCounter = 0;
                             player->GroupEventHappens(QUEST_HOW_TO_WIN_FRIENDS, me);
                             return;
@@ -344,7 +344,7 @@ public:
             }
         }
 
-        void QuestAccept(Player* player, Quest const* quest) override
+        void QuestAccept(Player* player, const Quest* quest) override
         {
             if (quest->GetQuestId() == QUEST_BREAKOUT)
             {
@@ -408,7 +408,7 @@ public:
             Initialize();
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
             Talk(SAY_TREE2);
             me->Dismount();
@@ -509,7 +509,7 @@ public:
             Initialize();
         }
 
-        void JustEngagedWith(Unit* who) override
+        void EnterCombat(Unit* who) override
         {
             Talk(SAY_VALROTH_AGGRO);
             DoCast(who, SPELL_VALROTH_SMITE);
@@ -550,8 +550,7 @@ public:
         void JustDied(Unit* killer) override
         {
             Talk(SAY_VALROTH_DEATH);
-            if (killer)
-                killer->CastSpell(me, SPELL_SUMMON_VALROTH_REMAINS, true);
+            killer->CastSpell(me, SPELL_SUMMON_VALROTH_REMAINS, true);
         }
     };
 
@@ -563,19 +562,62 @@ public:
 //used by 29032, 29061, 29065, 29067, 29068, 29070, 29074, 29072, 29073, 29071 but signed for 29032
 enum SpecialSurprise
 {
-    SAY_EXEC_START            = 0,
-    SAY_EXEC_PROG             = 1,
-    SAY_EXEC_NAME             = 2,
-    SAY_EXEC_RECOG            = 3,
-    SAY_EXEC_NOREM            = 4,
-    SAY_EXEC_THINK            = 5,
-    SAY_EXEC_LISTEN           = 6,
-    SAY_EXEC_TIME             = 7,
-    SAY_EXEC_WAITING          = 8,
-    EMOTE_DIES                = 9,
+    SAY_EXEC_START_1            = 0,                 // speech for all
+    SAY_EXEC_START_2            = 1,
+    SAY_EXEC_START_3            = 2,
+    SAY_EXEC_PROG_1             = 3,
+    SAY_EXEC_PROG_2             = 4,
+    SAY_EXEC_PROG_3             = 5,
+    SAY_EXEC_PROG_4             = 6,
+    SAY_EXEC_PROG_5             = 7,
+    SAY_EXEC_PROG_6             = 8,
+    SAY_EXEC_PROG_7             = 9,
+    SAY_EXEC_NAME_1             = 10,
+    SAY_EXEC_NAME_2             = 11,
+    SAY_EXEC_RECOG_1            = 12,
+    SAY_EXEC_RECOG_2            = 13,
+    SAY_EXEC_RECOG_3            = 14,
+    SAY_EXEC_RECOG_4            = 15,
+    SAY_EXEC_RECOG_5            = 16,
+    SAY_EXEC_RECOG_6            = 17,
+    SAY_EXEC_NOREM_1            = 18,
+    SAY_EXEC_NOREM_2            = 19,
+    SAY_EXEC_NOREM_3            = 20,
+    SAY_EXEC_NOREM_4            = 21,
+    SAY_EXEC_NOREM_5            = 22,
+    SAY_EXEC_NOREM_6            = 23,
+    SAY_EXEC_NOREM_7            = 24,
+    SAY_EXEC_NOREM_8            = 25,
+    SAY_EXEC_NOREM_9            = 26,
+    SAY_EXEC_THINK_1            = 27,
+    SAY_EXEC_THINK_2            = 28,
+    SAY_EXEC_THINK_3            = 29,
+    SAY_EXEC_THINK_4            = 30,
+    SAY_EXEC_THINK_5            = 31,
+    SAY_EXEC_THINK_6            = 32,
+    SAY_EXEC_THINK_7            = 33,
+    SAY_EXEC_THINK_8            = 34,
+    SAY_EXEC_THINK_9            = 35,
+    SAY_EXEC_THINK_10           = 36,
+    SAY_EXEC_LISTEN_1           = 37,
+    SAY_EXEC_LISTEN_2           = 38,
+    SAY_EXEC_LISTEN_3           = 39,
+    SAY_EXEC_LISTEN_4           = 40,
+    SAY_PLAGUEFIST              = 41,
+    SAY_EXEC_TIME_1             = 42,
+    SAY_EXEC_TIME_2             = 43,
+    SAY_EXEC_TIME_3             = 44,
+    SAY_EXEC_TIME_4             = 45,
+    SAY_EXEC_TIME_5             = 46,
+    SAY_EXEC_TIME_6             = 47,
+    SAY_EXEC_TIME_7             = 48,
+    SAY_EXEC_TIME_8             = 49,
+    SAY_EXEC_TIME_9             = 50,
+    SAY_EXEC_TIME_10            = 51,
+    SAY_EXEC_WAITING            = 52,
+    EMOTE_DIES                  = 53,
 
-    SAY_PLAGUEFIST            = 0,
-    NPC_PLAGUEFIST            = 29053
+    NPC_PLAGUEFIST              = 29053
 };
 
 class npc_a_special_surprise : public CreatureScript
@@ -656,6 +698,12 @@ public:
                 case 29070:                                     // Valok the Righteous
                     if (player->GetQuestStatus(12746) == QUEST_STATUS_INCOMPLETE)
                         return true;
+                case 49355:                                     // Lord Harford
+                    if (player->GetQuestStatus(28649) == QUEST_STATUS_INCOMPLETE)
+                        return true;
+                case 49356:                                     // Gally Lumpstain
+                    if (player->GetQuestStatus(28650) == QUEST_STATUS_INCOMPLETE)
+                        return true;
                     break;
             }
 
@@ -686,49 +734,370 @@ public:
                         return;
                     }
 
-                    switch (ExecuteSpeech_Counter)
+                    /// @todo simplify text's selection
+
+                    switch (player->getRace())
                     {
-                        case 0:
-                            Talk(SAY_EXEC_START, player);
+                        case RACE_HUMAN:
+                            switch (ExecuteSpeech_Counter)
+                            {
+                                case 0: Talk(SAY_EXEC_START_1, player); break;
+                                case 1: me->SetStandState(UNIT_STAND_STATE_STAND); break;
+                                case 2: Talk(SAY_EXEC_PROG_5, player); break;
+                                case 3: Talk(SAY_EXEC_NAME_1, player); break;
+                                case 4: Talk(SAY_EXEC_RECOG_1, player); break;
+                                case 5: Talk(SAY_EXEC_NOREM_5, player); break;
+                                case 6: Talk(SAY_EXEC_THINK_7, player); break;
+                                case 7: Talk(SAY_EXEC_LISTEN_1, player); break;
+                                case 8:
+                                    if (Creature* Plaguefist = GetClosestCreatureWithEntry(me, NPC_PLAGUEFIST, 85.0f))
+                                        Plaguefist->AI()->Talk(SAY_PLAGUEFIST, player);
+                                    break;
+                                case 9:
+                                    Talk(SAY_EXEC_TIME_6, player);
+                                    me->SetStandState(UNIT_STAND_STATE_KNEEL);
+                                    me->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
+                                    break;
+                                case 10:
+                                    Talk(SAY_EXEC_WAITING, player);
+                                    break;
+                                case 11:
+                                    Talk(EMOTE_DIES);
+                                    me->setDeathState(JUST_DIED);
+                                    me->SetHealth(0);
+                                    return;
+                            }
                             break;
-                        case 1:
-                            me->SetStandState(UNIT_STAND_STATE_STAND);
+                        case RACE_ORC:
+                            switch (ExecuteSpeech_Counter)
+                            {
+                                case 0: Talk(SAY_EXEC_START_1, player); break;
+                                case 1: me->SetStandState(UNIT_STAND_STATE_STAND); break;
+                                case 2: Talk(SAY_EXEC_PROG_6, player); break;
+                                case 3: Talk(SAY_EXEC_NAME_1, player); break;
+                                case 4: Talk(SAY_EXEC_RECOG_1, player); break;
+                                case 5: Talk(SAY_EXEC_NOREM_7, player); break;
+                                case 6: Talk(SAY_EXEC_THINK_8, player); break;
+                                case 7: Talk(SAY_EXEC_LISTEN_1, player); break;
+                                case 8:
+                                    if (Creature* Plaguefist = GetClosestCreatureWithEntry(me, NPC_PLAGUEFIST, 85.0f))
+                                        Plaguefist->AI()->Talk(SAY_PLAGUEFIST, player);
+                                    break;
+                                case 9:
+                                    Talk(SAY_EXEC_TIME_8, player);
+                                    me->SetStandState(UNIT_STAND_STATE_KNEEL);
+                                    me->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
+                                    break;
+                                case 10:
+                                    Talk(SAY_EXEC_WAITING, player);
+                                    break;
+                                case 11:
+                                    Talk(EMOTE_DIES);
+                                    me->setDeathState(JUST_DIED);
+                                    me->SetHealth(0);
+                                    return;
+                            }
                             break;
-                        case 2:
-                            Talk(SAY_EXEC_PROG, player);
+                        case RACE_DWARF:
+                            switch (ExecuteSpeech_Counter)
+                            {
+                                case 0: Talk(SAY_EXEC_START_2, player); break;
+                                case 1: me->SetStandState(UNIT_STAND_STATE_STAND); break;
+                                case 2: Talk(SAY_EXEC_PROG_2, player); break;
+                                case 3: Talk(SAY_EXEC_NAME_1, player); break;
+                                case 4: Talk(SAY_EXEC_RECOG_3, player); break;
+                                case 5: Talk(SAY_EXEC_NOREM_2, player); break;
+                                case 6: Talk(SAY_EXEC_THINK_5, player); break;
+                                case 7: Talk(SAY_EXEC_LISTEN_2, player); break;
+                                case 8:
+                                    if (Creature* Plaguefist = GetClosestCreatureWithEntry(me, NPC_PLAGUEFIST, 85.0f))
+                                        Plaguefist->AI()->Talk(SAY_PLAGUEFIST, player);
+                                    break;
+                                case 9:
+                                    Talk(SAY_EXEC_TIME_3, player);
+                                    me->SetStandState(UNIT_STAND_STATE_KNEEL);
+                                    me->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
+                                    break;
+                                case 10:
+                                    Talk(SAY_EXEC_WAITING, player);
+                                    break;
+                                case 11:
+                                    Talk(EMOTE_DIES);
+                                    me->setDeathState(JUST_DIED);
+                                    me->SetHealth(0);
+                                    return;
+                            }
                             break;
-                        case 3:
-                            Talk(SAY_EXEC_NAME, player);
+                        case RACE_NIGHTELF:
+                            switch (ExecuteSpeech_Counter)
+                            {
+                                case 0: Talk(SAY_EXEC_START_1, player); break;
+                                case 1: me->SetStandState(UNIT_STAND_STATE_STAND); break;
+                                case 2: Talk(SAY_EXEC_PROG_5, player); break;
+                                case 3: Talk(SAY_EXEC_NAME_1, player); break;
+                                case 4: Talk(SAY_EXEC_RECOG_1, player); break;
+                                case 5: Talk(SAY_EXEC_NOREM_6, player); break;
+                                case 6: Talk(SAY_EXEC_THINK_2, player); break;
+                                case 7: Talk(SAY_EXEC_LISTEN_1, player); break;
+                                case 8:
+                                    if (Creature* Plaguefist = GetClosestCreatureWithEntry(me, NPC_PLAGUEFIST, 85.0f))
+                                        Plaguefist->AI()->Talk(SAY_PLAGUEFIST, player);
+                                    break;
+                                case 9:
+                                    Talk(SAY_EXEC_TIME_7, player);
+                                    me->SetStandState(UNIT_STAND_STATE_KNEEL);
+                                    me->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
+                                    break;
+                                case 10:
+                                    Talk(SAY_EXEC_WAITING, player);
+                                    break;
+                                case 11:
+                                    Talk(EMOTE_DIES);
+                                    me->setDeathState(JUST_DIED);
+                                    me->SetHealth(0);
+                                    return;
+                            }
                             break;
-                        case 4:
-                            Talk(SAY_EXEC_RECOG, player);
+                        case RACE_UNDEAD_PLAYER:
+                            switch (ExecuteSpeech_Counter)
+                            {
+                                case 0: Talk(SAY_EXEC_START_1, player); break;
+                                case 1: me->SetStandState(UNIT_STAND_STATE_STAND); break;
+                                case 2: Talk(SAY_EXEC_PROG_3, player); break;
+                                case 3: Talk(SAY_EXEC_NAME_1, player); break;
+                                case 4: Talk(SAY_EXEC_RECOG_4, player); break;
+                                case 5: Talk(SAY_EXEC_NOREM_3, player); break;
+                                case 6: Talk(SAY_EXEC_THINK_1, player); break;
+                                case 7: Talk(SAY_EXEC_LISTEN_3, player); break;
+                                case 8:
+                                    if (Creature* Plaguefist = GetClosestCreatureWithEntry(me, NPC_PLAGUEFIST, 85.0f))
+                                        Plaguefist->AI()->Talk(SAY_PLAGUEFIST, player);
+                                    break;
+                                case 9:
+                                    Talk(SAY_EXEC_TIME_4, player);
+                                    me->SetStandState(UNIT_STAND_STATE_KNEEL);
+                                    me->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
+                                    break;
+                                case 10:
+                                    Talk(SAY_EXEC_WAITING, player);
+                                    break;
+                                case 11:
+                                    Talk(EMOTE_DIES);
+                                    me->setDeathState(JUST_DIED);
+                                    me->SetHealth(0);
+                                    return;
+                            }
                             break;
-                        case 5:
-                            Talk(SAY_EXEC_NOREM, player);
+                        case RACE_TAUREN:
+                            switch (ExecuteSpeech_Counter)
+                            {
+                                case 0: Talk(SAY_EXEC_START_1, player); break;
+                                case 1: me->SetStandState(UNIT_STAND_STATE_STAND); break;
+                                case 2: Talk(SAY_EXEC_PROG_1, player); break;
+                                case 3: Talk(SAY_EXEC_NAME_1, player); break;
+                                case 4: Talk(SAY_EXEC_RECOG_5, player); break;
+                                case 5: Talk(SAY_EXEC_NOREM_8, player); break;
+                                case 6: Talk(SAY_EXEC_THINK_9, player); break;
+                                case 7: Talk(SAY_EXEC_LISTEN_1, player); break;
+                                case 8:
+                                    if (Creature* Plaguefist = GetClosestCreatureWithEntry(me, NPC_PLAGUEFIST, 85.0f))
+                                        Plaguefist->AI()->Talk(SAY_PLAGUEFIST, player);
+                                    break;
+                                case 9:
+                                    Talk(SAY_EXEC_TIME_9, player);
+                                    me->SetStandState(UNIT_STAND_STATE_KNEEL);
+                                    me->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
+                                    break;
+                                case 10:
+                                    Talk(SAY_EXEC_WAITING, player);
+                                    break;
+                                case 11:
+                                    Talk(EMOTE_DIES);
+                                    me->setDeathState(JUST_DIED);
+                                    me->SetHealth(0);
+                                    return;
+                            }
                             break;
-                        case 6:
-                            Talk(SAY_EXEC_THINK, player);
+                        case RACE_GNOME:
+                            switch (ExecuteSpeech_Counter)
+                            {
+                                case 0: Talk(SAY_EXEC_START_1, player); break;
+                                case 1: me->SetStandState(UNIT_STAND_STATE_STAND); break;
+                                case 2: Talk(SAY_EXEC_PROG_4, player); break;
+                                case 3: Talk(SAY_EXEC_NAME_1, player); break;
+                                case 4: Talk(SAY_EXEC_RECOG_1, player); break;
+                                case 5: Talk(SAY_EXEC_NOREM_4, player); break;
+                                case 6: Talk(SAY_EXEC_THINK_6, player); break;
+                                case 7: Talk(SAY_EXEC_LISTEN_1, player); break;
+                                case 8:
+                                    if (Creature* Plaguefist = GetClosestCreatureWithEntry(me, NPC_PLAGUEFIST, 85.0f))
+                                        Plaguefist->AI()->Talk(SAY_PLAGUEFIST, player);
+                                    break;
+                                case 9:
+                                    Talk(SAY_EXEC_TIME_5, player);
+                                    me->SetStandState(UNIT_STAND_STATE_KNEEL);
+                                    me->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
+                                    break;
+                                case 10:
+                                    Talk(SAY_EXEC_WAITING, player);
+                                    break;
+                                case 11:
+                                    Talk(EMOTE_DIES);
+                                    me->setDeathState(JUST_DIED);
+                                    me->SetHealth(0);
+                                    return;
+                            }
                             break;
-                        case 7:
-                            Talk(SAY_EXEC_LISTEN, player);
+                        case RACE_TROLL:
+                            switch (ExecuteSpeech_Counter)
+                            {
+                                case 0: Talk(SAY_EXEC_START_3, player); break;
+                                case 1: me->SetStandState(UNIT_STAND_STATE_STAND); break;
+                                case 2: Talk(SAY_EXEC_PROG_7, player); break;
+                                case 3: Talk(SAY_EXEC_NAME_2, player); break;
+                                case 4: Talk(SAY_EXEC_RECOG_6, player); break;
+                                case 5: Talk(SAY_EXEC_NOREM_9, player); break;
+                                case 6: Talk(SAY_EXEC_THINK_10, player); break;
+                                case 7: Talk(SAY_EXEC_LISTEN_4, player); break;
+                                case 8:
+                                    if (Creature* Plaguefist = GetClosestCreatureWithEntry(me, NPC_PLAGUEFIST, 85.0f))
+                                        Plaguefist->AI()->Talk(SAY_PLAGUEFIST, player);
+                                    break;
+                                case 9:
+                                    Talk(SAY_EXEC_TIME_10, player);
+                                    me->SetStandState(UNIT_STAND_STATE_KNEEL);
+                                    me->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
+                                    break;
+                                case 10:
+                                    Talk(SAY_EXEC_WAITING, player);
+                                    break;
+                                case 11:
+                                    Talk(EMOTE_DIES);
+                                    me->setDeathState(JUST_DIED);
+                                    me->SetHealth(0);
+                                    return;
+                            }
                             break;
-                        case 8:
-                            if (Creature* Plaguefist = GetClosestCreatureWithEntry(me, NPC_PLAGUEFIST, 85.0f))
-                                Plaguefist->AI()->Talk(SAY_PLAGUEFIST, player);
+                        case RACE_BLOODELF:
+                            switch (ExecuteSpeech_Counter)
+                            {
+                                case 0: Talk(SAY_EXEC_START_1, player); break;
+                                case 1: me->SetStandState(UNIT_STAND_STATE_STAND); break;
+                                case 2: Talk(SAY_EXEC_PROG_1, player); break;
+                                case 3: Talk(SAY_EXEC_NAME_1, player); break;
+                                case 4: Talk(SAY_EXEC_RECOG_1, player); break;
+                                //case 5: //unknown
+                                case 6: Talk(SAY_EXEC_THINK_3, player); break;
+                                case 7: Talk(SAY_EXEC_LISTEN_1, player); break;
+                                case 8:
+                                    if (Creature* Plaguefist = GetClosestCreatureWithEntry(me, NPC_PLAGUEFIST, 85.0f))
+                                        Plaguefist->AI()->Talk(SAY_PLAGUEFIST, player);
+                                    break;
+                                case 9:
+                                    Talk(SAY_EXEC_TIME_1, player);
+                                    me->SetStandState(UNIT_STAND_STATE_KNEEL);
+                                    me->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
+                                    break;
+                                case 10:
+                                    Talk(SAY_EXEC_WAITING, player);
+                                    break;
+                                case 11:
+                                    Talk(EMOTE_DIES);
+                                    me->setDeathState(JUST_DIED);
+                                    me->SetHealth(0);
+                                    return;
+                            }
                             break;
-                        case 9:
-                            Talk(SAY_EXEC_TIME, player);
-                            me->SetStandState(UNIT_STAND_STATE_KNEEL);
-                            me->SetImmuneToPC(false);
+                        case RACE_DRAENEI:
+                            switch (ExecuteSpeech_Counter)
+                            {
+                                case 0: Talk(SAY_EXEC_START_1, player); break;
+                                case 1: me->SetStandState(UNIT_STAND_STATE_STAND); break;
+                                case 2: Talk(SAY_EXEC_PROG_1, player); break;
+                                case 3: Talk(SAY_EXEC_NAME_1, player); break;
+                                case 4: Talk(SAY_EXEC_RECOG_2, player); break;
+                                case 5: Talk(SAY_EXEC_NOREM_1, player); break;
+                                case 6: Talk(SAY_EXEC_THINK_4, player); break;
+                                case 7: Talk(SAY_EXEC_LISTEN_1, player); break;
+                                case 8:
+                                    if (Creature* Plaguefist = GetClosestCreatureWithEntry(me, NPC_PLAGUEFIST, 85.0f))
+                                        Plaguefist->AI()->Talk(SAY_PLAGUEFIST, player);
+                                    break;
+                                case 9:
+                                    Talk(SAY_EXEC_TIME_2, player);
+                                    me->SetStandState(UNIT_STAND_STATE_KNEEL);
+                                    me->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
+                                    break;
+                                case 10:
+                                    Talk(SAY_EXEC_WAITING, player);
+                                    break;
+                                case 11:
+                                    Talk(EMOTE_DIES);
+                                    me->setDeathState(JUST_DIED);
+                                    me->SetHealth(0);
+                                    return;
+                            }
                             break;
-                        case 10:
-                            Talk(SAY_EXEC_WAITING, player);
+                        case RACE_GOBLIN:
+                            switch (ExecuteSpeech_Counter)
+                            {
+                                case 0: Talk(SAY_EXEC_START_1, player); break;
+                                case 1: me->SetStandState(UNIT_STAND_STATE_STAND); break;
+                                case 2: Talk(SAY_EXEC_PROG_5, player); break;
+                                case 3: Talk(SAY_EXEC_NAME_1, player); break;
+                                case 4: Talk(SAY_EXEC_RECOG_1, player); break;
+                                case 5: Talk(SAY_EXEC_NOREM_5, player); break;
+                                case 6: Talk(SAY_EXEC_THINK_7, player); break;
+                                case 7: Talk(SAY_EXEC_LISTEN_1, player); break;
+                                case 8:
+                                    if (Creature* Plaguefist = GetClosestCreatureWithEntry(me, NPC_PLAGUEFIST, 85.0f))
+                                        Plaguefist->AI()->Talk(SAY_PLAGUEFIST, player);
+                                    break;
+                                case 9:
+                                    Talk(SAY_EXEC_TIME_6, player);
+                                    me->SetStandState(UNIT_STAND_STATE_KNEEL);
+                                    me->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
+                                    break;
+                                case 10:
+                                    Talk(SAY_EXEC_WAITING, player);
+                                    break;
+                                case 11:
+                                    Talk(EMOTE_DIES, me);
+                                    me->setDeathState(JUST_DIED);
+                                    me->SetHealth(0);
+                                    return;
+                            }
                             break;
-                        case 11:
-                            Talk(EMOTE_DIES);
-                            me->setDeathState(JUST_DIED);
-                            me->SetHealth(0);
-                            return;
+                        case RACE_WORGEN:
+                            switch (ExecuteSpeech_Counter)
+                            {
+                                case 0: Talk(SAY_EXEC_START_1, player); break;
+                                case 1: me->SetStandState(UNIT_STAND_STATE_STAND); break;
+                                case 2: Talk(SAY_EXEC_PROG_5, player); break;
+                                case 3: Talk(SAY_EXEC_NAME_1, player); break;
+                                case 4: Talk(SAY_EXEC_RECOG_1, player); break;
+                                case 5: Talk(SAY_EXEC_NOREM_5, player); break;
+                                case 6: Talk(SAY_EXEC_THINK_7, player); break;
+                                case 7: Talk(SAY_EXEC_LISTEN_1, player); break;
+                                case 8:
+                                    if (Creature* Plaguefist = GetClosestCreatureWithEntry(me, NPC_PLAGUEFIST, 85.0f))
+                                        Plaguefist->AI()->Talk(SAY_PLAGUEFIST, player);
+                                    break;
+                                case 9:
+                                    Talk(SAY_EXEC_TIME_6, player);
+                                    me->SetStandState(UNIT_STAND_STATE_KNEEL);
+                                    me->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
+                                    break;
+                                case 10:
+                                    Talk(SAY_EXEC_WAITING, player);
+                                    break;
+                                case 11:
+                                    Talk(EMOTE_DIES, me);
+                                    me->setDeathState(JUST_DIED);
+                                    me->SetHealth(0);
+                                    return;
+                            }
+                            break;
                     }
 
                     if (ExecuteSpeech_Counter >= 9)

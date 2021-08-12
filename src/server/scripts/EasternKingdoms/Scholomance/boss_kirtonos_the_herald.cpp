@@ -87,7 +87,7 @@ class boss_kirtonos_the_herald : public CreatureScript
                 _Reset();
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
                 events.ScheduleEvent(EVENT_SWOOP, urand(8000, 8000));
                 events.ScheduleEvent(EVENT_WING_FLAP, urand(15000, 15000));
@@ -97,7 +97,7 @@ class boss_kirtonos_the_herald : public CreatureScript
                 events.ScheduleEvent(EVENT_CURSE_OF_TONGUES, urand(53000, 53000));
                 events.ScheduleEvent(EVENT_DOMINATE_MIND, urand(34000, 48000));
                 events.ScheduleEvent(EVENT_KIRTONOS_TRANSFORM, urand(20000, 20000));
-                _JustEngagedWith();
+                _EnterCombat();
             }
 
             void JustDied(Unit* /*killer*/) override
@@ -129,7 +129,7 @@ class boss_kirtonos_the_herald : public CreatureScript
                 events.ScheduleEvent(INTRO_1, 500);
                 me->SetDisableGravity(true);
                 me->SetReactState(REACT_PASSIVE);
-                me->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE));
+                me->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE));
                 Talk(EMOTE_SUMMONED);
             }
 
@@ -179,7 +179,7 @@ class boss_kirtonos_the_herald : public CreatureScript
                             case INTRO_5:
                                 me->HandleEmoteCommand(EMOTE_ONESHOT_ROAR);
                                 me->SetVirtualItem(0, uint32(WEAPON_KIRTONOS_STAFF));
-                                me->RemoveUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE));
+                                me->RemoveUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE));
                                 me->SetReactState(REACT_AGGRESSIVE);
                                 events.ScheduleEvent(INTRO_6, 5000);
                                 break;
@@ -282,22 +282,12 @@ class go_brazier_of_the_herald : public GameObjectScript
     public:
         go_brazier_of_the_herald() : GameObjectScript("go_brazier_of_the_herald") { }
 
-        struct go_brazier_of_the_heraldAI : public GameObjectAI
+        bool OnGossipHello(Player* player, GameObject* go) override
         {
-            go_brazier_of_the_heraldAI(GameObject* go) : GameObjectAI(go) { }
-
-            bool GossipHello(Player* player) override
-            {
-                me->UseDoorOrButton();
-                me->PlayDirectSound(SOUND_SCREECH, nullptr);
-                player->SummonCreature(NPC_KIRTONOS, PosSummon[0], TEMPSUMMON_DEAD_DESPAWN, 900000);
-                return true;
-            }
-        };
-
-        GameObjectAI* GetAI(GameObject* go) const override
-        {
-            return GetScholomanceAI<go_brazier_of_the_heraldAI>(go);
+            go->UseDoorOrButton();
+            go->PlayDirectSound(SOUND_SCREECH, 0);
+            player->SummonCreature(NPC_KIRTONOS, PosSummon[0], TEMPSUMMON_DEAD_DESPAWN, 900000);
+            return true;
         }
 };
 

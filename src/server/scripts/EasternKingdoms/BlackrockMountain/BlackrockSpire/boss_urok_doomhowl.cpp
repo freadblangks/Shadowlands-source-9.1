@@ -53,9 +53,9 @@ public:
             _Reset();
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
-            _JustEngagedWith();
+            _EnterCombat();
             events.ScheduleEvent(SPELL_REND, urand(17000,20000));
             events.ScheduleEvent(SPELL_STRIKE, urand(10000,12000));
             Talk(SAY_AGGRO);

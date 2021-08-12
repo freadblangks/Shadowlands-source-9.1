@@ -28,7 +28,6 @@ EndScriptData */
 #include "DB2Stores.h"
 #include "GameEventMgr.h"
 #include "GameObject.h"
-#include "GameTime.h"
 #include "Language.h"
 #include "Log.h"
 #include "MapManager.h"
@@ -84,16 +83,34 @@ public:
         return commandTable;
     }
 
+    static ObjectGuid::LowType GetGuidFromArgsOrLastTargetedGo(ChatHandler* handler, char const* args)
+    {
+        Player* player = handler->GetSession()->GetPlayer();
+
+        if (*args)
+        {
+            char* id = handler->extractKeyFromLink((char*)args, "Hgameobject");
+            if (!id)
+                return 0;
+
+            ObjectGuid::LowType guidLow = strtoull(id, nullptr, 10);
+            if (!guidLow)
+                return 0;
+
+            return guidLow;
+        }
+        else
+        {
+            if (player->GetLastTargetedGO())
+                return player->GetLastTargetedGO();
+            else
+                return 0;
+        }
+    }
+
     static bool HandleGameObjectActivateCommand(ChatHandler* handler, char const* args)
     {
-        if (!*args)
-            return false;
-
-        char* id = handler->extractKeyFromLink((char*)args, "Hgameobject");
-        if (!id)
-            return false;
-
-        ObjectGuid::LowType guidLow = atoull(id);
+        ObjectGuid::LowType guidLow = GetGuidFromArgsOrLastTargetedGo(handler, args);
         if (!guidLow)
             return false;
 
@@ -181,6 +198,8 @@ public:
         /// @todo is it really necessary to add both the real and DB table guid here ?
         sObjectMgr->AddGameobjectToGrid(spawnId, ASSERT_NOTNULL(sObjectMgr->GetGameObjectData(spawnId)));
 
+        player->SetLastTargetedGO(spawnId);
+
         handler->PSendSysMessage(LANG_GAMEOBJECT_ADD, objectId, objectInfo->name.c_str(), std::to_string(spawnId).c_str(), player->GetPositionX(), player->GetPositionY(), player->GetPositionZ());
         return true;
     }
@@ -212,9 +231,13 @@ public:
             return false;
         }
 
-        player->SummonGameObject(objectId, *player, QuaternionData::fromEulerAnglesZYX(player->GetOrientation(), 0.0f, 0.0f), spawntm);
+        if (GameObject* tempGob = player->SummonGameObject(objectId, *player, QuaternionData::fromEulerAnglesZYX(player->GetOrientation(), 0.0f, 0.0f), spawntm))
+        {
+            player->SetLastTargetedGO(tempGob->GetGUID().GetCounter());
+            return true;
+        }
 
-        return true;
+        return false;
     }
 
     static bool HandleGameObjectTargetCommand(ChatHandler* handler, char const* args)
@@ -320,11 +343,12 @@ public:
 
         GameObject* target = handler->GetObjectFromPlayerMapByDbGuid(guidLow);
 
+        player->SetLastTargetedGO(guidLow);
         handler->PSendSysMessage(LANG_GAMEOBJECT_DETAIL, std::to_string(guidLow).c_str(), objectInfo->name.c_str(), std::to_string(guidLow).c_str(), id, x, y, z, mapId, o, phaseId, phaseGroup);
 
         if (target)
         {
-            int32 curRespawnDelay = int32(target->GetRespawnTimeEx() - GameTime::GetGameTime());
+            int32 curRespawnDelay = int32(target->GetRespawnTimeEx() - time(nullptr));
             if (curRespawnDelay < 0)
                 curRespawnDelay = 0;
 
@@ -339,18 +363,13 @@ public:
     //delete object by selection or guid
     static bool HandleGameObjectDeleteCommand(ChatHandler* handler, char const* args)
     {
-        // number or [name] Shift-click form |color|Hgameobject:go_guid|h[name]|h|r
-        char* id = handler->extractKeyFromLink((char*)args, "Hgameobject");
-        if (!id)
-            return false;
-
-        ObjectGuid::LowType guidLow = atoull(id);
+        ObjectGuid::LowType guidLow = GetGuidFromArgsOrLastTargetedGo(handler, args);
         if (!guidLow)
             return false;
 
         Player const* const player = handler->GetSession()->GetPlayer();
         // force respawn to make sure we find something
-        player->GetMap()->ForceRespawn(SPAWN_TYPE_GAMEOBJECT, guidLow);
+        player->GetMap()->RemoveRespawnTime(SPAWN_TYPE_GAMEOBJECT, guidLow, true);
         GameObject* object = handler->GetObjectFromPlayerMapByDbGuid(guidLow);
         if (!object)
         {
@@ -385,12 +404,7 @@ public:
     //turn selected object
     static bool HandleGameObjectTurnCommand(ChatHandler* handler, char const* args)
     {
-        // number or [name] Shift-click form |color|Hgameobject:go_id|h[name]|h|r
-        char* id = handler->extractKeyFromLink((char*)args, "Hgameobject");
-        if (!id)
-            return false;
-
-        ObjectGuid::LowType guidLow = atoull(id);
+        ObjectGuid::LowType guidLow = GetGuidFromArgsOrLastTargetedGo(handler, args);
         if (!guidLow)
             return false;
 
@@ -424,35 +438,23 @@ public:
             oz = player->GetOrientation();
         }
 
-        Map* map = object->GetMap();
-
-        object->Relocate(object->GetPositionX(), object->GetPositionY(), object->GetPositionZ(), oz);
+        object->Relocate(object->GetPositionX(), object->GetPositionY(), object->GetPositionZ());
+        object->RelocateStationaryPosition(object->GetPositionX(), object->GetPositionY(), object->GetPositionZ(), object->GetOrientation());
         object->SetWorldRotationAngles(oz, oy, ox);
+        object->DestroyForNearbyPlayers();
+        object->UpdateObjectVisibility();
+
         object->SaveToDB();
 
-        // Generate a completely new spawn with new guid
-        // 3.3.5a client caches recently deleted objects and brings them back to life
-        // when CreateObject block for this guid is received again
-        // however it entirely skips parsing that block and only uses already known location
-        object->Delete();
-
-        object = GameObject::CreateGameObjectFromDB(guidLow, map);
-        if (!object)
-            return false;
-
         handler->PSendSysMessage(LANG_COMMAND_TURNOBJMESSAGE, std::to_string(object->GetSpawnId()).c_str(), object->GetGOInfo()->name.c_str(), object->GetGUID().ToString().c_str(), object->GetOrientation());
+
         return true;
     }
 
     //move selected object
     static bool HandleGameObjectMoveCommand(ChatHandler* handler, char const* args)
     {
-        // number or [name] Shift-click form |color|Hgameobject:go_guid|h[name]|h|r
-        char* id = handler->extractKeyFromLink((char*)args, "Hgameobject");
-        if (!id)
-            return false;
-
-        ObjectGuid::LowType guidLow = atoull(id);
+        ObjectGuid::LowType guidLow = GetGuidFromArgsOrLastTargetedGo(handler, args);
         if (!guidLow)
             return false;
 
@@ -468,11 +470,12 @@ public:
         char* toY = strtok(nullptr, " ");
         char* toZ = strtok(nullptr, " ");
 
-        float x, y, z;
+        float x, y, z, o;
         if (!toX)
         {
             Player* player = handler->GetSession()->GetPlayer();
             player->GetPosition(x, y, z);
+            o = player->GetOrientation();
         }
         else
         {
@@ -482,6 +485,7 @@ public:
             x = (float)atof(toX);
             y = (float)atof(toY);
             z = (float)atof(toZ);
+            o = 0;
 
             if (!MapManager::IsValidMapCoord(object->GetMapId(), x, y, z))
             {
@@ -491,22 +495,16 @@ public:
             }
         }
 
-        Map* map = object->GetMap();
+        object->DestroyForNearbyPlayers();
+        object->RelocateStationaryPosition(x, y, z, object->GetOrientation());
+        object->GetMap()->GameObjectRelocation(object, x, y, z, object->GetOrientation());
 
-        object->Relocate(x, y, z, object->GetOrientation());
         object->SaveToDB();
 
-        // Generate a completely new spawn with new guid
-        // 3.3.5a client caches recently deleted objects and brings them back to life
-        // when CreateObject block for this guid is received again
-        // however it entirely skips parsing that block and only uses already known location
-        object->Delete();
-
-        object = GameObject::CreateGameObjectFromDB(guidLow, map);
-        if (!object)
-            return false;
+        TC_LOG_DEBUG("sql.dev", "UPDATE gameobject SET position_x = %f, position_y = %f, position_z = %f, orientation = %f WHERE guid = %s;", x, y, z, o, std::to_string(guidLow).c_str());
 
         handler->PSendSysMessage(LANG_COMMAND_MOVEOBJMESSAGE, std::to_string(object->GetSpawnId()).c_str(), object->GetGOInfo()->name.c_str(), object->GetGUID().ToString().c_str());
+
         return true;
     }
 
@@ -572,14 +570,15 @@ public:
                 float x = fields[2].GetFloat();
                 float y = fields[3].GetFloat();
                 float z = fields[4].GetFloat();
-                uint16 mapId = fields[5].GetUInt16();
+                float o = fields[5].GetFloat();
+                uint16 mapId = fields[6].GetUInt16();
 
                 GameObjectTemplate const* gameObjectInfo = sObjectMgr->GetGameObjectTemplate(entry);
 
                 if (!gameObjectInfo)
                     continue;
 
-                handler->PSendSysMessage(LANG_GO_LIST_CHAT, std::to_string(guid).c_str(), entry, std::to_string(guid).c_str(), gameObjectInfo->name.c_str(), x, y, z, mapId, "", "");
+                handler->PSendSysMessage(LANG_GO_LIST_CHAT, std::to_string(guid).c_str(), entry, std::to_string(guid).c_str(), gameObjectInfo->name.c_str(), x, y, z, o, mapId, "", "");
 
                 ++count;
             } while (result->NextRow());
@@ -605,15 +604,14 @@ public:
         if (!param1)
             return false;
 
-        ObjectGuid::LowType spawnId = 0;
         if (strcmp(param1, "guid") == 0)
         {
             char* tail = strtok(nullptr, "");
             char* cValue = handler->extractKeyFromLink(tail, "Hgameobject");
             if (!cValue)
                 return false;
-            spawnId = atoull(cValue);
-            GameObjectData const* data = sObjectMgr->GetGameObjectData(spawnId);
+            ObjectGuid::LowType guidLow = atoull(cValue);
+            GameObjectData const* data = sObjectMgr->GetGameObjectData(guidLow);
             if (!data)
                 return false;
             entry = data->id;
@@ -652,12 +650,10 @@ public:
                 handler->PSendSysMessage(LANG_SPAWNINFO_DISTANCEFROMPLAYER, dist);
             }
         }
-
         handler->PSendSysMessage(LANG_GOINFO_ENTRY, entry);
         handler->PSendSysMessage(LANG_GOINFO_TYPE, type);
         handler->PSendSysMessage(LANG_GOINFO_LOOTID, lootId);
         handler->PSendSysMessage(LANG_GOINFO_DISPLAYID, displayId);
-
         if (WorldObject* object = handler->getSelectedObject())
         {
             if (object->ToGameObject() && object->ToGameObject()->GetGameObjectData() && object->ToGameObject()->GetGameObjectData()->spawnGroupData->groupId)
@@ -665,26 +661,14 @@ public:
                 SpawnGroupTemplateData const* groupData = object->ToGameObject()->GetGameObjectData()->spawnGroupData;
                 handler->PSendSysMessage(LANG_SPAWNINFO_GROUP_ID, groupData->name.c_str(), groupData->groupId, groupData->flags, object->GetMap()->IsSpawnGroupActive(groupData->groupId));
             }
-
             if (object->ToGameObject())
                 handler->PSendSysMessage(LANG_SPAWNINFO_COMPATIBILITY_MODE, object->ToGameObject()->GetRespawnCompatibilityMode());
         }
-
         handler->PSendSysMessage(LANG_GOINFO_NAME, name.c_str());
         handler->PSendSysMessage(LANG_GOINFO_SIZE, gameObjectInfo->size);
 
-        GameObjectOverride const* goOverride = nullptr;
-        if (spawnId)
-            if (GameObjectOverride const* ovr = sObjectMgr->GetGameObjectOverride(spawnId))
-                goOverride = ovr;
-
-        if (!goOverride)
-            goOverride = sObjectMgr->GetGameObjectTemplateAddon(entry);
-
-        if (goOverride)
-            handler->PSendSysMessage(LANG_GOINFO_ADDON, goOverride->Faction, goOverride->Flags);
-
-        handler->PSendSysMessage(LANG_OBJECTINFO_AIINFO, gameObjectInfo->AIName.c_str(), sObjectMgr->GetScriptName(gameObjectInfo->ScriptId).c_str());
+        if (GameObjectTemplateAddon const* addon = sObjectMgr->GetGameObjectTemplateAddon(entry))
+            handler->PSendSysMessage(LANG_GOINFO_ADDON, addon->faction, addon->flags);
 
         if (GameObjectDisplayInfoEntry const* modelInfo = sGameObjectDisplayInfoStore.LookupEntry(displayId))
             handler->PSendSysMessage(LANG_GOINFO_MODEL, modelInfo->GeoBoxMax.X, modelInfo->GeoBoxMax.Y, modelInfo->GeoBoxMax.Z, modelInfo->GeoBoxMin.X, modelInfo->GeoBoxMin.Y, modelInfo->GeoBoxMin.Z);
@@ -694,12 +678,7 @@ public:
 
     static bool HandleGameObjectSetStateCommand(ChatHandler* handler, char const* args)
     {
-        // number or [name] Shift-click form |color|Hgameobject:go_id|h[name]|h|r
-        char* id = handler->extractKeyFromLink((char*)args, "Hgameobject");
-        if (!id)
-            return false;
-
-        ObjectGuid::LowType guidLow = atoull(id);
+        ObjectGuid::LowType guidLow = GetGuidFromArgsOrLastTargetedGo(handler, args);
         if (!guidLow)
             return false;
 

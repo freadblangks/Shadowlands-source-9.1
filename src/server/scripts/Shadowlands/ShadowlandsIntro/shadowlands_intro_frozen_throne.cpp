@@ -59,15 +59,15 @@ struct npc_highlord_bolvar_fordragon_169076 : public ScriptedAI
 {
     npc_highlord_bolvar_fordragon_169076(Creature* c) : ScriptedAI(c) { }
 
-    void QuestAccept(Player * player, Quest const* quest) override
-    {
-        if (quest->ID == QUEST_THROUGH_SHATTERED_SKY)
-        {
-            player->KilledMonsterCredit(me->GetEntry());
-            player->ForceCompleteQuest(QUEST_THROUGH_SHATTERED_SKY);
-            player->TeleportTo(2364, 4146.165f, 7870.028f, 4970.662f, 5.572f);
-        }
-    }
+   // void QuestAccept(Player * player, Quest const* quest)
+   // {
+     //   if (quest->/*quest*/ == QUEST_THROUGH_SHATTERED_SKY)
+       // {
+         //   player->KilledMonsterCredit(me->GetEntry());
+          //  player->ForceCompleteQuest(QUEST_THROUGH_SHATTERED_SKY);
+           // player->TeleportTo(2364, 4146.165f, 7870.028f, 4970.662f, 5.572f);
+       // }
+   // }
 };
 
 void AddSC_ShadowlandsIntro()
@@ -76,3 +76,8 @@ void AddSC_ShadowlandsIntro()
     RegisterCreatureAI(npc_deathbringer_rise_teleport_controller);
     RegisterCreatureAI(npc_highlord_bolvar_fordragon_169076);
 }
+
+//player->npc_highlord_bolvar_fordragon_169076::ForceCompleteQuest(QUEST_THROUGH_SHATTERED_SKY)
+//{
+ //   return player ->();
+//}

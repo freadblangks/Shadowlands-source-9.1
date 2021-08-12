@@ -84,9 +84,9 @@ class boss_buru : public CreatureScript
                 Eggs.clear();
             }
 
-            void JustEngagedWith(Unit* who) override
+            void EnterCombat(Unit* who) override
             {
-                _JustEngagedWith();
+                _EnterCombat();
                 Talk(EMOTE_TARGET, who);
                 DoCast(me, SPELL_THORNS);
 
@@ -101,7 +101,7 @@ class boss_buru : public CreatureScript
             {
                 if (action == ACTION_EXPLODE)
                     if (_phase == PHASE_EGG)
-                        Unit::DealDamage(me, me, 45000);
+                        me->DealDamage(me, 45000);
             }
 
             void KilledUnit(Unit* victim) override
@@ -207,7 +207,7 @@ class npc_buru_egg : public CreatureScript
                 SetCombatMovement(false);
             }
 
-            void JustEngagedWith(Unit* attacker) override
+            void EnterCombat(Unit* attacker) override
             {
                 if (Creature* buru = ObjectAccessor::GetCreature(*me, _instance->GetGuidData(DATA_BURU)))
                     if (!buru->IsInCombat())
@@ -261,9 +261,8 @@ class spell_egg_explosion : public SpellScriptLoader
             {
                 if (Unit* target = GetHitUnit())
                 {
-                    CastSpellExtraArgs args(TRIGGERED_FULL_MASK);
-                    args.AddSpellBP0(std::max<int32>(0, -16 * GetCaster()->GetDistance(target) + 500));
-                    GetCaster()->CastSpell(target, SPELL_EXPLOSION_DAMAGE, args);
+                    int32 damage = std::max<int32>(0, -16 * GetCaster()->GetDistance(target) + 500);
+                    GetCaster()->CastCustomSpell(SPELL_EXPLOSION_DAMAGE, SPELLVALUE_BASE_POINT0, damage, target, true);
                 }
             }
 

@@ -47,7 +47,7 @@ public:
         {
             Initialize();
             creature->GetMotionMaster()->MovePoint(0, 8599.258f, 963.951f, 547.553f);
-            creature->SetFaction(FACTION_FRIENDLY); //wrong faction in db?
+            creature->SetFaction(35); //wrong faction in db?
         }
 
         void Initialize()
@@ -69,16 +69,16 @@ public:
             if (uiType != POINT_MOTION_TYPE)
                 return;
 
-            me->SetFaction(FACTION_MONSTER);
+            me->SetFaction(14);
         }
 
         void DamageTaken(Unit* pDoneBy, uint32& uiDamage) override
         {
-            if (uiDamage > me->GetHealth() && pDoneBy && pDoneBy->GetTypeId() == TYPEID_PLAYER)
+            if (uiDamage > me->GetHealth() && pDoneBy->GetTypeId() == TYPEID_PLAYER)
             {
                 uiDamage = 0;
                 pDoneBy->CastSpell(pDoneBy, SPELL_KILL_CREDIT, true);
-                me->SetFaction(FACTION_FRIENDLY);
+                me->SetFaction(35);
                 me->DespawnOrUnsummon(5000);
                 me->SetHomePosition(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), me->GetOrientation());
                 EnterEvadeMode();
@@ -119,9 +119,6 @@ public:
 enum GuardianPavilion
 {
     SPELL_TRESPASSER_H                            = 63987,
-    AREA_SUNREAVER_PAVILION                       = 4676,
-
-    AREA_SILVER_COVENANT_PAVILION                 = 4677,
     SPELL_TRESPASSER_A                            = 63986,
 };
 
@@ -140,7 +137,7 @@ public:
         void MoveInLineOfSight(Unit* who) override
 
         {
-            if (me->GetAreaId() != AREA_SUNREAVER_PAVILION && me->GetAreaId() != AREA_SILVER_COVENANT_PAVILION)
+            if (me->GetAreaId() != AREA_ICECROWN_SUNREAVER_PAVILION && me->GetAreaId() != AREA_ICECROWN_SILVER_COVENANT_PAVILION)
                 return;
 
             if (!who || who->GetTypeId() != TYPEID_PLAYER || !me->IsHostileTo(who) || !me->isInBackInMap(who, 5.0f))
@@ -438,7 +435,7 @@ public:
             events.ScheduleEvent(EVENT_SPAWN, 3000);
         }
 
-        void JustEngagedWith(Unit* /*who*/) override { }
+        void EnterCombat(Unit* /*who*/) override { }
 
         void MoveInLineOfSight(Unit* /*who*/) override { }
 

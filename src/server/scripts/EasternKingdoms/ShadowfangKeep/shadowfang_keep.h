@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -18,25 +19,58 @@
 #ifndef DEF_SHADOWFANG_H
 #define DEF_SHADOWFANG_H
 
-#include "CreatureAIImpl.h"
-
-#define SFKScriptName "instance_shadowfang_keep"
-#define DataHeader "SK"
-
-enum SKDataTypes
+enum ShadowfangKeepBoss
 {
-    TYPE_FREE_NPC               = 1,
-    TYPE_RETHILGORE             = 2,
-    TYPE_FENRUS                 = 3,
-    TYPE_NANDOS                 = 4,
-    BOSS_ARUGAL                 = 5,
-    DATA_APOTHECARY_HUMMEL      = 6
+   BOSS_BARON_ASHBURY             = 46962,
+   BOSS_BARON_SILVERLAINE         =  3887,
+   BOSS_COMMANDER_SPRINGVALE      =  4278,
+   BOSS_LORD_GODFREY              = 46964,
+   BOSS_LORD_WALDEN               = 46963,
 };
 
-template <class AI, class T>
-inline AI* GetShadowfangKeepAI(T* obj)
+enum Npcs
 {
-    return GetInstanceAI<AI>(obj, SFKScriptName);
-}
+   NPC_TORMENTED_OFFICER          = 50615,
+   NPC_WAILING_GUARDSMAN          = 50613,
+   NPC_DREAD_SCRYER               = 47141,
+   NPC_DESECRATION_TR             = 50503,
+   NPC_TOXIN_TRIGGER              = 50439
+//   NPC_HORDE_QUESTGIVER
+//   NPC_ALLIANCE_QUESTGIVER
+};
+
+enum Achievements
+{
+   ACHIEVEMENT_TO_THE_GROUND      = 5504,
+};
+
+enum GameObjectIds
+{
+   GO_BARON_ASHBURY_DOOR          = 18895,
+   GO_LORD_GODFREY_DOOR           = 18971,
+   GO_LORD_WALDEN_DOOR            = 18972
+};
+
+enum Data
+{
+    DATA_BARON_ASHBURY_EVENT,
+    DATA_BARON_SILVERLAINE_EVENT,
+    DATA_COMMANDER_SPRINGVALE_EVENT,
+    DATA_LORD_GODFREY_EVENT,
+    DATA_LORD_WALDEN_EVENT,
+    DATA_APOTHECARY_HUMMEL,
+    MAX_ENCOUNTER,
+
+    TEAM_IN_INSTANCE
+};
+
+enum Data64
+{
+    DATA_BARON_ASHBURY,
+    DATA_BARON_SILVERLAINE,
+    DATA_COMMANDER_SPRINGVALE,
+    DATA_LORD_GODFREY,
+    DATA_LORD_WALDEN
+};
 
 #endif

@@ -116,9 +116,9 @@ public:
             _Reset();
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
-            _JustEngagedWith();
+            _EnterCombat();
             Talk(SAY_AGGRO);
             EnterPhaseGround();
         }
@@ -165,7 +165,6 @@ public:
         {
             summons.Summon(summon);
             summon->setActive(true);
-            summon->SetFarVisible(true);
             summon->AI()->DoZoneInCombat(nullptr, 250.0f); // specify range to cover entire room - default 50yd is not enough
         }
 

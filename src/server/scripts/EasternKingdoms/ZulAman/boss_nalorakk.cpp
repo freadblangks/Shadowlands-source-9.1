@@ -58,10 +58,10 @@ class boss_nalorakk : public CreatureScript
                 _Reset();
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
                 Talk(SAY_AGGRO);
-                _JustEngagedWith();
+                _EnterCombat();
             }
 
             void JustDied(Unit* /*killer*/) override

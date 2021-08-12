@@ -1,5 +1,6 @@
 /*
- * Copyright 2021 ShadowCore
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -363,8 +364,8 @@ class boss_tectus : public CreatureScript
                                 if (Player* player = me->GetMap()->GetPlayers().begin()->GetSource())
                                 {
                                     player->CastSpell(me, eSpells::SuicideNoBloodNoLogging, true);
-                                    if(!me->hasLootRecipient())
-                                        me->SetLootRecipient(player);
+                                    if(!me->HasLootRecipients())
+                                        me->AddLootRecipient(player);
                                 }
                             });
                         }
@@ -728,7 +729,7 @@ class boss_tectus : public CreatureScript
                     }
                     case eEvents::EventCrystallineBarrage:
                     {
-                        Unit* target = SelectTarget(SELECT_TARGET_FARTHEST, 0);
+                        Unit* target = SelectTarget(SELECT_TARGET_MAXDISTANCE, 0);
 
                         if (target == nullptr)
                             target = SelectTarget(SELECT_TARGET_RANDOM, 0, 60, true);
@@ -790,7 +791,7 @@ class boss_tectus : public CreatureScript
                     {
                         Talk(eTalks::EarthenPillar);
 
-                        if (Unit* target = SelectTarget(SELECT_TARGET_FARTHEST, 0))
+                        if (Unit* target = SelectTarget(SELECT_TARGET_MAXDISTANCE, 0))
                             me->SummonCreature(eCreatures::EarthenPillarStalker, target->GetPositionX(), target->GetPositionY(), me->GetPositionZ());
                         // If no ranged damage dealer found, target random
                         else if (Unit* victim = SelectTarget(SELECT_TARGET_RANDOM, 0, 60, true))
@@ -888,7 +889,7 @@ class boss_tectus : public CreatureScript
 
             void SpawnAdd(uint32 p_Entry)
             {
-                if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_FARTHEST, 0, 70.0f, true))
+                if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_MAXDISTANCE, 0, 70.0f, true))
                 {
                     float l_O = frand(0.f, 2.f * float(M_PI));
                     float l_Range = 5.0f;
@@ -1760,7 +1761,7 @@ class spell_highmaul_accretion : public SpellScriptLoader
                 return true;
             }
 
-            void OnProc(AuraEffect const* aurEff, ProcEventInfo& p_EventInfo)
+            void OnProc(AuraEffect* aurEff, ProcEventInfo& p_EventInfo)
             {
                 PreventDefaultAction();
 
@@ -1964,7 +1965,7 @@ class spell_highmaul_petrification : public SpellScriptLoader
                 Petrification = 163809
             };
 
-            void OnProc(AuraEffect const* /*aurEff*/, ProcEventInfo& p_EventInfo)
+            void OnProc(AuraEffect* /*aurEff*/, ProcEventInfo& p_EventInfo)
             {
                 PreventDefaultAction();
 
@@ -2126,8 +2127,8 @@ public:
 
     void OnCreate() override
     {
-        if (Unit* l_Tectus = at->GetCaster()->FindNearestCreature(eHighmaulCreatures::Tectus, 200.0f))
-            at->SetDestination(*l_Tectus, 5000);
+        //if (Unit* l_Tectus = at->GetCaster()->FindNearestCreature(eHighmaulCreatures::Tectus, 200.0f))
+            //at->SetDestination(*l_Tectus, 5000);
     }
 
     void OnUpdate(uint32 /*diff*/) override
@@ -2149,8 +2150,8 @@ public:
                     l_Accretion->RefreshDuration();
                 }
             }
-            else if (Creature* l_Tectus = at->FindNearestCreature(eHighmaulCreatures::Tectus, 100.0f))
-                at->SetDestination(*l_Tectus, 5000);
+            //else if (Creature* l_Tectus = at->FindNearestCreature(eHighmaulCreatures::Tectus, 100.0f))
+                //at->SetDestination(*l_Tectus, 5000);
         }
     }
 };

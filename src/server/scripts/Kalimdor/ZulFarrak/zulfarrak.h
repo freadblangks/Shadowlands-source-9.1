@@ -59,7 +59,7 @@ enum ZFPyramidPhases
 template <class AI, class T>
 inline AI* GetZulFarrakAI(T* obj)
 {
-    return GetInstanceAI<AI>(obj, ZFScriptName);
+    return GetInstanceAI<AI, T>(obj, ZFScriptName);
 }
 
 #endif

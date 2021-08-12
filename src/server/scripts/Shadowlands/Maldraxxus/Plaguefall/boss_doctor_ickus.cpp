@@ -73,16 +73,16 @@ struct boss_doctor_ickus : public BossAI
 
     void OnSpellFinished(SpellInfo const* spellInfo) override
     {
-        switch (spellInfo->Id)
-        {
-        case SPELL_SLIME_LUNGE_CAST:
-            if (Unit* target = SelectTarget(SELECT_TARGET_FARTHEST, 0, 100.0f, true))
-            {
-                me->GetMotionMaster()->MoveJump(target->GetPosition(), 30, 30);
-                me->CastSpell(target->GetPosition(), SPELL_SLIME_LUNGE_DAMAGE, false);
-            }
-            break;
-        }
+       // switch (spellInfo->Id)
+        //{
+       // case SPELL_SLIME_LUNGE_CAST:
+           // if (Unit* target = SelectTarget(SELECT_TARGET_FARTHEST, 0, 100.0f, true))
+          //  {
+            //    me->GetMotionMaster()->MoveJump(target->GetPosition(), 30, 30);
+              //  me->CastSpell(target->GetPosition(), SPELL_SLIME_LUNGE_DAMAGE, false);
+           // }
+           // break;
+        //}
     };
 
     void EnterEvadeMode(EvadeReason why) override

@@ -86,9 +86,9 @@ public:
             events.ScheduleEvent(EVENT_ENRAGE, Minutes(10));
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
-            _JustEngagedWith();
+            _EnterCombat();
             Talk(SAY_AGGRO);
         }
 

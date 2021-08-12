@@ -87,11 +87,6 @@ public:
                 case NPC_MOROES:
                     MoroesGUID = creature->GetGUID();
                     break;
-                case NPC_NIGHTBANE:
-                    NightbaneGUID = creature->GetGUID();
-                    break;
-                default:
-                    break;
             }
         }
 
@@ -273,8 +268,6 @@ public:
                     return TerestianGUID;
                 case DATA_MOROES:
                     return MoroesGUID;
-                case DATA_NIGHTBANE:
-                    return NightbaneGUID;
                 case DATA_GO_STAGEDOORLEFT:
                     return StageDoorLeftGUID;
                 case DATA_GO_STAGEDOORRIGHT:
@@ -316,7 +309,6 @@ public:
         ObjectGuid KilrekGUID;
         ObjectGuid TerestianGUID;
         ObjectGuid MoroesGUID;
-        ObjectGuid NightbaneGUID;
         ObjectGuid LibraryDoor;                 // Door at Shade of Aran
         ObjectGuid MassiveDoor;                 // Door at Netherspite
         ObjectGuid SideEntranceDoor;            // Side Entrance

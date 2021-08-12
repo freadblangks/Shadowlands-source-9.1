@@ -86,11 +86,11 @@ struct boss_muehzala : public BossAI
     {
         switch (eventId)
         {
-        case SPELL_SOULCRASHER:
-            if (Unit* target = SelectTarget(SELECT_TARGET_TOPAGGRO, 0, 30.0f, true))
-                me->CastSpell(target, SPELL_SOULCRASHER, false);
-            events.Repeat(9s);
-            break;
+        //case SPELL_SOULCRASHER:
+          //  if (Unit* target = SelectTarget(SELECT_TARGET_TOP_AGGRO, 0, 30.0f, true))
+           //     me->CastSpell(target, SPELL_SOULCRASHER, false);
+           // events.Repeat(9s);
+           // break;
 
         case SPELL_MASTER_OF_DEATH_CHANNEL:
             me->CastSpell(nullptr, SPELL_MASTER_OF_DEATH_CHANNEL, false);

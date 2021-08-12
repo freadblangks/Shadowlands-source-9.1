@@ -56,17 +56,14 @@ public:
                 case NPC_TENEBRON:
                     tenebronGUID = creature->GetGUID();
                     creature->setActive(true);
-                    creature->SetFarVisible(true);
                     break;
                 case NPC_SHADRON:
                     shadronGUID = creature->GetGUID();
                     creature->setActive(true);
-                    creature->SetFarVisible(true);
                     break;
                 case NPC_VESPERON:
                     vesperonGUID = creature->GetGUID();
                     creature->setActive(true);
-                    creature->SetFarVisible(true);
                     break;
             }
         }

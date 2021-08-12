@@ -71,7 +71,7 @@ private:
         me->SetMaxPower(POWER_ENERGY, 100);
         me->SetPower(POWER_ENERGY, 0);
         me->SetReactState(REACT_DEFENSIVE);
-        me->AddAura(AURA_OVERRIDE_POWER_COLOR_RAGE);
+        //me->AddAura(AURA_OVERRIDE_POWER_COLOR_RAGE);
         me->CastSpell(nullptr, SPELL_GIANT_FISTS_DUMMY, true);
         if (instance->GetBossState(DATA_COUNCIL_OF_BLOOD) != DONE)
             me->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE));
@@ -92,50 +92,50 @@ private:
             events.ScheduleEvent(SPELL_SEISMIC_SHIFT_TRIGGER, 16s);
     }
 
-    void ExecuteEvent(uint32 eventId) override
-    {
-        if (me->GetPower(POWER_ENERGY) == 100)
-        {
-            me->SetPower(POWER_ENERGY, 0);
-            if (Unit* target = SelectTarget(SELECT_TARGET_TOPAGGRO, 0, 100.0f, true))
-            {
-                me->AddAura(SPELL_HATEFUL_GAZE_MARK, target);
-                me->GetScheduler().Schedule(6100ms, [this, target](TaskContext /*context*/)
-                    {
-                        if (!target)
-                            return;
+  //  void ExecuteEvent(uint32 eventId) override
+   // {
+    //    if (me->GetPower(POWER_ENERGY) == 100)
+      //  {
+        //    me->SetPower(POWER_ENERGY, 0);
+          //  if (Unit* target = SelectTarget(SELECT_TARGET_TOPAGGRO, 0, 100.0f, true))
+           // {
+             //   me->AddAura(SPELL_HATEFUL_GAZE_MARK, target);
+              //  me->GetScheduler().Schedule(6100ms, [this, target](TaskContext /*context*/)
+                //    {
+                  //      if (!target)
+                    //        return;
 
-                        me->AddAura(SPELL_HEADLESS_CHARGE_APPLY_AT);
-                        me->GetMotionMaster()->MoveCharge(target->GetPositionX(), target->GetPositionY(), target->GetPositionZ(), 20.0f, 0, true);
-                    });
-            }
-        }
-        switch (eventId)
-        {
-        case EVENT_ENERGY_GAIN:
-            me->ModifyPower(POWER_ENERGY, +2);
-            events.Repeat(1s);
-            break;
+                      //  me->AddAura(SPELL_HEADLESS_CHARGE_APPLY_AT);
+                      //  me->GetMotionMaster()->MoveCharge(target->GetPositionX(), target->GetPositionY(), target->GetPositionZ(), 20.0f, 0, true);
+                   // });
+          //  }
+       // }
+        //switch (eventId)
+        //{
+       // case EVENT_ENERGY_GAIN:
+         //   me->ModifyPower(POWER_ENERGY, +2);
+           // events.Repeat(1s);
+           // break;
 
-        case SPELL_GIANT_FISTS_DAMAGE:
-            if (Unit* target = SelectTarget(SELECT_TARGET_NEAREST, 0, 10.0f))
-            {
-                if (target->SelectNearestPlayer(10.0f))
-                    me->CastSpell(target, SPELL_GIANT_FISTS_DAMAGE, true);
-                else
-                {
-                    me->CastSpell(target, SPELL_GIANT_FISTS_DAMAGE, true);
-                    me->CastSpell(target, SPELL_GIANT_FISTS_DAMAGE, true);
-                }
-            }
-            events.Repeat(2s);
-            break;
+       // case SPELL_GIANT_FISTS_DAMAGE:
+         //   if (Unit* target = SelectTarget(SELECT_TARGET_NEAREST, 0, 10.0f))
+    //        {
+    //            if (target->SelectNearestPlayer(10.0f))
+     //               me->CastSpell(target, SPELL_GIANT_FISTS_DAMAGE, true);
+       //         else
+         //       {
+           //         me->CastSpell(target, SPELL_GIANT_FISTS_DAMAGE, true);
+             //       me->CastSpell(target, SPELL_GIANT_FISTS_DAMAGE, true);
+               // }
+ //           }
+   //         events.Repeat(2s);
+     //       break;
 
-        case SPELL_DESTRUCTIVE_STOMP:
-            me->CastSpell(nullptr, SPELL_DESTRUCTIVE_STOMP, false);
-            events.Repeat(20s, 25s);
-            break;
-
+       // case SPELL_DESTRUCTIVE_STOMP:
+         //   me->CastSpell(nullptr, SPELL_DESTRUCTIVE_STOMP, false);
+           // events.Repeat(20s, 25s);
+          //  break;
+/*
         case SPELL_FALLING_RUMBLE_MISSILE:
         {
             UnitList targetList;
@@ -161,7 +161,7 @@ private:
             break;
         }
     }
-
+  */  
     void OnSpellFinished(SpellInfo const* spellInfo) override
     {
         switch (spellInfo->Id)

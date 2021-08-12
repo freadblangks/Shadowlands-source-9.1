@@ -1,5 +1,6 @@
 /*
- * Copyright 2021 ShadowCore
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -260,12 +261,12 @@ enum eShadowmoonBurialGroundsActions
 
 enum eShadowmoonBurialGroundsAchivement
 {
-    // Heroic: 
+    // Heroic:
     AchievementShadowmoonBurialGroundsHeroic = 9054,
     AchievementIckyIchors = 9025,
     AchievementSoulsOfTheLosts = 9026,
     AchievementWhatsYourSign = 9018,
-    // Normal: 
+    // Normal:
     AchievementShadowmonBurialGroundsNormal = 9041,
 };
 

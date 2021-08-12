@@ -1,5 +1,6 @@
 /*
- * Copyright 2021 ShadowCore
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -16,11 +17,11 @@
  */
 
 #include "highmaul.h"
+#include "Chat.h"
 #include "GameObjectAI.h"
 #include "Group.h"
-#include "ScriptedGossip.h"
-#include "Chat.h"
 #include "ObjectMgr.h"
+#include "ScriptedGossip.h"
 
 /// Gharg positions
 Position const g_GhargFirstPos = { 3466.11f, 7577.58f, 15.203f, 0.8954f };
@@ -93,10 +94,10 @@ class npc_highmaul_gharg_arena_master : public CreatureScript
                 }
             }
 
-            bool GossipSelect(Player* player, uint32 sender, uint32 action) override
+            bool GossipSelect(Player* player, uint32 /*p_Sender*/, uint32 /*action*/) override
             {
                 if (m_Instance == nullptr)
-                    return true;
+                    return false;
 
                 /// Teleport player
                 //if (m_Instance->GetData(eHighmaulDatas::ElevatorActivated))
@@ -108,8 +109,7 @@ class npc_highmaul_gharg_arena_master : public CreatureScript
                 //}
 
                 CloseGossipMenuFor(player);
-
-                return true;
+                return false;
             }
 
             void MovementInform(uint32 type, uint32 id) override
@@ -495,7 +495,7 @@ class npc_highmaul_gorian_guardsman : public CreatureScript
                 switch (m_Events.ExecuteEvent())
                 {
                     case eEvents::EventBloodyCleave:
-                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_TOPAGGRO))
+                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_MAXTHREAT))
                             me->CastSpell(target, eSpells::SpellBloodyCleave, true);
                         m_Events.ScheduleEvent(eEvents::EventBloodyCleave, urand(10000, 15000));
                         break;
@@ -504,7 +504,7 @@ class npc_highmaul_gorian_guardsman : public CreatureScript
                         m_Events.ScheduleEvent(eEvents::EventChainGrip, urand(8000, 12000));
                         break;
                     case eEvents::EventStaggeringBlow:
-                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_TOPAGGRO))
+                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_MAXTHREAT))
                             me->CastSpell(target, eSpells::SpellStaggeringBlow, true);
                         m_Events.ScheduleEvent(eEvents::EventStaggeringBlow, urand(15000, 20000));
                         break;
@@ -593,7 +593,7 @@ class npc_highmaul_night_twisted_devout : public CreatureScript
                 {
                     case eEvents::EventTaintedClaws:
                     {
-                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_TOPAGGRO))
+                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_MAXTHREAT))
                             me->CastSpell(target, eSpells::SpellTaintedClaws, true);
                         m_Events.ScheduleEvent(eEvents::EventTaintedClaws, urand(8000, 11000));
                         break;
@@ -693,7 +693,7 @@ class npc_highmaul_gorian_runemaster : public CreatureScript
                         m_Events.ScheduleEvent(eEvents::EventRuneOfDisintegration, urand(12000, 15000));
                         break;
                     case eEvents::EventRuneOfUnmaking:
-                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_TOPAGGRO))
+                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_MAXTHREAT))
                             me->CastSpell(target, eSpells::SpellRuneOfUnmaking, false);
                         m_Events.ScheduleEvent(eEvents::EventRuneOfUnmaking, urand(6000, 9000));
                         break;
@@ -902,7 +902,7 @@ class npc_highmaul_gorian_sorcerer : public CreatureScript
                         m_Events.ScheduleEvent(eEvents::EventArcaneForce, urand(20000, 25000));
                         break;
                     case eEvents::EventArcaneBolt:
-                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_TOPAGGRO))
+                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_MAXTHREAT))
                             me->CastSpell(target, eSpells::SpellArcaneBolt, false);
                         m_Events.ScheduleEvent(eEvents::EventArcaneBolt, urand(7000, 10000));
                         break;
@@ -1059,7 +1059,7 @@ class npc_highmaul_night_twisted_soothsayer : public CreatureScript
                         m_Events.ScheduleEvent(eEvents::EventVoidStorm, urand(9000, 12000));
                         break;
                     case eEvents::EventVoidBolt:
-                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_TOPAGGRO))
+                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_MAXTHREAT))
                             me->CastSpell(target, eSpells::SpellVoidBolt, false);
                         m_Events.ScheduleEvent(eEvents::EventVoidBolt, urand(8000, 11000));
                         break;
@@ -1984,9 +1984,9 @@ class npc_highmaul_highmaul_conscript : public CreatureScript
                             Position pos;
 
                             me->GetContactPoint(target, pos.m_positionX, pos.m_positionY, pos.m_positionZ);
-                            pos = target->GetFirstCollisionPosition(target->GetObjectSize(), l_O);
+                            pos = target->GetFirstCollisionPosition(target->GetCombatReach(), l_O);
                             me->ClearUnitState(UnitState::UNIT_STATE_ROOT);
-                            me->GetMotionMaster()->MoveCharge(pos.m_positionX, pos.m_positionY, pos.m_positionZ + target->GetObjectSize());
+                            me->GetMotionMaster()->MoveCharge(pos.m_positionX, pos.m_positionY, pos.m_positionZ + target->GetCombatReach());
 
                             me->CastSpell(me, eSpells::ShieldCharge, true);
                         }
@@ -2778,7 +2778,7 @@ class npc_highmaul_gorian_royal_guardsman : public CreatureScript
                     me->SetSpeed(UnitMoveType::MOVE_WALK, 1.0f);
                     me->SetSpeed(UnitMoveType::MOVE_RUN, 1.0f);
 
-                    if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_TOPAGGRO))
+                    if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_MAXTHREAT))
                         me->GetMotionMaster()->MoveChase(target);
                 }
             }
@@ -3069,7 +3069,7 @@ class npc_highmaul_guard_captain_thag : public CreatureScript
                 switch (m_Events.ExecuteEvent())
                 {
                     case eEvents::EventBrutalCleave:
-                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_TOPAGGRO))
+                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_MAXTHREAT))
                             me->CastSpell(target, eSpells::BrutalCleave, false);
                         m_Events.ScheduleEvent(eEvents::EventBrutalCleave, 7 * TimeConstants::IN_MILLISECONDS);
                         break;
@@ -3664,13 +3664,12 @@ class go_highmaul_instance_portal : public GameObjectScript
                         m_CheckTimer = 1000;
 
                         std::list<Player*> playerList;
-                        go->GetPlayerListInGrid(playerList, 5.0f);
+                        me->GetPlayerListInGrid(playerList, 5.0f);
 
-                        auto entry = sObjectMgr->GetWorldSafeLoc(ExitTarget);
-                        Position pos = { entry->Loc.GetPositionX(), entry->Loc.GetPositionY(), entry->Loc.GetPositionZ() };
+                        WorldSafeLocsEntry const* safeLoc = sObjectMgr->GetWorldSafeLoc(ExitTarget);
 
                         for (Player* player : playerList)
-                            player->TeleportTo(MAP_DRAENOR, pos);
+                            player->TeleportTo(MAP_DRAENOR, safeLoc->Loc);
                     }
                     else
                         m_CheckTimer -= diff;
@@ -3717,7 +3716,7 @@ class go_highmaul_portal : public GameObjectScript
                         m_CheckTimer = 500;
 
                         std::list<Player*> playerList;
-                        go->GetPlayerListInGrid(playerList, 5.0f);
+                        me->GetPlayerListInGrid(playerList, 5.0f);
 
                         for (Player* player : playerList)
                         {
@@ -3867,6 +3866,51 @@ class spell_highmaul_boars_rush : public SpellScriptLoader
         SpellScript* GetSpellScript() const override
         {
             return new spell_highmaul_boars_rush_SpellScript();
+        }
+};
+
+/// Unstoppable Charge - 174465
+class spell_highmaul_unstoppable_charge : public SpellScriptLoader
+{
+    public:
+        spell_highmaul_unstoppable_charge() : SpellScriptLoader("spell_highmaul_unstoppable_charge") { }
+
+        class spell_highmaul_unstoppable_charge_SpellScript : public SpellScript
+        {
+            PrepareSpellScript(spell_highmaul_unstoppable_charge_SpellScript);
+
+            void CorrectTargets(std::list<WorldObject*>& targets)
+            {
+                if (targets.empty())
+                    return;
+
+                Unit* caster = GetCaster();
+                if (caster == nullptr)
+                    return;
+
+                if (Creature* l_IronFlame = caster->ToCreature())
+                {
+                    Unit* target = ObjectAccessor::GetUnit(*l_IronFlame, l_IronFlame->AI()->GetGUID(0));
+                    if (target == nullptr)
+                        return;
+
+                    targets.remove_if([caster, target](WorldObject* p_Object) -> bool
+                    {
+                        return !p_Object || !p_Object->IsInBetween(caster, target, 3.0f);
+                    });
+                }
+            }
+
+            void Register() override
+            {
+                OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_highmaul_unstoppable_charge_SpellScript::CorrectTargets, EFFECT_0, TARGET_UNIT_SRC_AREA_ENEMY);
+                OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_highmaul_unstoppable_charge_SpellScript::CorrectTargets, EFFECT_1, TARGET_UNIT_SRC_AREA_ENEMY);
+            }
+        };
+
+        SpellScript* GetSpellScript() const override
+        {
+            return new spell_highmaul_unstoppable_charge_SpellScript();
         }
 };
 
@@ -4485,6 +4529,7 @@ void AddSC_highmaul()
     new spell_highmaul_chain_grip();
     new spell_highmaul_chain_grip_aura();
     new spell_highmaul_boars_rush();
+    new spell_highmaul_unstoppable_charge();
     new spell_highmaul_corrupted_blood_shield();
     new spell_highmaul_rending_slash();
     new spell_highmaul_shield_charge();

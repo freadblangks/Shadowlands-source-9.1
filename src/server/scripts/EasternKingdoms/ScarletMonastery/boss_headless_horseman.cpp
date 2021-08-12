@@ -161,7 +161,7 @@ public:
         uint32 _spell;
         uint32 _spell2;
         void Reset() override { }
-        void JustEngagedWith(Unit* /*who*/) override { }
+        void EnterCombat(Unit* /*who*/) override { }
         void SetType(uint32 _type)
         {
             switch (Creaturetype = _type)
@@ -259,7 +259,7 @@ public:
             Initialize();
         }
 
-        void JustEngagedWith(Unit* /*who*/) override { }
+        void EnterCombat(Unit* /*who*/) override { }
 
         void SaySound(uint8 textEntry, Unit* target = nullptr)
         {
@@ -503,7 +503,7 @@ public:
             ++id;
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
             instance->SetBossState(DATA_HORSEMAN_EVENT, IN_PROGRESS);
             DoZoneInCombat();
@@ -814,7 +814,7 @@ public:
             me->AddUnitFlag(UNIT_FLAG_STUNNED);
         }
 
-        void JustEngagedWith(Unit* /*who*/) override { }
+        void EnterCombat(Unit* /*who*/) override { }
 
         void SpellHit(Unit* /*caster*/, SpellInfo const* spell) override
         {
@@ -873,41 +873,32 @@ enum LooselyTurnedSoil
 
 class go_loosely_turned_soil : public GameObjectScript
 {
-    public:
-        go_loosely_turned_soil() : GameObjectScript("go_loosely_turned_soil") { }
+public:
+    go_loosely_turned_soil() : GameObjectScript("go_loosely_turned_soil") { }
 
-        struct go_loosely_turned_soilAI : public GameObjectAI
-        {
-            go_loosely_turned_soilAI(GameObject* go) : GameObjectAI(go), instance(go->GetInstanceScript()) { }
+    bool OnGossipHello(Player* player, GameObject* /*go*/) override
+    {
+        if (InstanceScript* instance = player->GetInstanceScript())
+            if (instance->GetBossState(DATA_HORSEMAN_EVENT) == IN_PROGRESS || player->GetQuestStatus(QUEST_CALL_THE_HEADLESS_HORSEMAN) != QUEST_STATUS_COMPLETE)
+                return true;
 
-            InstanceScript* instance;
+        return false;
+    }
 
-            bool GossipHello(Player* player) override
-            {
-                if (instance->GetBossState(DATA_HORSEMAN_EVENT) == IN_PROGRESS || player->GetQuestStatus(QUEST_CALL_THE_HEADLESS_HORSEMAN) != QUEST_STATUS_COMPLETE)
-                    return true;
-
+    bool OnQuestReward(Player* player, GameObject* go, Quest const* /*quest*/, uint32 /*opt*/) override
+    {
+        if (InstanceScript* instance = go->GetInstanceScript())
+            if (instance->GetBossState(DATA_HORSEMAN_EVENT) == IN_PROGRESS)
                 return false;
-            }
 
-            void QuestReward(Player* player, Quest const* /*quest*/, LootItemType /*type*/, uint32 /*opt*/) override
-            {
-                if (instance->GetBossState(DATA_HORSEMAN_EVENT) == IN_PROGRESS)
-                    return;
-
-                player->AreaExploredOrEventHappens(11405);
-                if (Creature* horseman = me->SummonCreature(HH_MOUNTED, FlightPoint[20], TEMPSUMMON_MANUAL_DESPAWN, 0))
-                {
-                    ENSURE_AI(boss_headless_horseman::boss_headless_horsemanAI, horseman->AI())->PlayerGUID = player->GetGUID();
-                    ENSURE_AI(boss_headless_horseman::boss_headless_horsemanAI, horseman->AI())->FlyMode();
-                }
-            }
-        };
-
-        GameObjectAI* GetAI(GameObject* go) const override
+        player->AreaExploredOrEventHappens(11405);
+        if (Creature* horseman = go->SummonCreature(HH_MOUNTED, FlightPoint[20], TEMPSUMMON_MANUAL_DESPAWN, 0))
         {
-            return GetScarletMonasteryAI<go_loosely_turned_soilAI>(go);
+            ENSURE_AI(boss_headless_horseman::boss_headless_horsemanAI, horseman->AI())->PlayerGUID = player->GetGUID();
+            ENSURE_AI(boss_headless_horseman::boss_headless_horsemanAI, horseman->AI())->FlyMode();
         }
+        return true;
+    }
 };
 
 void npc_head::npc_headAI::Disappear()

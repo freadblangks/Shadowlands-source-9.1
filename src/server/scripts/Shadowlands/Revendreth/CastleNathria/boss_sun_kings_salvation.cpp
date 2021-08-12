@@ -83,7 +83,7 @@ private:
         me->SetReactState(REACT_PASSIVE);
         me->SetFaction(16);
         me->AddUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
-        me->setRegeneratingHealth(false);
+       // me->setRegeneratingHealth(false);
         isInProgress = false;
         if (Creature* darithos = me->FindNearestCreature(NPC_HIGH_TORTURER_DARITHOS, 100.0f, false))
         {

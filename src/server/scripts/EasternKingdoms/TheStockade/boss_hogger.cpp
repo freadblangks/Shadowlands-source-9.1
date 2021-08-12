@@ -67,9 +67,9 @@ struct boss_hogger : public BossAI
         _hasEnraged = false;
     }
 
-    void JustEngagedWith(Unit* who) override
+    void EnterCombat(Unit* who) override
     {
-        BossAI::JustEngagedWith(who);
+        BossAI::EnterCombat(who);
 
         Talk(SAY_PULL);
 

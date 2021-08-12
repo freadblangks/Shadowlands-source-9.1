@@ -1,5 +1,6 @@
 /*
- * Copyright 2021 ShadowCore
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -22,7 +23,7 @@
 
 enum eNerzulSpells
 {
-    // Ritual of Bones: 76518   
+    // Ritual of Bones: 76518
     SpellMalevolance                    = 154442,
     SpellOmenOfDeathPeriodicSpell       = 175988,
     SpellOmenOfDeathSummon              = 154350,
@@ -45,7 +46,7 @@ enum eNerzulSpells
 
 enum eNerzulEvents
 {
-    // Ritual of Bones: 76518 
+    // Ritual of Bones: 76518
     EventMalevolance,
     EventRitualOfSouls,
     EventOmenOfDeath,
@@ -63,7 +64,7 @@ enum eNerzulTalks
     TalkSpell02,   ///< A kindeling of bones and shadows.. army of the dead.. ARISE! [43689]
     TalkSpell03,   ///< Into the ABYSS! [43690]
     TalkSpell04,   ///< Feel the void, cold embrace.. [43691]
-}; 
+};
 
 enum eNerzulCreatures
 {
@@ -298,7 +299,7 @@ public:
         void Reset() override
         {
             {
-                const SpellInfo* l_SpellInfo = sSpellMgr->GetSpellInfo(eNerzulSpells::SpellRitualOfBonesPeriodic, DIFFICULTY_NONE);
+                const SpellInfo* l_SpellInfo = sSpellMgr->GetSpellInfo(eNerzulSpells::SpellRitualOfBonesPeriodic, me->GetMap()->GetDifficultyID());
 
                 if (!l_SpellInfo)
                     return;
@@ -433,7 +434,7 @@ public:
         void UpdateAI(uint32 const diff) override
         {
             events.Update(diff);
-            
+
             if (m_Instance == nullptr)
                 return;
 

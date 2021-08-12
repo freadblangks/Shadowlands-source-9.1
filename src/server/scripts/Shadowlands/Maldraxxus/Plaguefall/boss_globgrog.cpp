@@ -48,7 +48,7 @@ struct boss_globgrog : public BossAI
         me->SetPowerType(POWER_ENERGY);
         me->SetMaxPower(POWER_ENERGY, 100);
         me->SetPower(POWER_ENERGY, 0);
-        me->AddAura(AURA_OVERRIDE_POWER_COLOR_GREEN);
+       // me->AddAura(AURA_OVERRIDE_POWER_COLOR_GREEN);
     }
 
     void EnterCombat(Unit* /*who*/) override

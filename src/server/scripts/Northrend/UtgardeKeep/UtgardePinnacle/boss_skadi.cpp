@@ -157,7 +157,7 @@ public:
             _harpoonHit = 0;
             _loveSkadi = 0;
             _phase = PHASE_GROUND;
-            scheduler.SetValidator([this]
+            me->GetScheduler().SetValidator([this]
             {
                 return !me->HasUnitState(UNIT_STATE_CASTING);
             });
@@ -171,7 +171,7 @@ public:
             if (!instance->GetCreature(DATA_GRAUF))
                 me->SummonCreature(NPC_GRAUF, GraufLoc);
 
-            instance->DoStopCriteriaTimer(CriteriaStartEvent::SendEvent, ACHIEV_LODI_DODI_WE_LOVES_THE_SKADI);
+            instance->DoStopCriteriaTimer(CRITERIA_TIMED_TYPE_EVENT, ACHIEV_LODI_DODI_WE_LOVES_THE_SKADI);
         }
 
         void EnterEvadeMode(EvadeReason /*why*/) override
@@ -235,9 +235,9 @@ public:
                     SpawnFirstWave();
                     Talk(SAY_AGGRO);
                     _phase = PHASE_FLYING;
-                    instance->DoStartCriteriaTimer(CriteriaStartEvent::SendEvent, ACHIEV_LODI_DODI_WE_LOVES_THE_SKADI);
+                    instance->DoStartCriteriaTimer(CRITERIA_TIMED_TYPE_EVENT, ACHIEV_LODI_DODI_WE_LOVES_THE_SKADI);
 
-                    scheduler
+                    me->GetScheduler()
                         .Schedule(Seconds(6), [this](TaskContext resetCheck)
                         {
                             if (Creature* resetTrigger = me->FindNearestCreature(NPC_TRIGGER_RESET, 200.0f))
@@ -271,7 +271,7 @@ public:
                     me->SetReactState(REACT_AGGRESSIVE);
                     _phase = PHASE_GROUND;
 
-                    scheduler
+                    me->GetScheduler()
                         .Schedule(Seconds(8), [this](TaskContext crush)
                         {
                             DoCastVictim(SPELL_CRUSH);
@@ -307,7 +307,7 @@ public:
 
         void UpdateAI(uint32 diff) override
         {
-            scheduler.Update(diff);
+            me->GetScheduler().Update(diff);
 
             if (_phase == PHASE_GROUND)
             {
@@ -366,12 +366,11 @@ public:
             init.Launch();
 
             me->setActive(true);
-            me->SetFarVisible(true);
             me->SetCanFly(true);
             me->SetDisableGravity(true);
             me->SetAnimTier(UnitBytes1_Flags(UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_HOVER), false);
 
-            _scheduler.Schedule(Seconds(2), [this](TaskContext /*context*/)
+            me->GetScheduler().Schedule(Seconds(2), [this](TaskContext /*context*/)
             {
                 me->GetMotionMaster()->MoveAlongSplineChain(POINT_BREACH, SPLINE_CHAIN_INITIAL, false);
             });
@@ -385,7 +384,7 @@ public:
             switch (pointId)
             {
                 case POINT_BREACH:
-                    _scheduler
+                    me->GetScheduler()
                         .Schedule(Milliseconds(1), [this](TaskContext /*context*/)
                         {
                             me->SetFacingTo(BreachPoint);
@@ -400,7 +399,7 @@ public:
                         });
                     break;
                 case POINT_LEFT:
-                    _scheduler
+                    me->GetScheduler()
                         .Schedule(Milliseconds(1), [this](TaskContext /*context*/)
                         {
                             me->SetFacingTo(BreathPointLeft);
@@ -419,7 +418,7 @@ public:
                         });
                     break;
                 case POINT_RIGHT:
-                    _scheduler
+                    me->GetScheduler()
                         .Schedule(Milliseconds(1), [this](TaskContext /*context*/)
                         {
                             me->SetFacingTo(BreathPointRight);
@@ -451,11 +450,10 @@ public:
 
         void UpdateAI(uint32 diff) override
         {
-            _scheduler.Update(diff);
+            me->GetScheduler().Update(diff);
         }
 
     private:
-        TaskScheduler _scheduler;
         InstanceScript* _instance;
     };
 
@@ -471,15 +469,15 @@ struct npc_skadi_trashAI : public ScriptedAI
     {
         _instance = me->GetInstanceScript();
 
-        _scheduler.SetValidator([this]
+        me->GetScheduler().SetValidator([this]
         {
             return !me->HasUnitState(UNIT_STATE_CASTING);
         });
     }
 
-    void JustEngagedWith(Unit* who) override
+    void EnterCombat(Unit* who) override
     {
-        CreatureAI::JustEngagedWith(who);
+        CreatureAI::EnterCombat(who);
         ScheduleTasks();
     }
 
@@ -500,7 +498,7 @@ struct npc_skadi_trashAI : public ScriptedAI
                 me->SetEmoteState(me->GetEntry() == NPC_YMIRJAR_WARRIOR ? EMOTE_STATE_READY1H : EMOTE_STATE_READY2HL);
                 break;
             case POINT_1:
-                _scheduler.Schedule(Seconds(1), [this](TaskContext /*context*/)
+                me->GetScheduler().Schedule(Seconds(1), [this](TaskContext /*context*/)
                 {
                     me->GetMotionMaster()->MovePoint(POINT_2, SecondaryWavesFinalPoint);
                 });
@@ -517,7 +515,7 @@ struct npc_skadi_trashAI : public ScriptedAI
     {
         UpdateVictim();
 
-        _scheduler.Update(diff, [this]
+        me->GetScheduler().Update(diff, [this]
         {
             DoMeleeAttackIfReady();
         });
@@ -527,7 +525,6 @@ struct npc_skadi_trashAI : public ScriptedAI
 
 protected:
     InstanceScript* _instance;
-    TaskScheduler _scheduler;
 };
 
 class npc_ymirjar_warrior : public CreatureScript
@@ -541,7 +538,7 @@ public:
 
         void ScheduleTasks() override
         {
-            _scheduler
+            me->GetScheduler()
                 .Schedule(Seconds(2), [this](TaskContext context)
                 {
                     DoCastVictim(SPELL_HAMSTRING);
@@ -572,7 +569,7 @@ public:
 
         void ScheduleTasks() override
         {
-            _scheduler
+            me->GetScheduler()
                 .Schedule(Seconds(2), [this](TaskContext shadowBolt)
                 {
                     DoCastVictim(SPELL_SHADOW_BOLT);
@@ -603,7 +600,7 @@ public:
 
         void ScheduleTasks() override
         {
-            _scheduler
+            me->GetScheduler()
                 .Schedule(Seconds(13), [this](TaskContext net)
                 {
                     if (Unit* target = SelectTarget(SELECT_TARGET_MAXDISTANCE, 0, 30, true))

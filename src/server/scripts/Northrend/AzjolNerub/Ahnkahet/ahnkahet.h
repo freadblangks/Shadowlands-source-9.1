@@ -81,7 +81,7 @@ enum AKGameObjectIds
 template <class AI, class T>
 inline AI* GetAhnKahetAI(T* obj)
 {
-    return GetInstanceAI<AI>(obj, AhnKahetScriptName);
+    return GetInstanceAI<AI, T>(obj, AhnKahetScriptName);
 }
 
 #define RegisterAhnKahetCreatureAI(ai_name) RegisterCreatureAIWithFactory(ai_name, GetAhnKahetAI)

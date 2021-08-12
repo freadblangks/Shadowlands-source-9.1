@@ -88,7 +88,7 @@ public:
             Striders.DespawnAll();
         }
 
-        void JustEngagedWith(Unit* /*who*/) override { }
+        void EnterCombat(Unit* /*who*/) override { }
 
         void JustSummoned(Creature* summon) override
         {

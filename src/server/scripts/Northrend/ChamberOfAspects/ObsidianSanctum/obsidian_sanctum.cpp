@@ -177,13 +177,14 @@ struct dummy_dragonAI : public ScriptedAI
 
     void Reset() override
     {
-        me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
+        if (me->HasUnitFlag(UNIT_FLAG_NON_ATTACKABLE))
+            me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
 
         events.Reset();
         Initialize();
     }
 
-    void JustEngagedWith(Unit* /*who*/) override
+    void EnterCombat(Unit* /*who*/) override
     {
         Talk(SAY_AGGRO);
         DoZoneInCombat();
@@ -216,7 +217,7 @@ struct dummy_dragonAI : public ScriptedAI
         if (pointId == POINT_ID_LAND)
         {
             me->GetMotionMaster()->Clear();
-            DoZoneInCombat();
+            me->SetInCombatWithZone();
             if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 0, true))
             {
                 AddThreat(target, 1.0f);
@@ -323,7 +324,7 @@ struct dummy_dragonAI : public ScriptedAI
     void JustDied(Unit* /*killer*/) override
     {
         if (!_canLoot)
-            me->SetLootRecipient(nullptr);
+            me->ResetLootRecipients();
 
         uint32 spellId = 0;
 
@@ -379,7 +380,7 @@ struct dummy_dragonAI : public ScriptedAI
         }
     }
 
-    void ExecuteEvent(uint32 eventId)
+    void ExecuteEvents(uint32 eventId)
     {
         switch (eventId)
         {
@@ -425,9 +426,9 @@ public:
             dummy_dragonAI::Reset();
         }
 
-        void JustEngagedWith(Unit* who) override
+        void EnterCombat(Unit* who) override
         {
-            dummy_dragonAI::JustEngagedWith(who);
+            dummy_dragonAI::EnterCombat(who);
 
             events.ScheduleEvent(EVENT_HATCH_EGGS, 30000);
         }
@@ -452,7 +453,7 @@ public:
                         events.ScheduleEvent(EVENT_HATCH_EGGS, 30000);
                         break;
                     default:
-                        dummy_dragonAI::ExecuteEvent(eventId);
+                        dummy_dragonAI::ExecuteEvents(eventId);
                         break;
                 }
             }
@@ -493,9 +494,9 @@ public:
             instance->SetBossState(DATA_PORTAL_OPEN, NOT_STARTED);
         }
 
-        void JustEngagedWith(Unit* who) override
+        void EnterCombat(Unit* who) override
         {
-            dummy_dragonAI::JustEngagedWith(who);
+            dummy_dragonAI::EnterCombat(who);
 
             events.ScheduleEvent(EVENT_ACOLYTE_SHADRON, 60000);
         }
@@ -531,7 +532,7 @@ public:
                         }
                         break;
                     default:
-                        dummy_dragonAI::ExecuteEvent(eventId);
+                        dummy_dragonAI::ExecuteEvents(eventId);
                         break;
                 }
             }
@@ -564,9 +565,9 @@ public:
             dummy_dragonAI::Reset();
         }
 
-        void JustEngagedWith(Unit* who) override
+        void EnterCombat(Unit* who) override
         {
-            dummy_dragonAI::JustEngagedWith(who);
+            dummy_dragonAI::EnterCombat(who);
 
             events.ScheduleEvent(EVENT_ACOLYTE_VESPERON, 60000);
         }
@@ -597,7 +598,7 @@ public:
                         }
                         break;
                     default:
-                        dummy_dragonAI::ExecuteEvent(eventId);
+                        dummy_dragonAI::ExecuteEvents(eventId);
                         break;
                 }
             }
@@ -815,12 +816,12 @@ public:
                 me->SummonCreature(NPC_TWILIGHT_WHELP, 0.0f, 0.0f, 0.0f, 0.0f, TEMPSUMMON_TIMED_OR_CORPSE_DESPAWN, 60000);
             else
                 me->SummonCreature(NPC_SARTHARION_TWILIGHT_WHELP, 0.0f, 0.0f, 0.0f, 0.0f, TEMPSUMMON_TIMED_OR_CORPSE_DESPAWN, 60000);
-            me->KillSelf();
+            me->DealDamage(me, me->GetHealth());
         }
 
         void JustSummoned(Creature* who) override
         {
-            DoZoneInCombat(who);
+            who->SetInCombatWithZone();
         }
 
         void UpdateAI(uint32 diff) override
@@ -981,12 +982,13 @@ public:
     {
         npc_twilight_whelpAI(Creature* creature) : ScriptedAI(creature)
         {
+            Reset();
         }
 
         void Reset() override
         {
             me->RemoveAllAuras();
-            DoZoneInCombat();
+            me->SetInCombatWithZone();
             events.ScheduleEvent(EVENT_FADE_ARMOR, 1000);
         }
 

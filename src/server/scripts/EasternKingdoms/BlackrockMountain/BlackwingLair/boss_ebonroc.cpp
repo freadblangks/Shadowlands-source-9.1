@@ -42,9 +42,9 @@ public:
     {
         boss_ebonrocAI(Creature* creature) : BossAI(creature, DATA_EBONROC) { }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
-            _JustEngagedWith();
+            _EnterCombat();
 
             events.ScheduleEvent(EVENT_SHADOWFLAME, urand(10000, 20000));
             events.ScheduleEvent(EVENT_WINGBUFFET, 30000);

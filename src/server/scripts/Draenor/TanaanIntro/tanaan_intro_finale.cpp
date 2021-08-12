@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 ShadowCore
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -155,8 +155,8 @@ public:
         if (!player->GetSceneMgr().HasScene(sceneInstanceId, TanaanSceneObjects::SceneFinaleIronBastion))
             return;
 
-        //if (triggerEvent == "Damage")
-        //    player->EnvironmentalDamage(DAMAGE_FIRE, urand(11230, 14320));  // TODO: verify that this is proper damage for SL. -Varjgard
+        if (triggerEvent == "Damage")
+            player->EnvironmentalDamage(DAMAGE_FIRE, urand(11230, 14320));
     }
 
     void OnUpdate(Player* player, uint32 diff) override
@@ -539,12 +539,12 @@ public:
             switch (m_Events.ExecuteEvent())
             {
                 case eEvents::EventCannonBarrage:
-                    if (Unit* target = SelectTarget(SELECT_TARGET_TOPAGGRO))
+                    if (Unit* target = SelectTarget(SELECT_TARGET_MAXTHREAT))
                         me->CastSpell(target, TanaanSpells::SpellCannonBarrage, false);
                     m_Events.ScheduleEvent(eEvents::EventCannonBarrage, 80000);
                     break;
                 case eEvents::EventMachineGun:
-                    if (Unit* target = SelectTarget(SELECT_TARGET_TOPAGGRO))
+                    if (Unit* target = SelectTarget(SELECT_TARGET_MAXTHREAT))
                         me->CastSpell(target, TanaanSpells::SpellMachineGun, true);
                     m_Events.ScheduleEvent(eEvents::EventMachineGun, 8000);
                     break;
@@ -610,8 +610,8 @@ public:
         {
             //go->SetCancelAnim(true);
 
-            if (go->GetPositionX() > 4060.0f || go->GetPositionY() > -2020.0f)
-                go->AddFlag(GO_FLAG_NOT_SELECTABLE);
+            if (me->GetPositionX() > 4060.0f || me->GetPositionY() > -2020.0f)
+                me->AddFlag(GO_FLAG_NOT_SELECTABLE);
         }
     };
 

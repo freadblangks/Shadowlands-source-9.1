@@ -56,9 +56,9 @@ class boss_grobbulus : public CreatureScript
         {
             boss_grobbulusAI(Creature* creature) : BossAI(creature, BOSS_GROBBULUS) { }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void EnterCombat(Unit* /*who*/) override
             {
-                _JustEngagedWith();
+                _EnterCombat();
                 events.ScheduleEvent(EVENT_CLOUD, Seconds(15));
                 events.ScheduleEvent(EVENT_INJECT, Seconds(20));
                 events.ScheduleEvent(EVENT_SPRAY, randtime(Seconds(15), Seconds(30))); // not sure
@@ -165,7 +165,7 @@ class spell_grobbulus_mutating_injection : public SpellScriptLoader
                 if (Unit* caster = GetCaster())
                 {
                     caster->CastSpell(GetTarget(), SPELL_MUTATING_EXPLOSION, true);
-                    GetTarget()->CastSpell(GetTarget(), SPELL_POISON_CLOUD, { aurEff, GetCasterGUID() });
+                    GetTarget()->CastSpell(GetTarget(), SPELL_POISON_CLOUD, true, nullptr, aurEff, GetCasterGUID());
                 }
             }
 
@@ -200,15 +200,10 @@ class spell_grobbulus_poison_cloud : public SpellScriptLoader
             void PeriodicTick(AuraEffect const* aurEff)
             {
                 PreventDefaultAction();
-                if (!aurEff->GetTotalTicks())
-                    return;
 
-                uint32 triggerSpell = aurEff->GetSpellEffectInfo()->TriggerSpell;
+                uint32 triggerSpell = GetSpellInfo()->GetEffect(aurEff->GetEffIndex())->TriggerSpell;
                 int32 mod = int32(((float(aurEff->GetTickNumber()) / aurEff->GetTotalTicks()) * 0.9f + 0.1f) * 10000 * 2 / 3);
-
-                CastSpellExtraArgs args(aurEff);
-                args.AddSpellMod(SPELLVALUE_RADIUS_MOD, mod);
-                GetTarget()->CastSpell(nullptr, triggerSpell, args);
+                GetTarget()->CastCustomSpell(triggerSpell, SPELLVALUE_RADIUS_MOD, mod, nullptr, TRIGGERED_FULL_MASK, nullptr, aurEff);
             }
 
             void Register() override

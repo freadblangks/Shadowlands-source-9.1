@@ -1,5 +1,6 @@
 /*
- * Copyright 2021 ShadowCore
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -531,7 +532,7 @@ class boss_kargath_bladefist : public CreatureScript
 
                         AddTimedDelayedOperation(1 * TimeConstants::IN_MILLISECONDS, [this]() -> void
                         {
-                            if (Unit* l_NewTarget = me->getThreatManager().getHostilTarget())
+                            if (Unit* l_NewTarget = me->GetThreatManager().getHostilTarget())
                                 AttackStart(l_NewTarget);
                             me->ClearUnitState(UNIT_STATE_STUNNED);
                             me->ClearUnitState(UNIT_STATE_CONFUSED);
@@ -554,7 +555,7 @@ class boss_kargath_bladefist : public CreatureScript
                         if (me->HasUnitState(UnitState::UNIT_STATE_ROOT))
                             me->SetControlled(false, UnitState::UNIT_STATE_ROOT);
 
-                        if (Unit* l_NewTarget = me->getThreatManager().getHostilTarget())
+                        if (Unit* l_NewTarget = me->GetThreatManager().getHostilTarget())
                             AttackStart(l_NewTarget);
 
                         m_ChainHurl = false;
@@ -689,7 +690,7 @@ class boss_kargath_bladefist : public CreatureScript
                     {
                         m_BerserkerRushTarget = target->GetGUID();
 
-                        me->getThreatManager().addThreat(target, std::numeric_limits<float>::max());
+                        me->GetThreatManager().addThreat(target, std::numeric_limits<float>::max());
                         me->TauntApply(target);
                         me->SetReactState(ReactStates::REACT_PASSIVE);
 
@@ -705,7 +706,7 @@ class boss_kargath_bladefist : public CreatureScript
                     }
                     case eSpells::ChainHurlStunAura:
                     {
-                        DoModifyThreatPercent(target, -99);
+                        ModifyThreatByPercent(target, -99);
                         break;
                     }
                     case eSpells::BerserkerRushDamage:
@@ -785,7 +786,7 @@ class boss_kargath_bladefist : public CreatureScript
                     {
                         Talk(eTalks::Impale);
 
-                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_TOPAGGRO))
+                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_MAXTHREAT))
                             me->CastSpell(target, eSpells::SpellImpale, false);
 
                         me->CastSpell(me, eSpells::SpellImpaleMorph, true);
@@ -1036,14 +1037,13 @@ class boss_kargath_bladefist : public CreatureScript
 
                 me->SetReactState(ReactStates::REACT_AGGRESSIVE);
 
-                me->getThreatManager().modifyThreatPercent(target, -100);
-                me->getThreatManager().setDirty(true);
+                ModifyThreatByPercent(target, -100);
 
                 me->GetMotionMaster()->Clear();
 
                 if (p_NewTarget)
                 {
-                    if (Unit* l_NewTarget = me->getThreatManager().getHostilTarget())
+                    if (Unit* l_NewTarget = me->GetThreatManager().getHostilTarget())
                         AttackStart(l_NewTarget);
                 }
             }
@@ -1311,7 +1311,7 @@ class npc_highmaul_vulgor : public CreatureScript
                 switch (m_Events.ExecuteEvent())
                 {
                     case eEvents::EventCleave:
-                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_TOPAGGRO))
+                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_MAXTHREAT))
                             me->CastSpell(target, eSpells::SpellCleave, true);
                         m_Events.ScheduleEvent(eEvents::EventCleave, 19000);
                         break;
@@ -1523,7 +1523,7 @@ class npc_highmaul_somldering_stoneguard : public CreatureScript
                 switch (m_Events.ExecuteEvent())
                 {
                     case eEvent::EventCleave:
-                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_TOPAGGRO))
+                        if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_MAXTHREAT))
                             me->CastSpell(target, eSpell::SpellCleave, false);
                         m_Events.ScheduleEvent(eEvent::EventCleave, 10000);
                         break;
@@ -1756,8 +1756,8 @@ class npc_highmaul_ravenous_bloodmaw : public CreatureScript
 
                         me->SetInCombatWithZone();
 
-                        me->getThreatManager().clearReferences();
-                        me->getThreatManager().addThreat(target, std::numeric_limits<float>::max());
+                        me->GetThreatManager().clearReferences();
+                        me->GetThreatManager().addThreat(target, std::numeric_limits<float>::max());
 
                         me->SetReactState(ReactStates::REACT_AGGRESSIVE);
                         me->TauntApply(target);
@@ -2330,7 +2330,7 @@ class npc_highmaul_iron_grunt_second : public CreatureScript
 
                 if (m_Events.ExecuteEvent() == eEvent::EventGrapple)
                 {
-                    if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_TOPAGGRO))
+                    if (Unit* target = SelectTarget(SelectAggroTarget::SELECT_TARGET_MAXTHREAT))
                         me->CastSpell(target, eSpells::Grapple, true);
                     m_Events.ScheduleEvent(eEvent::EventGrapple, 6000);
                 }
@@ -3345,6 +3345,59 @@ class spell_highmaul_chain_hurl : public SpellScriptLoader
         }
 };
 
+/// Vile Breath - 160521
+class spell_highmaul_vile_breath : public SpellScriptLoader
+{
+    public:
+        spell_highmaul_vile_breath() : SpellScriptLoader("spell_highmaul_vile_breath") { }
+
+        class spell_highmaul_vile_breath_SpellScript : public SpellScript
+        {
+            PrepareSpellScript(spell_highmaul_vile_breath_SpellScript);
+
+            enum eSpell
+            {
+                TargetRestrict = 20321
+            };
+
+            void CorrectTargets(std::list<WorldObject*>& targets)
+            {
+                if (targets.empty())
+                    return;
+
+                SpellTargetRestrictionsEntry const* l_Restriction = sSpellTargetRestrictionsStore.LookupEntry(eSpell::TargetRestrict);
+                if (l_Restriction == nullptr)
+                    return;
+
+                Unit* caster = GetCaster();
+                if (caster == nullptr)
+                    return;
+
+                float l_Angle = 2 * float(M_PI) / 360 * l_Restriction->ConeDegrees;
+                targets.remove_if([caster, l_Angle](WorldObject* p_Object) -> bool
+                {
+                    if (p_Object == nullptr)
+                        return true;
+
+                    if (!p_Object->isInFront(caster, l_Angle))
+                        return true;
+
+                    return false;
+                });
+            }
+
+            void Register() override
+            {
+                OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_highmaul_vile_breath_SpellScript::CorrectTargets, EFFECT_0, TARGET_UNIT_CONE_ENTRY_110);
+            }
+        };
+
+        SpellScript* GetSpellScript() const override
+        {
+            return new spell_highmaul_vile_breath_SpellScript();
+        }
+};
+
 /// Obscured - 160131
 class spell_highmaul_obscured : public SpellScriptLoader
 {
@@ -4031,6 +4084,7 @@ void AddSC_boss_kargath_bladefist()
     new spell_highmaul_fire_pillar_gout_searcher();
     new spell_highmaul_berserker_rush();
     new spell_highmaul_chain_hurl();
+    new spell_highmaul_vile_breath();
     new spell_highmaul_obscured();
     new spell_highmaul_crowd_minion_killed();
     new spell_highmaul_roar_of_the_crowd();

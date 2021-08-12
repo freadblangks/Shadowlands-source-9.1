@@ -104,18 +104,19 @@ class npc_voljin_zulaman : public CreatureScript
             bool GossipSelect(Player* player, uint32 menuId, uint32 gossipListId) override
             {
                 if (_instance->GetData(DATA_ZULAMAN_STATE) != NOT_STARTED)
-                    return true;
+                    return false;
 
                 if (me->GetCreatureTemplate()->GossipMenuId == menuId && !gossipListId)
                 {
                     _events.Reset();
                     me->SetMountDisplayId(0);
                     me->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP);
-                    me->SetDynamicFlags(UNIT_DYNFLAG_NONE);
+                    me->AddDynamicFlag(UNIT_DYNFLAG_NONE);
                     _events.ScheduleEvent(EVENT_INTRO_MOVEPOINT_1, 1000);
                     Talk(SAY_INTRO_1, player);
                     me->SetWalk(true);
                 }
+
                 return false;
             }
 

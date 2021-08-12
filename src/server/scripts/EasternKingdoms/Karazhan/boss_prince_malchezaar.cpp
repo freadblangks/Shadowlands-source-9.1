@@ -121,7 +121,7 @@ public:
         InfernalPoint *point;
 
         void Reset() override { }
-        void JustEngagedWith(Unit* /*who*/) override { }
+        void EnterCombat(Unit* /*who*/) override { }
         void MoveInLineOfSight(Unit* /*who*/) override { }
 
 
@@ -158,7 +158,7 @@ public:
         {
             if (spell->Id == SPELL_INFERNAL_RELAY)
             {
-                me->SetDisplayId(me->GetNativeDisplayId());
+                me->SetDisplayId(me->m_unitData->NativeDisplayID);
                 me->AddUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                 HellfireTimer = 4000;
                 CleanupTimer = 170000;
@@ -167,7 +167,7 @@ public:
 
         void DamageTaken(Unit* done_by, uint32 &damage) override
         {
-            if (!done_by || done_by->GetGUID() != malchezaar)
+            if (done_by->GetGUID() != malchezaar)
                 damage = 0;
         }
 
@@ -271,7 +271,7 @@ public:
             instance->HandleGameObject(instance->GetGuidData(DATA_GO_NETHER_DOOR), true);
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
             Talk(SAY_AGGRO);
 
@@ -311,7 +311,7 @@ public:
 
         void EnfeebleHealthEffect()
         {
-            SpellInfo const* info = sSpellMgr->GetSpellInfo(SPELL_ENFEEBLE_EFFECT, GetDifficulty());
+            SpellInfo const* info = sSpellMgr->GetSpellInfo(SPELL_ENFEEBLE_EFFECT, me->GetMap()->GetDifficultyID());
             if (!info)
                 return;
 
@@ -339,10 +339,7 @@ public:
                     enfeeble_targets[i] = target->GetGUID();
                     enfeeble_health[i] = target->GetHealth();
 
-                    CastSpellExtraArgs args;
-                    args.TriggerFlags = TRIGGERED_FULL_MASK;
-                    args.OriginalCaster = me->GetGUID();
-                    target->CastSpell(target, SPELL_ENFEEBLE, args);
+                    target->CastSpell(target, SPELL_ENFEEBLE, true, nullptr, nullptr, me->GetGUID());
                     target->SetHealth(1);
                 }
         }

@@ -123,16 +123,16 @@ public:
         {
             BossAI::Reset();
             me->RemoveUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE));
-            instance->DoStopCriteriaTimer(CriteriaStartEvent::SendEvent, ACHIEV_GOTTA_GO_START_EVENT);
+            instance->DoStopCriteriaTimer(CRITERIA_TIMED_TYPE_EVENT, ACHIEV_GOTTA_GO_START_EVENT);
             _nextSubmerge = 75;
             _petCount = 0;
         }
 
         bool CanAIAttack(Unit const* /*who*/) const override { return true; } // do not check boundary here
 
-        void JustEngagedWith(Unit* who) override
+        void EnterCombat(Unit* who) override
         {
-            BossAI::JustEngagedWith(who);
+            BossAI::EnterCombat(who);
 
             if (GameObject* door = instance->GetGameObject(DATA_ANUBARAK_WALL))
                 door->SetGoState(GO_STATE_ACTIVE); // open door for now
@@ -140,7 +140,7 @@ public:
                 door2->SetGoState(GO_STATE_ACTIVE);
 
             Talk(SAY_AGGRO);
-            instance->DoStartCriteriaTimer(CriteriaStartEvent::SendEvent, ACHIEV_GOTTA_GO_START_EVENT);
+            instance->DoStartCriteriaTimer(CRITERIA_TIMED_TYPE_EVENT, ACHIEV_GOTTA_GO_START_EVENT);
 
             events.SetPhase(PHASE_EMERGE);
             events.ScheduleEvent(EVENT_CLOSE_DOOR, Seconds(5));
@@ -301,9 +301,9 @@ public:
                 Talk(SAY_SLAY);
         }
 
-        void SetGUID(ObjectGuid const& guid, int32 id) override
+        void SetGUID(ObjectGuid guid, int32 type) override
         {
-            switch (id)
+            switch (type)
             {
                 case GUID_TYPE_PET:
                 {
@@ -483,6 +483,15 @@ class npc_anubarak_anub_ar_assassin : public CreatureScript
         {
             npc_anubarak_anub_ar_assassinAI(Creature* creature) : npc_anubarak_pet_template(creature, false), _backstabTimer(6 * IN_MILLISECONDS) { }
 
+            bool IsInBounds(Position const& jumpTo, CreatureBoundary const* boundary)
+            {
+                if (!boundary)
+                    return true;
+                for (AreaBoundary const* it : *boundary)
+                    if (!it->IsWithinBoundary(&jumpTo))
+                        return false;
+                return true;
+            }
             Position GetRandomPositionAround(Creature* anubarak)
             {
                 static float DISTANCE_MIN = 10.0f;
@@ -499,7 +508,7 @@ class npc_anubarak_anub_ar_assassin : public CreatureScript
                     Position jumpTo;
                     do
                         jumpTo = GetRandomPositionAround(anubarak);
-                    while (!CreatureAI::IsInBounds(*boundary, &jumpTo));
+                    while (!IsInBounds(jumpTo, boundary));
                     me->GetMotionMaster()->MoveJump(jumpTo, 40.0f, 40.0f);
                     DoCastSelf(SPELL_ASSASSIN_VISUAL, true);
                 }

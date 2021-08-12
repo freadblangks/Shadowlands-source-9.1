@@ -135,7 +135,7 @@ public:
             me->LoadEquipment(0, true);
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
             events.ScheduleEvent(EVENT_ICY_TOUCH, 1000, GCD_CAST);
             events.ScheduleEvent(EVENT_PLAGUE_STRIKE, 3000, GCD_CAST);
@@ -308,9 +308,10 @@ public:
 
         ObjectGuid prisonerGUID;
 
-        void SetGUID(ObjectGuid const& guid, int32 /*id*/) override
+        void SetGUID(ObjectGuid guid, int32 /*id*/) override
         {
-            prisonerGUID = guid;
+            if (!prisonerGUID)
+                prisonerGUID = guid;
         }
 
         ObjectGuid GetGUID(int32 /*id*/) const override
@@ -322,31 +323,22 @@ public:
 
 class go_acherus_soul_prison : public GameObjectScript
 {
-    public:
-        go_acherus_soul_prison() : GameObjectScript("go_acherus_soul_prison") { }
+public:
+    go_acherus_soul_prison() : GameObjectScript("go_acherus_soul_prison") { }
 
-        struct go_acherus_soul_prisonAI : public GameObjectAI
+    bool OnGossipHello(Player* player, GameObject* go) override
+    {
+        if (Creature* anchor = go->FindNearestCreature(29521, 15))
         {
-            go_acherus_soul_prisonAI(GameObject* go) : GameObjectAI(go) { }
-
-            bool GossipHello(Player* player) override
-            {
-                if (Creature* anchor = me->FindNearestCreature(29521, 15))
-                {
-                    ObjectGuid prisonerGUID = anchor->AI()->GetGUID();
-                    if (!prisonerGUID.IsEmpty())
-                        if (Creature* prisoner = ObjectAccessor::GetCreature(*player, prisonerGUID))
-                            ENSURE_AI(npc_unworthy_initiate::npc_unworthy_initiateAI, prisoner->AI())->EventStart(anchor, player);
-                }
-
-                return false;
-            }
-        };
-
-        GameObjectAI* GetAI(GameObject* go) const override
-        {
-            return new go_acherus_soul_prisonAI(go);
+            ObjectGuid prisonerGUID = anchor->AI()->GetGUID();
+            if (!prisonerGUID.IsEmpty())
+                if (Creature* prisoner = ObjectAccessor::GetCreature(*player, prisonerGUID))
+                    ENSURE_AI(npc_unworthy_initiate::npc_unworthy_initiateAI, prisoner->AI())->EventStart(anchor, player);
         }
+
+        return false;
+    }
+
 };
 
  /*######
@@ -382,7 +374,7 @@ class npc_eye_of_acherus : public CreatureScript
                 me->SetDisplayFromModel(0);
                 if (Player* owner = me->GetCharmerOrOwner()->ToPlayer())
                 {
-                    me->GetCharmInfo()->InitPossessCreateSpells();
+                    me->InitCharmInfo()->InitPossessCreateSpells();
                     owner->SendAutoRepeatCancel(me);
                 }
 
@@ -483,7 +475,8 @@ enum Says_VBM
 
 enum Misc_VBN
 {
-    QUEST_DEATH_CHALLENGE = 12733
+    QUEST_DEATH_CHALLENGE       = 12733,
+    FACTION_HOSTILE             = 2068
 };
 
 class npc_death_knight_initiate : public CreatureScript
@@ -532,7 +525,7 @@ public:
 
        void DamageTaken(Unit* pDoneBy, uint32 &uiDamage) override
         {
-            if (m_bIsDuelInProgress && pDoneBy && pDoneBy->IsControlledByPlayer())
+            if (m_bIsDuelInProgress && pDoneBy->IsControlledByPlayer())
             {
                 if (pDoneBy->GetGUID() != m_uiDuelerGUID && pDoneBy->GetOwnerGUID() != m_uiDuelerGUID) // other players cannot help
                     uiDamage = 0;
@@ -561,7 +554,7 @@ public:
                 {
                     if (m_uiDuelTimer <= uiDiff)
                     {
-                        me->SetFaction(FACTION_UNDEAD_SCOURGE_2);
+                        me->SetFaction(FACTION_HOSTILE);
 
                         if (Unit* unit = ObjectAccessor::GetUnit(*me, m_uiDuelerGUID))
                             AttackStart(unit);
@@ -577,14 +570,14 @@ public:
                 if (lose)
                 {
                     if (!me->HasAura(SPELL_GROVEL))
-                        EnterEvadeMode();
+                        EnterEvadeMode(EvadeReason::EVADE_REASON_OTHER);
                     return;
                 }
                 else if (me->GetVictim() && me->EnsureVictim()->GetTypeId() == TYPEID_PLAYER && me->EnsureVictim()->HealthBelowPct(10))
                 {
                     me->EnsureVictim()->CastSpell(me->GetVictim(), SPELL_GROVEL, true); // beg
                     me->EnsureVictim()->RemoveGameObject(SPELL_DUEL_FLAG, true);
-                    EnterEvadeMode();
+                    EnterEvadeMode(EvadeReason::EVADE_REASON_OTHER);
                     return;
                 }
             }
@@ -772,6 +765,7 @@ public:
                 player->CastSpell(player, SPELL_REALM_OF_SHADOWS, true);
                 player->PlayerTalkClass->SendCloseGossip();
             }
+
             return false;
         }
 
@@ -787,7 +781,7 @@ public:
                         {
                             charmer->RemoveAurasDueToSpell(SPELL_EFFECT_STOLEN_HORSE);
                             caster->RemoveNpcFlag(UNIT_NPC_FLAG_SPELLCLICK);
-                            caster->SetFaction(FACTION_FRIENDLY);
+                            caster->SetFaction(35);
                             DoCast(caster, SPELL_CALL_DARK_RIDER, true);
                             if (Creature* Dark_Rider = me->FindNearestCreature(NPC_DARK_RIDER_OF_ACHERUS, 15))
                                 ENSURE_AI(npc_dark_rider_of_acherus::npc_dark_rider_of_acherusAI, Dark_Rider->AI())->InitDespawnHorse(caster);
@@ -851,7 +845,7 @@ public:
     {
         npc_ros_dark_riderAI(Creature* creature) : ScriptedAI(creature) { }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit* /*who*/) override
         {
             me->ExitVehicle();
         }
@@ -872,7 +866,7 @@ public:
         void JustDied(Unit* killer) override
         {
             Creature* deathcharger = me->FindNearestCreature(28782, 30);
-            if (!deathcharger || !killer)
+            if (!deathcharger)
                 return;
 
             if (killer->GetTypeId() == TYPEID_PLAYER && deathcharger->GetTypeId() == TYPEID_UNIT && deathcharger->IsVehicle())
@@ -953,7 +947,7 @@ public:
             // Ghouls should display their Birth Animation
             // Crawling out of the ground
             //DoCast(me, 35177, true);
-            //me->MonsterSay("Mommy?", LANG_UNIVERSAL, 0);
+            //me->Say("Mommy?", LANG_UNIVERSAL, 0);
             me->SetReactState(REACT_DEFENSIVE);
         }
 
@@ -1165,7 +1159,7 @@ class npc_scarlet_miner : public CreatureScript
                 }
             }
 
-            void SetGUID(ObjectGuid const& guid, int32 /*id*/) override
+            void SetGUID(ObjectGuid guid, int32 /*id = 0*/) override
             {
                 InitWaypoint();
                 Start(false, false, guid);

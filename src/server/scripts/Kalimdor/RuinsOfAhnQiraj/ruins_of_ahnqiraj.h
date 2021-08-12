@@ -63,7 +63,7 @@ enum AQRGameObjectIds
 template <class AI, class T>
 inline AI* GetAQ20AI(T* obj)
 {
-    return GetInstanceAI<AI>(obj, AQ20ScriptName);
+    return GetInstanceAI<AI, T>(obj, AQ20ScriptName);
 }
 
 #endif
